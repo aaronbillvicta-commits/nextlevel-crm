@@ -756,17 +756,18 @@ tbody tr:hover td{background:var(--bg3)}
 
 /* ── TAG FILTER BAR ── */
 .tag-filter-bar{
-  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  display:flex;align-items:center;gap:4px;flex-wrap:wrap;
   background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);
-  padding:6px 10px;cursor:text;min-height:38px;transition:border-color .15s;position:relative
+  padding:4px 8px;cursor:text;min-height:34px;transition:border-color .15s;
+  position:relative;overflow:visible
 }
 .tag-filter-bar:focus-within{border-color:var(--accent)}
 .tag-filter-chips{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
 .tag-filter-chip{
-  display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;
-  font-size:11px;font-weight:600;cursor:default;flex-shrink:0
+  display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:20px;
+  font-size:10px;font-weight:600;cursor:default;flex-shrink:0;white-space:nowrap
 }
-.tag-filter-chip-x{cursor:pointer;opacity:.7;font-size:13px;line-height:1;margin-left:1px;transition:opacity .12s}
+.tag-filter-chip-x{cursor:pointer;opacity:.6;font-size:12px;line-height:1;margin-left:2px;transition:opacity .12s;font-weight:400}
 .tag-filter-chip-x:hover{opacity:1}
 .tag-filter-input{
   border:none;background:none;outline:none;font-size:12px;color:var(--text);
@@ -792,10 +793,10 @@ tbody tr:hover td{background:var(--bg3)}
 
 /* ── CALL TOGGLE BUTTON ── */
 .call-toggle-btn{
-  display:flex;align-items:center;gap:7px;padding:7px 14px;
-  background:var(--bg3);border:1px solid var(--border2);border-radius:40px;
-  color:var(--text2);cursor:pointer;font-family:inherit;
-  transition:all .2s;white-space:nowrap
+  display:flex;align-items:center;gap:6px;padding:5px 12px;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:40px;color:var(--text2);cursor:pointer;font-family:inherit;
+  transition:all .2s;white-space:nowrap;font-size:11px
 }
 .call-toggle-btn:hover{background:rgba(0,229,160,.12);border-color:rgba(0,229,160,.4);color:var(--green)}
 .call-toggle-btn.active{background:rgba(0,229,160,.15);border-color:var(--green);color:var(--green)}
@@ -810,42 +811,45 @@ tbody tr:hover td{background:var(--bg3)}
 
 /* ── FLOATING DIALPAD ── */
 .dialpad-float{
-  position:fixed;top:64px;left:50%;transform:translateX(-50%);
-  width:260px;background:var(--bg2);border:1px solid var(--border2);
-  border-radius:var(--radius-lg);box-shadow:0 20px 60px rgba(0,0,0,.6);
+  position:fixed;top:58px;right:16px;
+  width:200px;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:var(--radius-lg);box-shadow:0 12px 40px rgba(0,0,0,.6);
   z-index:9000;overflow:hidden;
-  animation:dialpad-in .2s cubic-bezier(.34,1.56,.64,1)
+  animation:dialpad-in .18s cubic-bezier(.34,1.56,.64,1)
 }
-@keyframes dialpad-in{from{opacity:0;transform:translateX(-50%) translateY(-10px) scale(.95)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+@keyframes dialpad-in{from{opacity:0;transform:translateY(-8px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 .dialpad-head{
   display:flex;align-items:center;justify-content:space-between;
-  padding:12px 14px 8px;border-bottom:1px solid var(--border)
+  padding:8px 12px 6px;border-bottom:1px solid var(--border)
 }
 .dialpad-display{
-  display:flex;align-items:center;gap:8px;padding:12px 14px 4px
+  display:flex;align-items:center;gap:6px;padding:8px 10px 2px
 }
 .dialpad-number-input{
   flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);
-  padding:8px 12px;font-size:16px;font-family:'DM Mono',monospace;color:var(--text);
-  outline:none;letter-spacing:.05em;text-align:center;pointer-events:none
+  padding:6px 8px;font-size:14px;font-family:'DM Mono',monospace;color:var(--text);
+  outline:none;letter-spacing:.05em;text-align:center;pointer-events:none;
+  min-width:0
 }
 .dialpad-backspace{
-  font-size:18px;color:var(--text3);cursor:pointer;flex-shrink:0;
-  padding:4px;border-radius:var(--radius);transition:all .15s
+  font-size:16px;color:var(--text2);cursor:pointer;flex-shrink:0;
+  width:28px;height:28px;border-radius:var(--radius);transition:all .15s;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg3);border:1px solid var(--border)
 }
-.dialpad-backspace:hover{color:var(--red);background:var(--red-bg)}
+.dialpad-backspace:hover{color:var(--red);background:var(--red-bg);border-color:rgba(255,77,109,.3)}
 .dialpad-grid{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 14px
+  display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:6px 10px
 }
 .dialpad-key{
-  height:48px;border-radius:var(--radius);background:var(--bg3);
-  border:1px solid var(--border);color:var(--text);font-size:18px;font-weight:500;
+  height:38px;border-radius:var(--radius);background:var(--bg3);
+  border:1px solid var(--border);color:var(--text);font-size:16px;font-weight:500;
   cursor:pointer;transition:all .1s;font-family:inherit;
   display:flex;align-items:center;justify-content:center
 }
 .dialpad-key:hover{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2)}
-.dialpad-key:active{transform:scale(.93);background:var(--accent-bg)}
-.dialpad-actions{display:flex;justify-content:center;padding:4px 14px 16px}
+.dialpad-key:active{transform:scale(.93)}
+.dialpad-actions{display:flex;justify-content:center;padding:4px 10px 12px}
 
 /* Reuse existing call action buttons */
 .call-active-pulse{
@@ -864,7 +868,6 @@ tbody tr:hover td{background:var(--bg3)}
 .call-btn-mute:hover,.call-btn-mute.muted{background:var(--amber-bg);color:var(--amber);border-color:rgba(255,184,48,.4)}
 .call-btn-end{background:var(--red);color:#fff}
 .call-btn-end:hover{background:#ff1a44;transform:scale(1.06)}
-.topbar{position:relative}
 .btn-call-inline{
   display:inline-flex;align-items:center;justify-content:center;
   width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,229,160,.3);
@@ -1003,20 +1006,20 @@ tbody tr:hover td{background:var(--bg3)}
   <header class="topbar">
     <div class="topbar-title" id="page-title">Dashboard</div>
 
-    <!-- VOICE CALL TOGGLE BUTTON — center of topbar, hidden on Settings -->
-    <div style="position:absolute;left:50%;transform:translateX(-50%)" id="topbar-call-widget">
+    <!-- VOICE CALL TOGGLE BUTTON — upper RIGHT, hidden on Settings -->
+    <div style="margin-left:auto" id="topbar-call-widget">
       <!-- Idle: just the phone icon button -->
       <div id="call-widget-idle">
         <button class="call-toggle-btn" id="call-toggle-btn" onclick="toggleDialpad()" title="Open Dialer">
-          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-          <span id="call-toggle-label" style="font-size:11px;font-weight:600">Call</span>
+          <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <span style="font-size:11px;font-weight:600">Call</span>
         </button>
       </div>
       <!-- Active call bar (replaces toggle when in call) -->
       <div class="call-active-bar" id="call-widget-active" style="display:none">
         <div class="call-active-pulse"></div>
-        <div id="call-active-name" style="font-size:12px;font-weight:600;color:var(--text);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Calling…</div>
-        <div id="call-active-timer" style="font-size:11px;color:var(--green);font-family:'DM Mono',monospace;min-width:40px">00:00</div>
+        <div id="call-active-name" style="font-size:12px;font-weight:600;color:var(--text);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Calling…</div>
+        <div id="call-active-timer" style="font-size:11px;color:var(--green);font-family:'DM Mono',monospace;min-width:36px">00:00</div>
         <button class="btn-call-action call-btn-mute" id="call-mute-btn" onclick="toggleMute()" title="Mute/Unmute">
           <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
         </button>
@@ -1025,8 +1028,6 @@ tbody tr:hover td{background:var(--bg3)}
         </button>
       </div>
     </div>
-
-    <div style="width:120px"></div>
   </header>
 
   <!-- FLOATING DIALPAD (outside topbar so it can overlap content) -->
@@ -1059,8 +1060,8 @@ tbody tr:hover td{background:var(--bg3)}
     </div>
     <!-- Actions -->
     <div class="dialpad-actions">
-      <button class="btn-call-action call-btn-start" onclick="startCall()" title="Call" style="width:52px;height:52px;font-size:20px">
-        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      <button class="btn-call-action call-btn-start" onclick="startCall()" title="Call" style="width:44px;height:44px">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
       </button>
     </div>
   </div>
@@ -1094,34 +1095,35 @@ tbody tr:hover td{background:var(--bg3)}
         </div>
       </div>
 
-      <!-- Search + Tag filter bar -->
-      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap">
-        <!-- Main search -->
-        <div style="position:relative;min-width:220px;flex:1">
+      <!-- Search + Tag filter bar (compact, right-aligned) -->
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px">
+        <!-- Main search — takes most space -->
+        <div style="position:relative;flex:1;min-width:180px">
           <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="form-input" id="contact-search" style="padding-left:32px" placeholder="Search by name, email, company…" oninput="renderContacts()"/>
+          <input class="form-input" id="contact-search" style="padding-left:32px;height:34px;font-size:12px" placeholder="Search name, email, company…" oninput="renderContacts()"/>
         </div>
 
-        <!-- Tag search + stacked chips -->
-        <div style="flex:2;min-width:260px">
-          <!-- Stacked selected tag chips + input in one bar -->
-          <div class="tag-filter-bar" id="tag-filter-bar" onclick="document.getElementById('tag-filter-input').focus()">
-            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="color:var(--text3);flex-shrink:0;margin-top:2px"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-            <div class="tag-filter-chips" id="tag-filter-chips"></div>
+        <!-- Tag filter — compact, right side, 1/4 width -->
+        <div style="position:relative;width:220px;flex-shrink:0">
+          <div class="tag-filter-bar" id="tag-filter-bar" onclick="document.getElementById('tag-filter-input').focus()" style="height:34px;min-height:34px;padding:4px 8px">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="color:var(--text3);flex-shrink:0"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            <div class="tag-filter-chips" id="tag-filter-chips" style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;flex:1;min-width:0"></div>
             <input class="tag-filter-input" id="tag-filter-input"
-              placeholder="${'Filter by tag…'}"
+              placeholder="Filter by tag…"
               oninput="searchTagSuggestions(this.value)"
+              onfocus="showAllTagSuggestions()"
               onkeydown="handleTagFilterKey(event)"
-              autocomplete="off"/>
-            <span class="tag-filter-clear" id="tag-filter-clear-btn" onclick="clearContactTagFilters()" style="display:none" title="Clear all tag filters">×</span>
+              autocomplete="off"
+              style="font-size:11px;min-width:60px;flex:1"/>
+            <span class="tag-filter-clear" id="tag-filter-clear-btn" onclick="clearContactTagFilters()" style="display:none;font-size:15px" title="Clear">×</span>
           </div>
-          <!-- Suggestions dropdown -->
-          <div class="tag-filter-dropdown" id="tag-filter-dropdown" style="display:none"></div>
+          <!-- Dropdown anchored to this container -->
+          <div class="tag-filter-dropdown" id="tag-filter-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:500"></div>
         </div>
       </div>
 
       <!-- Filter summary -->
-      <div id="contact-filter-summary" style="display:none;margin-bottom:10px;font-size:12px;color:var(--text3)"></div>
+      <div id="contact-filter-summary" style="display:none;margin-bottom:8px;padding:6px 10px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);font-size:11px;color:var(--accent2)"></div>
 
       <div class="tbl-wrap">
         <table>
@@ -1314,7 +1316,7 @@ tbody tr:hover td{background:var(--bg3)}
             <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Select a conversation</div>
             <div style="font-size:12px;color:var(--text3)">Pick a contact from the left to view their message history</div>
           </div>
-          <div id="conv-thread-wrap" style="display:none;height:100%;display:none;flex-direction:column">
+          <div id="conv-thread-wrap" style="display:none;height:100%;flex-direction:column">
             <!-- Thread header -->
             <div class="conv-thread-head" id="conv-thread-head"></div>
             <!-- Message bubbles -->
@@ -2220,14 +2222,15 @@ function renderTagFilterChips(){
   el.innerHTML = [...activeContactTagFilters].map(label=>{
     const mt = getMasterTag(label);
     const cls = mt?.cls||'tag-blue';
-    return `<span class="tag-filter-chip ${cls}" style="background:var(--bg4);border:1px solid currentColor">
+    // Use tag class directly — it has the right bg+color already
+    return `<span class="tag ${cls} tag-filter-chip">
       ${label}
-      <span class="tag-filter-chip-x" onclick="removeTagChip('${label}')">×</span>
+      <span class="tag-filter-chip-x" onclick="event.stopPropagation();removeTagChip('${label.replace(/'/g,"\\'")}')">×</span>
     </span>`;
   }).join('');
   // Update placeholder
   const input = document.getElementById('tag-filter-input');
-  if(input) input.placeholder = activeContactTagFilters.size===0 ? 'Filter by tag…' : 'Add another tag…';
+  if(input) input.placeholder = activeContactTagFilters.size===0 ? 'Filter by tag…' : 'Add tag…';
 }
 
 function removeTagChip(label){
@@ -2238,17 +2241,27 @@ function removeTagChip(label){
 
 function searchTagSuggestions(q){
   const dropdown = document.getElementById('tag-filter-dropdown'); if(!dropdown) return;
+  // Show all unselected tags if empty, filter if typing
   const matches = masterTags.filter(t=>
-    t.label.toLowerCase().includes(q.toLowerCase()) && !activeContactTagFilters.has(t.label)
+    (q.trim()==='' || t.label.toLowerCase().includes(q.toLowerCase())) &&
+    !activeContactTagFilters.has(t.label)
   );
-  if(!q.trim() || !matches.length){ dropdown.style.display='none'; return; }
+  if(!matches.length){ dropdown.style.display='none'; return; }
   dropdown.style.display='block';
   dropdown.innerHTML = matches.slice(0,8).map(t=>{
-    const label = t.label.replace(/'/g,"\\'");
-    return '<div class="tag-filter-option" onclick="selectTagFilter(\'' + label + '\')">'
-      + '<span class="tag ' + t.cls + '" style="font-size:11px;padding:2px 8px">' + t.label + '</span>'
+    const escaped = t.label.replace(/'/g,"\\'");
+    // Highlight matching part
+    const highlighted = q.trim()
+      ? t.label.replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')', 'gi'), '<strong style="color:var(--accent2)">$1</strong>')
+      : t.label;
+    return '<div class="tag-filter-option" onclick="selectTagFilter(\'' + escaped + '\')">'
+      + '<span class="tag ' + t.cls + '" style="font-size:11px;padding:2px 8px">' + highlighted + '</span>'
       + '</div>';
   }).join('');
+}
+
+function showAllTagSuggestions(){
+  searchTagSuggestions('');
 }
 
 function selectTagFilter(label){
@@ -2311,7 +2324,7 @@ let dialpadOpen = false;
 function updateCallWidgetVisibility(page){
   const w = document.getElementById('topbar-call-widget'); if(!w) return;
   w.style.display = page==='settings' ? 'none' : 'flex';
-  // Also hide dialpad on settings
+  w.style.alignItems = 'center';
   if(page==='settings') closeDialpad();
 }
 
@@ -2540,14 +2553,6 @@ function getAv(id) {
   return colors[hash % colors.length];
 }
 function initials(name) { return (name||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
-
-const searchInputEl = document.getElementById('search-input');
-if(searchInputEl){
-  searchInputEl.addEventListener('input', function(){
-    if(document.getElementById('page-contacts').classList.contains('active'))
-      renderContacts(this.value);
-  });
-}
 
 // ─── CONTACT MODAL ───
 function openContactModal(contactId=null, tab='info') {
