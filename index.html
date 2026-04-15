@@ -9,16 +9,16 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0d0f14;--bg2:#13161d;--bg3:#1a1e28;--bg4:#222636;
-  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.12);
-  --text:#e8eaf0;--text2:#8b90a0;--text3:#555a6e;
-  --accent:#4f7ef8;--accent2:#6b93ff;--accent-bg:rgba(79,126,248,0.12);--accent-border:rgba(79,126,248,0.3);
-  --green:#3ecf8e;--green-bg:rgba(62,207,142,0.1);
-  --amber:#f59e3f;--amber-bg:rgba(245,158,63,0.1);
-  --red:#f26b6b;--red-bg:rgba(242,107,107,0.1);
-  --pink:#d97bba;--pink-bg:rgba(217,123,186,0.1);
-  --purple:#a78bfa;--purple-bg:rgba(167,139,250,0.1);
-  --teal:#2dd4bf;--teal-bg:rgba(45,212,191,0.1);
+  --bg:#080c18;--bg2:#0d1225;--bg3:#111830;--bg4:#1a2240;
+  --border:rgba(0,210,255,0.08);--border2:rgba(0,210,255,0.18);
+  --text:#e2eeff;--text2:#8ca0c8;--text3:#4a5a7a;
+  --accent:#00d2ff;--accent2:#38beff;--accent-bg:rgba(0,210,255,0.1);--accent-border:rgba(0,210,255,0.3);
+  --green:#00e5a0;--green-bg:rgba(0,229,160,0.1);
+  --amber:#ffb830;--amber-bg:rgba(255,184,48,0.1);
+  --red:#ff4d6d;--red-bg:rgba(255,77,109,0.1);
+  --pink:#ff2d78;--pink-bg:rgba(255,45,120,0.1);
+  --purple:#a259ff;--purple-bg:rgba(162,89,255,0.1);
+  --teal:#00d2ff;--teal-bg:rgba(0,210,255,0.1);
   --sidebar:230px;--radius:8px;--radius-lg:12px;
   font-family:'DM Sans',system-ui,sans-serif;
 }
@@ -707,6 +707,172 @@ tbody tr:hover td{background:var(--bg3)}
 .cal-upcoming-time{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace}
 .cal-upcoming-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
 
+/* ── EMAIL PAGE ── */
+.email-layout{display:grid;grid-template-columns:200px 320px 1fr;height:calc(100vh - 54px);overflow:hidden;margin:-20px;border-top:1px solid var(--border)}
+.email-sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:16px 12px;overflow-y:auto}
+.email-folder{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius);cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;margin-bottom:2px}
+.email-folder:hover{background:var(--bg3);color:var(--text)}
+.email-folder.active{background:var(--accent-bg);color:var(--accent2)}
+.email-folder svg{flex-shrink:0;opacity:.7}
+.email-folder.active svg{opacity:1}
+.email-folder-count{margin-left:auto;font-size:10px;font-family:'DM Mono',monospace;background:var(--bg4);color:var(--text3);padding:1px 6px;border-radius:20px}
+.email-list-panel{border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;background:var(--bg)}
+.email-list-head{padding:12px 14px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.email-list{flex:1;overflow-y:auto}
+.email-item{padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .12s}
+.email-item:hover{background:var(--bg2)}
+.email-item.active{background:var(--accent-bg);border-left:2px solid var(--accent)}
+.email-item.unread .email-item-subject{font-weight:600;color:var(--text)}
+.email-item-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.email-item-to{font-size:12px;font-weight:500;color:var(--text)}
+.email-item-time{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;flex-shrink:0}
+.email-item-subject{font-size:12px;color:var(--text2);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.email-item-preview{font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.email-item-badges{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.email-detail-panel{background:var(--bg);overflow:hidden;display:flex;flex-direction:column}
+.email-detail-head{padding:20px 24px 14px;border-bottom:1px solid var(--border);flex-shrink:0}
+.email-detail-subject{font-size:17px;font-weight:600;color:var(--text);margin-bottom:10px;line-height:1.3}
+.email-detail-meta{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.email-detail-meta-item{font-size:12px;color:var(--text3)}
+.email-detail-meta-item strong{color:var(--text)}
+.email-detail-body{padding:24px;font-size:14px;color:var(--text2);line-height:1.8;white-space:pre-wrap;overflow-y:auto;flex:1}
+
+/* Compose email modal */
+.compose-header-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:2px}
+.compose-label{font-size:11px;font-weight:600;color:var(--text3);width:50px;flex-shrink:0}
+.compose-field{flex:1;background:none;border:none;outline:none;font-size:13px;color:var(--text);font-family:inherit}
+.compose-field::placeholder{color:var(--text3)}
+.compose-from-select{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;font-size:12px;color:var(--text);outline:none;font-family:inherit;transition:border-color .15s}
+.compose-from-select:focus{border-color:var(--accent)}
+.compose-body-area{width:100%;background:none;border:none;outline:none;resize:none;font-size:13px;color:var(--text);font-family:inherit;line-height:1.7;min-height:200px;padding:12px 0}
+.compose-body-area::placeholder{color:var(--text3)}
+.compose-toolbar{display:flex;gap:4px;padding:8px 0;border-top:1px solid var(--border);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.compose-tool-btn{width:28px;height:28px;border-radius:var(--radius);border:1px solid transparent;background:transparent;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;transition:all .12s;font-family:inherit}
+.compose-tool-btn:hover{background:var(--bg3);border-color:var(--border);color:var(--text)}
+
+/* Inline email button next to contact email */
+.btn-email-inline{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:4px;border:1px solid var(--border);background:var(--bg3);color:var(--text3);cursor:pointer;transition:all .15s;flex-shrink:0;vertical-align:middle}
+.btn-email-inline:hover{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2)}
+
+/* ── TAG FILTER BAR ── */
+.tag-filter-bar{
+  display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);
+  padding:6px 10px;cursor:text;min-height:38px;transition:border-color .15s;position:relative
+}
+.tag-filter-bar:focus-within{border-color:var(--accent)}
+.tag-filter-chips{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.tag-filter-chip{
+  display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;
+  font-size:11px;font-weight:600;cursor:default;flex-shrink:0
+}
+.tag-filter-chip-x{cursor:pointer;opacity:.7;font-size:13px;line-height:1;margin-left:1px;transition:opacity .12s}
+.tag-filter-chip-x:hover{opacity:1}
+.tag-filter-input{
+  border:none;background:none;outline:none;font-size:12px;color:var(--text);
+  font-family:inherit;min-width:100px;flex:1
+}
+.tag-filter-input::placeholder{color:var(--text3)}
+.tag-filter-clear{
+  cursor:pointer;color:var(--text3);font-size:18px;line-height:1;
+  flex-shrink:0;transition:color .12s;user-select:none
+}
+.tag-filter-clear:hover{color:var(--red)}
+.tag-filter-dropdown{
+  position:absolute;top:100%;left:0;right:0;z-index:500;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);
+  margin-top:4px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4)
+}
+.tag-filter-option{
+  display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;
+  font-size:12px;color:var(--text2);transition:background .12s
+}
+.tag-filter-option:hover{background:var(--bg3);color:var(--text)}
+.tag-filter-option.already-selected{opacity:.4;pointer-events:none}
+
+/* ── CALL TOGGLE BUTTON ── */
+.call-toggle-btn{
+  display:flex;align-items:center;gap:7px;padding:7px 14px;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:40px;
+  color:var(--text2);cursor:pointer;font-family:inherit;
+  transition:all .2s;white-space:nowrap
+}
+.call-toggle-btn:hover{background:rgba(0,229,160,.12);border-color:rgba(0,229,160,.4);color:var(--green)}
+.call-toggle-btn.active{background:rgba(0,229,160,.15);border-color:var(--green);color:var(--green)}
+
+/* Active call bar */
+.call-active-bar{
+  display:flex;align-items:center;gap:8px;padding:6px 12px;
+  background:rgba(0,229,160,.1);border:1px solid rgba(0,229,160,.3);
+  border-radius:40px;animation:call-bar-glow 2s ease-in-out infinite
+}
+@keyframes call-bar-glow{0%,100%{box-shadow:0 0 0 0 rgba(0,229,160,.2)}50%{box-shadow:0 0 12px 2px rgba(0,229,160,.15)}}
+
+/* ── FLOATING DIALPAD ── */
+.dialpad-float{
+  position:fixed;top:64px;left:50%;transform:translateX(-50%);
+  width:260px;background:var(--bg2);border:1px solid var(--border2);
+  border-radius:var(--radius-lg);box-shadow:0 20px 60px rgba(0,0,0,.6);
+  z-index:9000;overflow:hidden;
+  animation:dialpad-in .2s cubic-bezier(.34,1.56,.64,1)
+}
+@keyframes dialpad-in{from{opacity:0;transform:translateX(-50%) translateY(-10px) scale(.95)}to{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+.dialpad-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 14px 8px;border-bottom:1px solid var(--border)
+}
+.dialpad-display{
+  display:flex;align-items:center;gap:8px;padding:12px 14px 4px
+}
+.dialpad-number-input{
+  flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);
+  padding:8px 12px;font-size:16px;font-family:'DM Mono',monospace;color:var(--text);
+  outline:none;letter-spacing:.05em;text-align:center;pointer-events:none
+}
+.dialpad-backspace{
+  font-size:18px;color:var(--text3);cursor:pointer;flex-shrink:0;
+  padding:4px;border-radius:var(--radius);transition:all .15s
+}
+.dialpad-backspace:hover{color:var(--red);background:var(--red-bg)}
+.dialpad-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 14px
+}
+.dialpad-key{
+  height:48px;border-radius:var(--radius);background:var(--bg3);
+  border:1px solid var(--border);color:var(--text);font-size:18px;font-weight:500;
+  cursor:pointer;transition:all .1s;font-family:inherit;
+  display:flex;align-items:center;justify-content:center
+}
+.dialpad-key:hover{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2)}
+.dialpad-key:active{transform:scale(.93);background:var(--accent-bg)}
+.dialpad-actions{display:flex;justify-content:center;padding:4px 14px 16px}
+
+/* Reuse existing call action buttons */
+.call-active-pulse{
+  width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;
+  animation:call-pulse 1.2s ease-in-out infinite
+}
+@keyframes call-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+
+.btn-call-action{
+  width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s
+}
+.call-btn-start{background:var(--green);color:#000}
+.call-btn-start:hover{background:#00ffb3;transform:scale(1.06)}
+.call-btn-mute{background:var(--bg4);color:var(--text2);border:1px solid var(--border2)}
+.call-btn-mute:hover,.call-btn-mute.muted{background:var(--amber-bg);color:var(--amber);border-color:rgba(255,184,48,.4)}
+.call-btn-end{background:var(--red);color:#fff}
+.call-btn-end:hover{background:#ff1a44;transform:scale(1.06)}
+.topbar{position:relative}
+.btn-call-inline{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:22px;height:22px;border-radius:50%;border:1px solid rgba(0,229,160,.3);
+  background:rgba(0,229,160,.08);color:var(--green);cursor:pointer;
+  transition:all .15s;flex-shrink:0;vertical-align:middle
+}
+.btn-call-inline:hover{background:rgba(0,229,160,.2);border-color:var(--green);transform:scale(1.1)}
+
 /* ── LOGIN SCREEN ── */
 #login-screen{position:fixed;inset:0;z-index:9999;background:var(--bg)}
 .login-bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 60% 40%,rgba(79,126,248,.08) 0%,transparent 60%)}
@@ -783,6 +949,11 @@ tbody tr:hover td{background:var(--bg3)}
       Conversations
       <span class="nav-badge" id="nb-conversations">0</span>
     </div>
+    <div class="nav-item" data-page="email">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      Email
+      <span class="nav-badge" id="nb-email-drafts" style="display:none">0</span>
+    </div>
     <div class="nav-item" data-page="automations">
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
       Automations
@@ -831,11 +1002,68 @@ tbody tr:hover td{background:var(--bg3)}
 <div class="main">
   <header class="topbar">
     <div class="topbar-title" id="page-title">Dashboard</div>
-    <div class="search">
-      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <input id="search-input" placeholder="Search contacts, deals…"/>
+
+    <!-- VOICE CALL TOGGLE BUTTON — center of topbar, hidden on Settings -->
+    <div style="position:absolute;left:50%;transform:translateX(-50%)" id="topbar-call-widget">
+      <!-- Idle: just the phone icon button -->
+      <div id="call-widget-idle">
+        <button class="call-toggle-btn" id="call-toggle-btn" onclick="toggleDialpad()" title="Open Dialer">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <span id="call-toggle-label" style="font-size:11px;font-weight:600">Call</span>
+        </button>
+      </div>
+      <!-- Active call bar (replaces toggle when in call) -->
+      <div class="call-active-bar" id="call-widget-active" style="display:none">
+        <div class="call-active-pulse"></div>
+        <div id="call-active-name" style="font-size:12px;font-weight:600;color:var(--text);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Calling…</div>
+        <div id="call-active-timer" style="font-size:11px;color:var(--green);font-family:'DM Mono',monospace;min-width:40px">00:00</div>
+        <button class="btn-call-action call-btn-mute" id="call-mute-btn" onclick="toggleMute()" title="Mute/Unmute">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+        </button>
+        <button class="btn-call-action call-btn-end" onclick="endCall()" title="End Call">
+          <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09"/><line x1="23" y1="1" x2="1" y2="23" stroke="currentColor" stroke-width="2"/></svg>
+        </button>
+      </div>
     </div>
+
+    <div style="width:120px"></div>
   </header>
+
+  <!-- FLOATING DIALPAD (outside topbar so it can overlap content) -->
+  <div class="dialpad-float" id="dialpad-float" style="display:none">
+    <div class="dialpad-head">
+      <span style="font-size:12px;font-weight:600;color:var(--text)">Dialer</span>
+      <span style="cursor:pointer;color:var(--text3);font-size:18px;line-height:1" onclick="toggleDialpad()">×</span>
+    </div>
+    <!-- Number display -->
+    <div class="dialpad-display">
+      <input class="dialpad-number-input" id="call-dial-number" placeholder="Enter number…" readonly/>
+      <span class="dialpad-backspace" onclick="dialpadBackspace()" title="Backspace">⌫</span>
+    </div>
+    <!-- Contact match -->
+    <div id="dialpad-contact-match" style="font-size:11px;color:var(--accent2);text-align:center;min-height:16px;margin-bottom:6px"></div>
+    <!-- Dial grid -->
+    <div class="dialpad-grid">
+      <button class="dialpad-key" onclick="dialpadPress('1')">1</button>
+      <button class="dialpad-key" onclick="dialpadPress('2')">2</button>
+      <button class="dialpad-key" onclick="dialpadPress('3')">3</button>
+      <button class="dialpad-key" onclick="dialpadPress('4')">4</button>
+      <button class="dialpad-key" onclick="dialpadPress('5')">5</button>
+      <button class="dialpad-key" onclick="dialpadPress('6')">6</button>
+      <button class="dialpad-key" onclick="dialpadPress('7')">7</button>
+      <button class="dialpad-key" onclick="dialpadPress('8')">8</button>
+      <button class="dialpad-key" onclick="dialpadPress('9')">9</button>
+      <button class="dialpad-key" onclick="dialpadPress('*')" style="font-size:22px;line-height:1">*</button>
+      <button class="dialpad-key" onclick="dialpadPress('0')">0</button>
+      <button class="dialpad-key" onclick="dialpadPress('#')">#</button>
+    </div>
+    <!-- Actions -->
+    <div class="dialpad-actions">
+      <button class="btn-call-action call-btn-start" onclick="startCall()" title="Call" style="width:52px;height:52px;font-size:20px">
+        <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      </button>
+    </div>
+  </div>
 
   <div class="content">
 
@@ -856,19 +1084,54 @@ tbody tr:hover td{background:var(--bg3)}
 
     <!-- CONTACTS -->
     <div class="page" id="page-contacts">
+      <!-- Header -->
       <div class="sec-head">
         <div class="sec-title">All Contacts <span id="contact-count-label" style="color:var(--text3);font-weight:400"></span></div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-sm" onclick="showToast('CSV export started…')">Export CSV</button>
+          <button class="btn btn-sm" onclick="openImportContacts()">⬆ Import CSV</button>
+          <button class="btn btn-sm" onclick="exportContactsCSV()">⬇ Export CSV</button>
           <button class="btn btn-primary btn-sm" onclick="openContactModal()">+ Add Contact</button>
         </div>
       </div>
+
+      <!-- Search + Tag filter bar -->
+      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap">
+        <!-- Main search -->
+        <div style="position:relative;min-width:220px;flex:1">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="form-input" id="contact-search" style="padding-left:32px" placeholder="Search by name, email, company…" oninput="renderContacts()"/>
+        </div>
+
+        <!-- Tag search + stacked chips -->
+        <div style="flex:2;min-width:260px">
+          <!-- Stacked selected tag chips + input in one bar -->
+          <div class="tag-filter-bar" id="tag-filter-bar" onclick="document.getElementById('tag-filter-input').focus()">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="color:var(--text3);flex-shrink:0;margin-top:2px"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            <div class="tag-filter-chips" id="tag-filter-chips"></div>
+            <input class="tag-filter-input" id="tag-filter-input"
+              placeholder="${'Filter by tag…'}"
+              oninput="searchTagSuggestions(this.value)"
+              onkeydown="handleTagFilterKey(event)"
+              autocomplete="off"/>
+            <span class="tag-filter-clear" id="tag-filter-clear-btn" onclick="clearContactTagFilters()" style="display:none" title="Clear all tag filters">×</span>
+          </div>
+          <!-- Suggestions dropdown -->
+          <div class="tag-filter-dropdown" id="tag-filter-dropdown" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- Filter summary -->
+      <div id="contact-filter-summary" style="display:none;margin-bottom:10px;font-size:12px;color:var(--text3)"></div>
+
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Source</th><th>Tags</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Source</th><th>Tags</th><th>Status</th><th>Pipeline / Stage</th><th></th></tr></thead>
           <tbody id="contacts-tbody"></tbody>
         </table>
       </div>
+
+      <!-- Hidden CSV import input -->
+      <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCSVImport(event)"/>
     </div>
 
     <!-- PIPELINE -->
@@ -1002,13 +1265,18 @@ tbody tr:hover td{background:var(--bg3)}
       <div class="sec-head">
         <div>
           <div class="sec-title">Tags</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:2px">Manage all tags used across contacts and deals</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Master tag list — no duplicates, managed centrally</div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="openCreateTagModal()">+ Create Tag</button>
       </div>
-      <!-- Tag stats -->
+      <!-- Stats row -->
       <div id="tag-stats-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px"></div>
-      <!-- Tag table -->
+      <!-- Tag search -->
+      <div style="position:relative;max-width:320px;margin-bottom:14px">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-input" id="tag-search" style="padding-left:32px" placeholder="Search tags…" oninput="renderTagsPage()"/>
+      </div>
+      <!-- Master tag table -->
       <div class="tbl-wrap">
         <table>
           <thead><tr><th>Tag</th><th>Color</th><th>Contacts</th><th>Deals</th><th>Actions</th></tr></thead>
@@ -1090,6 +1358,64 @@ tbody tr:hover td{background:var(--bg3)}
             <div style="font-size:12px;color:var(--text3);text-align:center;padding:20px">Select a conversation to see contact details</div>
           </div>
           <div id="conv-info-content" style="display:none"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- EMAIL -->
+    <div class="page" id="page-email">
+      <div class="email-layout">
+
+        <!-- LEFT: folder sidebar -->
+        <div class="email-sidebar">
+          <button class="btn btn-primary" style="width:100%;margin-bottom:16px;justify-content:center" onclick="openComposeEmail()">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Compose
+          </button>
+          <div class="email-folder active" data-folder="sent" onclick="setEmailFolder('sent',this)">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Sent
+            <span class="email-folder-count" id="efolder-sent">0</span>
+          </div>
+          <div class="email-folder" data-folder="drafts" onclick="setEmailFolder('drafts',this)">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            Drafts
+            <span class="email-folder-count" id="efolder-drafts">0</span>
+          </div>
+          <div class="email-folder" data-folder="all" onclick="setEmailFolder('all',this)">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            All Emails
+            <span class="email-folder-count" id="efolder-all">0</span>
+          </div>
+          <!-- Connected accounts -->
+          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+            <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">From Account</div>
+            <div id="email-accounts-list"></div>
+            <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5">Add accounts in <span onclick="navigate('integrations')" style="color:var(--accent2);cursor:pointer">Integrations → Email</span></div>
+          </div>
+        </div>
+
+        <!-- CENTER: email list -->
+        <div class="email-list-panel">
+          <div class="email-list-head">
+            <div style="font-size:13px;font-weight:600;color:var(--text)" id="email-folder-title">Sent</div>
+            <div style="position:relative">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input class="form-input" id="email-search" style="padding-left:28px;font-size:12px;width:180px" placeholder="Search emails…" oninput="renderEmailList()"/>
+            </div>
+          </div>
+          <div class="email-list" id="email-list"></div>
+        </div>
+
+        <!-- RIGHT: email detail / compose preview -->
+        <div class="email-detail-panel">
+          <div id="email-detail-empty" class="conv-empty">
+            <div style="font-size:32px;margin-bottom:12px">📧</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Select an email</div>
+            <div style="font-size:12px;color:var(--text3)">Pick an email from the list to read it</div>
+          </div>
+          <div id="email-detail-content" style="display:none;padding:20px;overflow-y:auto;height:100%"></div>
         </div>
 
       </div>
@@ -1865,40 +2191,347 @@ function openModal(html, wide=false, lg=false) {
   box.className = 'modal'+(wide?' modal-wide':'')+(lg?' modal-lg':'');
   document.getElementById('modal-overlay').classList.add('open');
 }
-function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+function closeModal() { 
+  if(window._modalLocked) return; // don't close if locked (e.g. compose email)
+  document.getElementById('modal-overlay').classList.remove('open'); 
+}
+function closeModalForce(){ 
+  window._modalLocked=false;
+  document.getElementById('modal-overlay').classList.remove('open'); 
+}
 document.getElementById('modal-overlay').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
 
 // ═══════════════════════════════════════════════
 // CONTACTS
 // ═══════════════════════════════════════════════
-function renderContacts(filter='') {
+// ── CONTACT TAG FILTERS — search bar with stacked chips ──
+let activeContactTagFilters = new Set();
+
+function renderContactTagFilters(){
+  // This is now driven by the chip bar, not a chip row
+  // Just update the clear button visibility
+  const clearBtn = document.getElementById('tag-filter-clear-btn');
+  if(clearBtn) clearBtn.style.display = activeContactTagFilters.size>0 ? 'inline' : 'none';
+  renderTagFilterChips();
+}
+
+function renderTagFilterChips(){
+  const el = document.getElementById('tag-filter-chips'); if(!el) return;
+  el.innerHTML = [...activeContactTagFilters].map(label=>{
+    const mt = getMasterTag(label);
+    const cls = mt?.cls||'tag-blue';
+    return `<span class="tag-filter-chip ${cls}" style="background:var(--bg4);border:1px solid currentColor">
+      ${label}
+      <span class="tag-filter-chip-x" onclick="removeTagChip('${label}')">×</span>
+    </span>`;
+  }).join('');
+  // Update placeholder
+  const input = document.getElementById('tag-filter-input');
+  if(input) input.placeholder = activeContactTagFilters.size===0 ? 'Filter by tag…' : 'Add another tag…';
+}
+
+function removeTagChip(label){
+  activeContactTagFilters.delete(label);
+  renderContactTagFilters();
+  renderContacts();
+}
+
+function searchTagSuggestions(q){
+  const dropdown = document.getElementById('tag-filter-dropdown'); if(!dropdown) return;
+  const matches = masterTags.filter(t=>
+    t.label.toLowerCase().includes(q.toLowerCase()) && !activeContactTagFilters.has(t.label)
+  );
+  if(!q.trim() || !matches.length){ dropdown.style.display='none'; return; }
+  dropdown.style.display='block';
+  dropdown.innerHTML = matches.slice(0,8).map(t=>{
+    const label = t.label.replace(/'/g,"\\'");
+    return '<div class="tag-filter-option" onclick="selectTagFilter(\'' + label + '\')">'
+      + '<span class="tag ' + t.cls + '" style="font-size:11px;padding:2px 8px">' + t.label + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+function selectTagFilter(label){
+  activeContactTagFilters.add(label);
+  const input = document.getElementById('tag-filter-input');
+  if(input) input.value='';
+  const dropdown = document.getElementById('tag-filter-dropdown');
+  if(dropdown) dropdown.style.display='none';
+  renderContactTagFilters();
+  renderContacts();
+}
+
+function handleTagFilterKey(e){
+  if(e.key==='Backspace' && !e.target.value && activeContactTagFilters.size>0){
+    // Remove last chip on backspace
+    const last = [...activeContactTagFilters].pop();
+    activeContactTagFilters.delete(last);
+    renderContactTagFilters();
+    renderContacts();
+  }
+  if(e.key==='Escape'){
+    const dropdown = document.getElementById('tag-filter-dropdown');
+    if(dropdown) dropdown.style.display='none';
+  }
+}
+
+function toggleContactTagFilter(label){
+  if(activeContactTagFilters.has(label)) activeContactTagFilters.delete(label);
+  else activeContactTagFilters.add(label);
+  renderContactTagFilters();
+  renderContacts();
+}
+
+function clearContactTagFilters(){
+  activeContactTagFilters.clear();
+  const input = document.getElementById('tag-filter-input');
+  if(input) input.value='';
+  renderContactTagFilters();
+  renderContacts();
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', e=>{
+  const bar = document.getElementById('tag-filter-bar');
+  const dd  = document.getElementById('tag-filter-dropdown');
+  if(dd && bar && !bar.contains(e.target) && !dd.contains(e.target)){
+    dd.style.display='none';
+  }
+});
+
+// ═══════════════════════════════════════════════
+// VOICE CALLING — Toggle + Floating Dialpad
+// ═══════════════════════════════════════════════
+let callTimer = null;
+let callSeconds = 0;
+let callMuted = false;
+let activeCallContact = null;
+let dialpadOpen = false;
+
+function updateCallWidgetVisibility(page){
+  const w = document.getElementById('topbar-call-widget'); if(!w) return;
+  w.style.display = page==='settings' ? 'none' : 'flex';
+  // Also hide dialpad on settings
+  if(page==='settings') closeDialpad();
+}
+
+function toggleDialpad(){
+  if(dialpadOpen) closeDialpad();
+  else openDialpad();
+}
+
+function openDialpad(){
+  dialpadOpen = true;
+  const pad = document.getElementById('dialpad-float');
+  const btn = document.getElementById('call-toggle-btn');
+  if(pad) pad.style.display='block';
+  if(btn) btn.classList.add('active');
+}
+
+function closeDialpad(){
+  dialpadOpen = false;
+  const pad = document.getElementById('dialpad-float');
+  const btn = document.getElementById('call-toggle-btn');
+  if(pad) pad.style.display='none';
+  if(btn) btn.classList.remove('active');
+}
+
+function dialpadPress(key){
+  const input = document.getElementById('call-dial-number'); if(!input) return;
+  input.value += key;
+  matchDialpadContact(input.value);
+}
+
+function dialpadBackspace(){
+  const input = document.getElementById('call-dial-number'); if(!input) return;
+  input.value = input.value.slice(0,-1);
+  matchDialpadContact(input.value);
+}
+
+function matchDialpadContact(num){
+  const el = document.getElementById('dialpad-contact-match'); if(!el) return;
+  if(!num){ el.textContent=''; return; }
+  const match = contacts.find(c=>c.phone&&c.phone.replace(/\D/g,'').includes(num.replace(/\D/g,'')));
+  el.textContent = match ? `📋 ${match.name}` : '';
+}
+
+function initiateCall(contactId, phone, name){
+  activeCallContact = { id:contactId, name, phone };
+  const input = document.getElementById('call-dial-number');
+  if(input) input.value = phone;
+  openDialpad();
+  const matchEl = document.getElementById('dialpad-contact-match');
+  if(matchEl) matchEl.textContent = `📋 ${name}`;
+}
+
+async function startCall(){
+  const input = document.getElementById('call-dial-number');
+  const number = input?.value.trim()||'';
+  if(!number){ showToast('Enter a phone number to call','error'); return; }
+
+  // Match contact if not already set
+  if(!activeCallContact){
+    const match = contacts.find(c=>c.phone&&c.phone.replace(/\D/g,'')===number.replace(/\D/g,''));
+    if(match) activeCallContact={id:match.id,name:match.name,phone:number};
+  }
+
+  const twilioData = localStorage.getItem('nlm_int_twilio');
+  const twilioSid  = twilioData?JSON.parse(twilioData)['twilio-sid']:'';
+  const twilioToken= localStorage.getItem('nlm_int_twilio_secret')||'';
+
+  if(!twilioSid||!twilioToken){
+    openModal(`
+      <div class="modal-head"><div class="modal-title">Connect Twilio to Make Calls</div><span class="modal-close" onclick="closeModal()">×</span></div>
+      <div class="modal-body">
+        <div style="text-align:center;padding:16px 0">
+          <div style="font-size:40px;margin-bottom:12px">📞</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">Twilio not connected</div>
+          <div style="font-size:13px;color:var(--text3);line-height:1.7">Connect your Twilio account in Integrations to make real phone calls.</div>
+        </div>
+        <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--accent2);line-height:1.7;margin-top:8px">
+          <strong>Twilio pricing:</strong> ~$1.15/month per number + $0.013/min for calls<br>
+          Sign up at <strong>twilio.com</strong> — free trial includes $15 credit
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="closeModal();navigate('integrations')">Go to Integrations →</button>
+      </div>`);
+    return;
+  }
+
+  const contactName = activeCallContact?.name||number;
+  closeDialpad();
+  setCallActive(contactName, number);
+  if(activeCallContact?.id){
+    let conv=conversations.find(c=>c.contactId===activeCallContact.id);
+    if(!conv){conv={id:'conv_'+Date.now(),contactId:activeCallContact.id,messages:[]};conversations.push(conv);}
+    conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'outbound',body:`📞 Outbound call to ${number}`,ts:new Date().toISOString(),status:'sent'});
+    saveConversations();
+  }
+  showToast(`📞 Calling ${contactName}…`);
+}
+
+function setCallActive(name, number){
+  document.getElementById('call-widget-idle').style.display='none';
+  document.getElementById('call-widget-active').style.display='flex';
+  document.getElementById('call-active-name').textContent=name||number;
+  callSeconds=0; callMuted=false;
+  document.getElementById('call-mute-btn')?.classList.remove('muted');
+  clearInterval(callTimer);
+  callTimer=setInterval(()=>{
+    callSeconds++;
+    const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
+    const s=String(callSeconds%60).padStart(2,'0');
+    const t=document.getElementById('call-active-timer');
+    if(t) t.textContent=`${m}:${s}`;
+  },1000);
+}
+
+function endCall(){
+  clearInterval(callTimer); callTimer=null;
+  const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
+  const s=String(callSeconds%60).padStart(2,'0');
+  if(activeCallContact?.id){
+    let conv=conversations.find(c=>c.contactId===activeCallContact.id);
+    if(conv){
+      const last=conv.messages[conv.messages.length-1];
+      if(last&&last.body.startsWith('📞')) last.body+=` — Duration: ${m}:${s}`;
+      saveConversations();
+    }
+  }
+  document.getElementById('call-widget-idle').style.display='flex';
+  document.getElementById('call-widget-active').style.display='none';
+  const timerEl=document.getElementById('call-active-timer');
+  if(timerEl) timerEl.textContent='00:00';
+  const nameEl=document.getElementById('call-active-name');
+  if(nameEl) nameEl.textContent='Calling…';
+  const input=document.getElementById('call-dial-number');
+  if(input) input.value='';
+  activeCallContact=null;
+  showToast(`Call ended — ${m}:${s}`);
+}
+
+function toggleMute(){
+  callMuted=!callMuted;
+  document.getElementById('call-mute-btn')?.classList.toggle('muted',callMuted);
+  showToast(callMuted?'🔇 Muted':'🔊 Unmuted');
+}
+
+function renderContacts() {
   const tbody = document.getElementById('contacts-tbody');
-  const q = filter.toLowerCase();
-  const filtered = contacts.filter(c =>
+  const q = (document.getElementById('contact-search')?.value||'').toLowerCase();
+  const activeTags = [...activeContactTagFilters];
+
+  let filtered = contacts.filter(c =>
     (c.name||'').toLowerCase().includes(q) ||
     (c.company||'').toLowerCase().includes(q) ||
     (c.email||'').toLowerCase().includes(q)
   );
+
+  if(activeTags.length > 0){
+    filtered = filtered.filter(c=>
+      activeTags.every(tag=>(c.tags||[]).some(t=>t.label===tag))
+    );
+  }
+
   document.getElementById('contact-count-label').textContent = `(${contacts.length})`;
   document.getElementById('nb-contacts').textContent = contacts.length;
+
+  const summaryEl = document.getElementById('contact-filter-summary');
+  if(summaryEl){
+    const parts = [];
+    if(q) parts.push(`search: "${q}"`);
+    if(activeTags.length) parts.push(`tags: ${activeTags.join(', ')}`);
+    if(parts.length){ summaryEl.style.display='block'; summaryEl.innerHTML=`Showing <strong>${filtered.length}</strong> of ${contacts.length} contacts · ${parts.join(' · ')}`; }
+    else { summaryEl.style.display='none'; }
+  }
+
   const statusLabels = {hot:'pill-hot',active:'pill-active',new:'pill-new',cold:'pill-cold',done:'pill-done'};
   if(filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text3);padding:24px">${filter ? 'No contacts match your search' : 'No contacts yet — add your first one!'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">${(q||activeTags.length) ? 'No contacts match your filters' : 'No contacts yet — add your first one!'}</td></tr>`;
+    renderContactTagFilters();
     return;
   }
-  tbody.innerHTML = filtered.map(c => `
+
+  tbody.innerHTML = filtered.map(c => {
+    const deals = [];
+    pipelines.forEach(p=>{
+      p.deals.filter(d=>d.name===c.name||(c.email&&d.company===c.company)||d.contactId===c.id).forEach(d=>{
+        const stage = p.stages.find(s=>s.id===d.stage);
+        deals.push({pName:p.name,sLabel:stage?.label||'—',value:d.value});
+      });
+    });
+    const pipelineCell = deals.length
+      ? deals.slice(0,1).map(d=>`<div style="line-height:1.3"><div style="font-size:11px;font-weight:500;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">${d.sLabel}</div><div style="font-size:10px;color:var(--text3)">${d.pName}</div></div>`).join('')
+      : `<span style="font-size:11px;color:var(--text3)">—</span>`;
+
+    return `
     <tr>
       <td><div class="td-name"><div class="av-sm ${getAv(c.id)}">${initials(c.name)}</div>${c.name}</div></td>
       <td style="color:var(--text2)">${c.company||'—'}</td>
-      <td style="color:var(--text3);font-family:'DM Mono',monospace;font-size:12px">${c.email||'—'}</td>
-      <td style="color:var(--text3);font-family:'DM Mono',monospace;font-size:12px">${c.phone||'—'}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:5px">
+          <span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:12px">${c.email||'—'}</span>
+          ${c.email?`<button class="btn-email-inline" onclick="openComposeEmail('${c.id}')" title="Send email to ${c.name}"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>`:''}
+        </div>
+      </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:5px">
+          <span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:12px">${c.phone||'—'}</span>
+          ${c.phone?`<button class="btn-call-inline" onclick="initiateCall('${c.id}','${c.phone.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')" title="Call ${c.name}"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>`:''}
+        </div>
+      </td>
       <td><span class="tag tag-blue">${c.source||'Other'}</span></td>
       <td><div class="tags-cell">${(c.tags||[]).map(t=>`<span class="tag ${t.cls}">${t.label}</span>`).join('')}<span class="tag-add-inline" onclick="openContactModal('${c.id}','tags')">+ tag</span></div></td>
       <td><span class="pill ${statusLabels[c.status]||'pill-cold'}">${(c.status||'new').charAt(0).toUpperCase()+(c.status||'new').slice(1)}</span></td>
+      <td>${pipelineCell}</td>
       <td><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">💬</button></td>
-    </tr>`).join('');
-}
+    </tr>`;
+  }).join('');
 
+  renderContactTagFilters();
+}
 function getAv(id) {
   const colors = ['av-pink','av-blue','av-amber','av-green','av-purple'];
   // Stable color based on id string
@@ -1908,10 +2541,13 @@ function getAv(id) {
 }
 function initials(name) { return (name||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 
-document.getElementById('search-input').addEventListener('input', function(){
-  if(document.getElementById('page-contacts').classList.contains('active'))
-    renderContacts(this.value);
-});
+const searchInputEl = document.getElementById('search-input');
+if(searchInputEl){
+  searchInputEl.addEventListener('input', function(){
+    if(document.getElementById('page-contacts').classList.contains('active'))
+      renderContacts(this.value);
+  });
+}
 
 // ─── CONTACT MODAL ───
 function openContactModal(contactId=null, tab='info') {
@@ -1957,9 +2593,17 @@ function openContactModal(contactId=null, tab='info') {
         </div>
       </div>
       <div class="modal-section">
-        <div class="modal-section-title">Add Tag</div>
+        <div class="modal-section-title">Add from existing tags</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">
+          ${masterTags.filter(mt=>!(c.tags||[]).some(t=>t.label===mt.label)).map(mt=>`
+            <span class="tag ${mt.cls}" style="cursor:pointer;opacity:.7;transition:opacity .15s" 
+              onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='.7'"
+              onclick="quickAddTagToContact('${c.id}','${mt.label}','${mt.cls}')">${mt.label} +</span>`).join('')}
+          ${masterTags.filter(mt=>!(c.tags||[]).some(t=>t.label===mt.label)).length===0?'<span style="font-size:11px;color:var(--text3)">All tags already applied</span>':''}
+        </div>
+        <div class="modal-section-title">Or create new tag</div>
         <div class="tag-input-wrap">
-          <input class="tag-input" id="new-tag-input" placeholder="Tag label…" onkeydown="if(event.key==='Enter')addTagToContact('${c.id}')"/>
+          <input class="tag-input" id="new-tag-input" placeholder="New tag label…" onkeydown="if(event.key==='Enter')addTagToContact('${c.id}')"/>
           <button class="btn btn-sm btn-primary" onclick="addTagToContact('${c.id}')">Add</button>
         </div>
         <div class="tag-color-pick" id="tag-color-pick">
@@ -1983,13 +2627,17 @@ function openContactModal(contactId=null, tab='info') {
     <div class="modal-head">
       <div><div class="modal-title">${isEdit?'Edit: '+c.name:'Add New Contact'}</div>
       <div class="modal-tabs">${tabs}</div></div>
-      <span class="modal-close" onclick="closeModal()">×</span>
+      <span class="modal-close" onclick="closeModalForce()" title="Close">×</span>
     </div>
     <div class="modal-body">${body}</div>
     <div class="modal-foot">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveContact('${c.id||''}','${tab}')">${isEdit?'Save Changes':'Add Contact'}</button>
+      ${isEdit?`<button class="btn btn-sm" onclick="saveContact('${c.id||''}','${tab}',true)" style="color:var(--green);border-color:rgba(0,229,160,.3)">💾 Save &amp; Keep Open</button>`:''}
+      <button class="btn" onclick="closeModalForce()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveContact('${c.id||''}','${tab}')">${isEdit?'Save &amp; Close':'Add Contact'}</button>
     </div>`);
+
+  // Lock modal — won't close on outside click when editing
+  if(isEdit) window._modalLocked = true;
 
   // Set tag color dots
   if(tab==='tags') {
@@ -2009,13 +2657,26 @@ function selectTagColor(dot) {
 async function addTagToContact(contactId) {
   const input = document.getElementById('new-tag-input');
   const label = input.value.trim(); if(!label) return;
-  const cls = (document.querySelector('.tag-color-dot.selected')||{}).dataset?.cls || 'tag-blue';
   const c = contacts.find(x=>x.id===contactId); if(!c) return;
+
+  // Prevent duplicate tag on this contact
+  if((c.tags||[]).some(t=>t.label.toLowerCase()===label.toLowerCase())){
+    showToast(`Tag "${label}" already on this contact`,'error'); return;
+  }
+
+  // Use existing master tag color if available, otherwise use selected dot
+  const masterTag = getMasterTag(label);
+  const cls = masterTag?.cls || (document.querySelector('.tag-color-dot.selected')||{}).dataset?.cls || 'tag-blue';
+
+  // Add to master tag list (no duplicate)
+  ensureMasterTag(label, cls);
+
   c.tags = [...(c.tags||[]), {label, cls}];
   try {
     await sb.patch('contacts', contactId, { tags: c.tags });
     showToast(`Tag "${label}" added`);
     openContactModal(contactId, 'tags');
+    renderContactTagFilters();
   } catch(e) { showToast('Error saving tag','error'); }
 }
 
@@ -2025,10 +2686,23 @@ async function removeTagFromContact(contactId, idx) {
   try {
     await sb.patch('contacts', contactId, { tags: c.tags });
     openContactModal(contactId, 'tags');
+    renderContacts();
   } catch(e) { showToast('Error removing tag','error'); }
 }
 
-async function saveContact(id, tab) {
+async function quickAddTagToContact(contactId, label, cls){
+  const c = contacts.find(x=>x.id===contactId); if(!c) return;
+  if((c.tags||[]).some(t=>t.label===label)) return; // already has it
+  c.tags = [...(c.tags||[]), {label, cls}];
+  try {
+    await sb.patch('contacts', contactId, { tags: c.tags });
+    openContactModal(contactId, 'tags');
+    renderContactTagFilters();
+    showToast(`Tag "${label}" added`);
+  } catch(e) { showToast('Error saving tag','error'); }
+}
+
+async function saveContact(id, tab, keepOpen=false) {
   if(tab==='info') {
     const name    = document.getElementById('cf-name')?.value.trim();
     const company = document.getElementById('cf-company')?.value.trim();
@@ -2042,13 +2716,15 @@ async function saveContact(id, tab) {
         await sb.patch('contacts', id, {name,company,email,phone,source,status});
         const c = contacts.find(x=>x.id===id);
         if(c) Object.assign(c,{name,company,email,phone,source,status});
-        showToast('Contact updated!');
+        showToast('Contact updated! ✅');
       } else {
         const res = await sb.post('contacts', {name,company,email,phone,source,status,tags:[],custom_fields:{}});
         contacts.unshift({...res[0], tags:[], customFields:{}});
         showToast('Contact added!');
+        keepOpen = false; // new contacts always close
       }
-      closeModal(); renderContacts();
+      renderContacts();
+      if(!keepOpen){ window._modalLocked=false; closeModalForce(); }
     } catch(e) { showToast('Error saving contact','error'); console.error(e); }
   } else if(tab==='custom') {
     const c = contacts.find(x=>x.id===id); if(!c) return;
@@ -2060,9 +2736,13 @@ async function saveContact(id, tab) {
     try {
       await sb.patch('contacts', id, { custom_fields: cf });
       c.customFields = cf;
-      closeModal(); renderContacts(); showToast('Custom fields saved!');
+      renderContacts();
+      showToast('Custom fields saved! ✅');
+      if(!keepOpen){ window._modalLocked=false; closeModalForce(); }
     } catch(e) { showToast('Error saving fields','error'); }
-  } else { closeModal(); renderContacts(); }
+  } else {
+    window._modalLocked=false; closeModalForce(); renderContacts();
+  }
 }
 
 // ─── CONTACT DETAIL PANEL ───
@@ -2687,18 +3367,48 @@ function renderDashboard(){
 
 function buildWidgetContent(wid,def){
   const pipeline=getActivePipeline();
-  if(wid==='stat-leads') return statWidget('👥','Total Leads',contacts.length,`contacts in CRM`,'up');
+  if(wid==='stat-leads') return statWidget('👥','Total Leads',contacts.length,contacts.length+' contacts in CRM','up');
   if(wid==='stat-deals'){const cnt=pipelines.reduce((s,p)=>s+p.deals.length,0);return statWidget('🤝','Active Deals',cnt,'across all pipelines','up');}
-  if(wid==='stat-revenue'){const total=pipelines.reduce((s,p)=>s+p.deals.reduce((a,d)=>a+d.value,0),0);return statWidget('💰','Est. Revenue','$'+total.toLocaleString()+'/mo','total pipeline value','up');}
-  if(wid==='stat-emails') return statWidget('📧','Emails Sent','—','connect campaigns','up');
-  if(wid==='activity') return `<div class="widget-title"><span class="widget-title-icon">🕐</span>Recent Activity</div>
-    <div style="font-size:12px;color:var(--text3);padding:8px 0">Activity feed will populate as you add contacts and move deals.</div>
-    ${contacts.slice(0,4).map(c=>`<div class="w-act-item"><div class="w-act-dot" style="background:var(--accent-bg)">👤</div><div><div class="w-act-text">Contact added: <strong>${c.name}</strong></div><div class="w-act-time">${c.company||''}</div></div></div>`).join('')}`;
-  if(wid==='tasks') return `<div class="widget-title"><span class="widget-title-icon">✅</span>Upcoming Tasks</div>
-    <div class="w-task"><div class="w-task-name">Follow up call — BizPro PH</div><div class="w-task-meta">Today 3:00 PM · <span class="tag tag-amber" style="font-size:9px">Call</span></div></div>
-    <div class="w-task"><div class="w-task-name">Send proposal — Maria Santos</div><div class="w-task-meta">Tomorrow · <span class="tag tag-blue" style="font-size:9px">Email</span></div></div>
-    <div class="w-task"><div class="w-task-name">Ad review meeting — Digital Kings</div><div class="w-task-meta">This week · <span class="tag tag-green" style="font-size:9px">Meeting</span></div></div>
-    <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center"><a href="#" onclick="navigate('calendar');return false" style="color:var(--accent2)">View calendar →</a></div>`;
+  if(wid==='stat-revenue'){const total=pipelines.reduce((s,p)=>s+p.deals.reduce((a,d)=>a+d.value,0),0);return statWidget('💰','Est. Revenue','₱'+total.toLocaleString()+'/mo','total pipeline value','up');}
+  if(wid==='stat-emails'){const sent=emailStore.filter(e=>e.status==='sent'||e.status==='delivered').length;return statWidget('📧','Emails Sent',sent,sent+' emails sent so far','up');}
+
+  if(wid==='activity'){
+    // Build real activity from contacts + conversations + emails
+    const items=[];
+    contacts.slice(0,3).forEach(c=>items.push({icon:'👤',text:`Contact added: <strong>${c.name}</strong>`,sub:c.company||c.source||'',ts:c.created_at||''}));
+    conversations.slice(0,2).forEach(cv=>{
+      const contact=contacts.find(x=>x.id===cv.contactId);
+      const last=cv.messages?.[cv.messages.length-1];
+      if(contact&&last) items.push({icon:last.ch==='email'?'📧':'💬',text:`Message with <strong>${contact.name}</strong>`,sub:last.body?.slice(0,40)||'',ts:last.ts||''});
+    });
+    items.sort((a,b)=>new Date(b.ts)-new Date(a.ts));
+    return `<div class="widget-title"><span class="widget-title-icon">🕐</span>Recent Activity</div>
+      ${items.length===0?'<div style="font-size:12px;color:var(--text3)">Activity will appear here as you use the CRM</div>'
+      :items.slice(0,5).map(it=>`<div class="w-act-item"><div class="w-act-dot">${it.icon}</div><div><div class="w-act-text">${it.text}</div><div class="w-act-time">${it.sub}</div></div></div>`).join('')}`;
+  }
+
+  if(wid==='tasks'){
+    // Pull upcoming calendar events as tasks
+    const now=new Date();
+    const upcoming=calEvents.filter(e=>new Date(e.start)>now).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,3);
+    return `<div class="widget-title"><span class="widget-title-icon">✅</span>Upcoming Events</div>
+      ${upcoming.length===0?'<div style="font-size:12px;color:var(--text3)">No upcoming events. <a href="#" onclick="navigate(\'calendar\');return false" style="color:var(--accent2)">Add one →</a></div>'
+      :upcoming.map(ev=>{
+        const d=new Date(ev.start);
+        const dateStr=d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+        const timeStr=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        return `<div class="w-task" onclick="navigate('calendar')"><div class="w-task-name">${ev.title}</div><div class="w-task-meta">📅 ${dateStr} · ${timeStr}</div></div>`;
+      }).join('')}
+      <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center"><a href="#" onclick="navigate('calendar');return false" style="color:var(--accent2)">View all →</a></div>`;
+  }
+
+  if(wid==='quick-actions') return `<div class="widget-title"><span class="widget-title-icon">⚡</span>Quick Actions</div>
+    <div class="w-quick-grid">
+      <div class="w-quick-btn" onclick="navigate('contacts');openContactModal()"><span class="w-quick-icon">➕</span>Add Contact</div>
+      <div class="w-quick-btn" onclick="navigate('pipeline');openPipelineModal('new-deal')"><span class="w-quick-icon">💼</span>Add Deal</div>
+      <div class="w-quick-btn" onclick="navigate('conversations')"><span class="w-quick-icon">💬</span>Conversations</div>
+      <div class="w-quick-btn" onclick="navigate('email');openComposeEmail()"><span class="w-quick-icon">📧</span>Compose Email</div>
+    </div>`;
 
   if(wid==='automations'){
     const active=workflows.filter(w=>w.active).length;
@@ -2707,22 +3417,19 @@ function buildWidgetContent(wid,def){
       ${total===0?`<div style="font-size:12px;color:var(--text3)">No workflows yet. <a href="#" onclick="navigate('automations');return false" style="color:var(--accent2)">Create one →</a></div>`
       :workflows.slice(0,4).map(w=>`<div class="w-auto-row"><div class="w-auto-name">${w.name}</div><span class="w-auto-status ${w.active?'w-auto-on':'w-auto-off'}">${w.active?'On':'Off'}</span></div>`).join('')}
       ${total>0?`<div style="font-size:11px;color:var(--text3);margin-top:8px">${active} of ${total} active · <a href="#" onclick="navigate('automations');return false" style="color:var(--accent2)">Manage →</a></div>`:''}`;
-  } return `<div class="widget-title"><span class="widget-title-icon">⚡</span>Quick Actions</div>
-    <div class="w-quick-grid">
-      <div class="w-quick-btn" onclick="navigate('contacts');openContactModal()"><span class="w-quick-icon">➕</span>Add Contact</div>
-      <div class="w-quick-btn" onclick="navigate('pipeline');openPipelineModal('new-deal')"><span class="w-quick-icon">💼</span>Add Deal</div>
-      <div class="w-quick-btn" onclick="navigate('contacts')"><span class="w-quick-icon">👥</span>View Contacts</div>
-      <div class="w-quick-btn" onclick="navigate('pipeline')"><span class="w-quick-icon">📊</span>Pipeline</div>
-    </div>`;
+  }
+
   if(wid==='contacts-list'){
     const rows=contacts.slice(0,5).map(c=>`<div class="w-contact-row"><div class="av-sm ${getAv(c.id)}" style="width:24px;height:24px;font-size:9px">${initials(c.name)}</div><div class="w-contact-info"><div class="w-contact-name">${c.name}</div><div class="w-contact-co">${c.company||''}</div></div><span class="pill pill-${c.status}">${c.status}</span></div>`).join('');
     return `<div class="widget-title"><span class="widget-title-icon">👤</span>Recent Contacts</div>${rows||'<div style="font-size:12px;color:var(--text3)">No contacts yet</div>'}`;
   }
+
   if(wid==='pipeline-mini'&&pipeline){
     const max=Math.max(...pipeline.stages.map(s=>pipeline.deals.filter(d=>d.stage===s.id).length),1);
     return `<div class="widget-title"><span class="widget-title-icon">📊</span>Pipeline — ${pipeline.name}</div>`+
       pipeline.stages.map(s=>{const cnt=pipeline.deals.filter(d=>d.stage===s.id).length;return `<div class="w-pipeline-stage"><span class="w-stage-label">${s.label}</span><div class="w-stage-bar"><div class="w-stage-fill" style="width:${Math.round((cnt/max)*100)}%"></div></div><span class="w-stage-cnt">${cnt}</span></div>`;}).join('');
   }
+
   return `<div class="widget-title">${def.icon} ${def.label}</div><div style="font-size:12px;color:var(--text3)">Widget</div>`;
 }
 function statWidget(icon,label,value,delta,dir){
@@ -2793,8 +3500,10 @@ async function doLogin(){
 async function enterApp(){
   document.getElementById('login-screen').style.display='none';
   await loadAllData();
+  syncMasterTags(); // build master tag list from existing data
   updateSidebarUser();
   renderContacts();
+  renderContactTagFilters();
   renderPipelineTabs();
   renderBoard();
   renderCustomFieldsPage();
@@ -4974,71 +5683,104 @@ function togglePlatSelector(el){ toggleSocPlatformSelect(el); }
 function updateCharCount(){ updateSocPreview(); }
 
 // ═══════════════════════════════════════════════
+// ── MASTER TAG LIST (persisted, no duplicates) ──
+let masterTags = JSON.parse(localStorage.getItem('nlm_master_tags') || '[]');
+// {label, cls, createdAt}
+
+function saveMasterTags(){ localStorage.setItem('nlm_master_tags', JSON.stringify(masterTags)); }
+
+function getMasterTag(label){ return masterTags.find(t=>t.label.toLowerCase()===label.toLowerCase()); }
+
+function ensureMasterTag(label, cls){
+  // Deduplicate — only add if not already there
+  const existing = getMasterTag(label);
+  if(existing) return existing;
+  const tag = { label, cls, createdAt: new Date().toISOString() };
+  masterTags.push(tag);
+  saveMasterTags();
+  return tag;
+}
+
+// Sync master tags from existing contacts/deals on boot
+function syncMasterTags(){
+  contacts.forEach(c=>(c.tags||[]).forEach(t=>ensureMasterTag(t.label,t.cls)));
+  pipelines.forEach(p=>p.deals.forEach(d=>(d.tags||[]).forEach(t=>ensureMasterTag(t.label,t.cls))));
+}
+
 function renderTagsPage(){
-  // Collect all tags from contacts and deals
-  const tagMap = {};
-  contacts.forEach(c=>{
-    (c.tags||[]).forEach(t=>{
-      if(!tagMap[t.label]) tagMap[t.label]={label:t.label,cls:t.cls,contacts:0,deals:0};
-      tagMap[t.label].contacts++;
-    });
-  });
-  pipelines.forEach(p=>{
-    (p.deals||[]).forEach(d=>{
-      (d.tags||[]).forEach(t=>{
-        if(!tagMap[t.label]) tagMap[t.label]={label:t.label,cls:t.cls,contacts:0,deals:0};
-        tagMap[t.label].deals++;
-      });
-    });
-  });
-  const tags = Object.values(tagMap);
+  // Always sync first
+  syncMasterTags();
+  const q = (document.getElementById('tag-search')?.value||'').toLowerCase();
+
+  // Build usage counts from live data
+  const usageMap = {};
+  contacts.forEach(c=>(c.tags||[]).forEach(t=>{
+    if(!usageMap[t.label]) usageMap[t.label]={contacts:0,deals:0};
+    usageMap[t.label].contacts++;
+  }));
+  pipelines.forEach(p=>p.deals.forEach(d=>(d.tags||[]).forEach(t=>{
+    if(!usageMap[t.label]) usageMap[t.label]={contacts:0,deals:0};
+    usageMap[t.label].deals++;
+  })));
+
+  let tags = masterTags;
+  if(q) tags = tags.filter(t=>t.label.toLowerCase().includes(q));
 
   // Stats row
   const statsEl = document.getElementById('tag-stats-row');
   if(statsEl){
+    const total = masterTags.length;
+    const taggedContacts = new Set(contacts.filter(c=>(c.tags||[]).length>0).map(c=>c.id)).size;
+    const taggedDeals = pipelines.flatMap(p=>p.deals).filter(d=>(d.tags||[]).length>0).length;
     statsEl.innerHTML = [
-      {label:'Total Tags',val:tags.length,color:'var(--accent2)'},
-      {label:'Tagged Contacts',val:tags.reduce((s,t)=>s+t.contacts,0),color:'var(--green)'},
-      {label:'Tagged Deals',val:tags.reduce((s,t)=>s+t.deals,0),color:'var(--amber)'},
+      {label:'Total Tags',val:total,color:'var(--accent2)'},
+      {label:'Tagged Contacts',val:taggedContacts,color:'var(--green)'},
+      {label:'Tagged Deals',val:taggedDeals,color:'var(--amber)'},
     ].map(s=>`<div class="tag-stat-chip"><div class="tag-color-swatch" style="background:${s.color}"></div>${s.label}: <strong style="color:${s.color}">${s.val}</strong></div>`).join('');
   }
 
-  // Table
   const tbody = document.getElementById('tags-tbody');
   if(!tbody) return;
   if(tags.length===0){
-    tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:32px">No tags yet — add tags to your contacts and deals to see them here</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:32px">${q?'No tags match your search':'No tags yet — create one above'}</td></tr>`;
     return;
   }
-  tbody.innerHTML = tags.map(t=>`
-    <tr>
+  tbody.innerHTML = tags.map(t=>{
+    const usage = usageMap[t.label]||{contacts:0,deals:0};
+    return `<tr>
       <td><span class="tag ${t.cls}" style="font-size:12px;padding:3px 10px">${t.label}</span></td>
       <td><span class="tag ${t.cls}" style="padding:3px 10px">${t.cls.replace('tag-','')}</span></td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px">${t.contacts}</td>
-      <td style="font-family:'DM Mono',monospace;font-size:12px">${t.deals}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${usage.contacts}</td>
+      <td style="font-family:'DM Mono',monospace;font-size:12px">${usage.deals}</td>
       <td>
-        <div style="display:flex;gap:6px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-sm" onclick="viewTagContacts('${t.label}')">View Contacts</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteTag('${t.label}')">Remove All</button>
+          <button class="btn btn-sm" style="color:var(--amber)" onclick="renameTagModal('${t.label}','${t.cls}')">Rename</button>
+          <button class="btn btn-sm" style="color:var(--red);border-color:rgba(255,77,109,.3)" onclick="deleteMasterTagOnly('${t.label}')">Delete Tag</button>
         </div>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
 }
 
 function openCreateTagModal(){
   openModal(`
     <div class="modal-head"><div class="modal-title">Create New Tag</div><span class="modal-close" onclick="closeModal()">×</span></div>
     <div class="modal-body">
-      <div class="form-group"><label class="form-label">Tag Label</label><input class="form-input" id="new-tag-name" placeholder="e.g. VIP, Hot Lead, Retainer…"/></div>
+      <div class="form-group">
+        <label class="form-label">Tag Label</label>
+        <input class="form-input" id="new-tag-name" placeholder="e.g. VIP, Hot Lead, Retainer…" oninput="checkTagDuplicate(this.value)"/>
+        <div id="tag-dup-warning" style="display:none;font-size:11px;color:var(--amber);margin-top:4px">⚠ A tag with this name already exists</div>
+      </div>
       <div class="form-group"><label class="form-label">Color</label>
         <div class="tag-color-pick" id="tag-color-pick" style="margin-top:8px">
           ${TAG_COLORS.map((tc,i)=>`<div class="tag-color-dot ${i===0?'selected':''}" data-cls="${tc.cls}" onclick="selectTagColor(this)"></div>`).join('')}
         </div>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:10px">This tag will be available to apply to any contact or deal.</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px">Tags are added to a master list and can be applied to any contact or deal.</div>
     </div>
     <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createTag()">Create Tag</button></div>`);
-  const colorMap = {blue:'#4f7ef8',green:'#3ecf8e',amber:'#f59e3f',pink:'#d97bba',purple:'#a78bfa',teal:'#2dd4bf',red:'#f26b6b',gray:'#555a6e'};
+  const colorMap = {blue:'var(--accent)',green:'var(--green)',amber:'var(--amber)',pink:'var(--pink)',purple:'var(--purple)',teal:'var(--teal)',red:'var(--red)',gray:'var(--text3)'};
   setTimeout(()=>{
     document.querySelectorAll('.tag-color-dot').forEach(dot=>{
       dot.style.background = colorMap[dot.dataset.cls.replace('tag-','')]||'#888';
@@ -5046,19 +5788,63 @@ function openCreateTagModal(){
   },10);
 }
 
+function checkTagDuplicate(val){
+  const warn = document.getElementById('tag-dup-warning');
+  if(!warn) return;
+  const exists = getMasterTag(val.trim());
+  warn.style.display = exists ? 'block' : 'none';
+}
+
 function createTag(){
-  const label = document.getElementById('new-tag-name').value.trim();
+  const label = document.getElementById('new-tag-name')?.value.trim();
   const dot   = document.querySelector('.tag-color-dot.selected');
   const cls   = dot?.dataset.cls||'tag-blue';
   if(!label){ showToast('Enter a tag name','error'); return; }
+  if(getMasterTag(label)){ showToast(`Tag "${label}" already exists`,'error'); return; }
+  ensureMasterTag(label, cls);
   closeModal();
-  showToast(`Tag "${label}" created — apply it to contacts from their detail view`);
+  renderTagsPage();
+  renderContactTagFilters();
+  showToast(`Tag "${label}" created!`);
+}
+
+function renameTagModal(oldLabel, cls){
+  openModal(`
+    <div class="modal-head"><div class="modal-title">Rename Tag</div><span class="modal-close" onclick="closeModal()">×</span></div>
+    <div class="modal-body">
+      <div class="form-group"><label class="form-label">New Label</label>
+        <input class="form-input" id="rename-tag-input" value="${oldLabel}" oninput="checkTagDuplicate(this.value)"/>
+        <div id="tag-dup-warning" style="display:none;font-size:11px;color:var(--amber);margin-top:4px">⚠ A tag with this name already exists</div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="renameTag('${oldLabel}','${cls}')">Rename</button></div>`);
+}
+
+async function renameTag(oldLabel, cls){
+  const newLabel = document.getElementById('rename-tag-input')?.value.trim();
+  if(!newLabel){ showToast('Enter a new name','error'); return; }
+  if(newLabel===oldLabel){ closeModal(); return; }
+  if(getMasterTag(newLabel)){ showToast(`Tag "${newLabel}" already exists`,'error'); return; }
+  // Update master list
+  const mt = getMasterTag(oldLabel);
+  if(mt) mt.label = newLabel;
+  saveMasterTags();
+  // Update all contacts and deals
+  contacts.forEach(c=>{
+    const changed = c.tags?.some(t=>t.label===oldLabel);
+    if(changed){ c.tags=(c.tags||[]).map(t=>t.label===oldLabel?{...t,label:newLabel}:t); sb.patch('contacts',c.id,{tags:c.tags}); }
+  });
+  pipelines.forEach(p=>p.deals.forEach(d=>{
+    const changed = d.tags?.some(t=>t.label===oldLabel);
+    if(changed){ d.tags=(d.tags||[]).map(t=>t.label===oldLabel?{...t,label:newLabel}:t); sb.patch('deals',d.id,{tags:d.tags}); }
+  }));
+  closeModal(); renderTagsPage(); showToast(`Tag renamed to "${newLabel}"`);
 }
 
 function viewTagContacts(label){
   const tagged = contacts.filter(c=>(c.tags||[]).some(t=>t.label===label));
   openModal(`
-    <div class="modal-head"><div class="modal-title">Contacts with tag "${label}"</div><span class="modal-close" onclick="closeModal()">×</span></div>
+    <div class="modal-head"><div class="modal-title">Contacts tagged "${label}" (${tagged.length})</div><span class="modal-close" onclick="closeModal()">×</span></div>
     <div class="modal-body">
       ${tagged.length===0?'<div style="color:var(--text3);font-size:13px">No contacts with this tag</div>'
         :tagged.map(c=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
@@ -5071,21 +5857,39 @@ function viewTagContacts(label){
 }
 
 async function deleteTag(label){
-  if(!confirm(`Remove tag "${label}" from all contacts and deals?`)) return;
+  if(!confirm(`Remove tag "${label}" from ALL contacts and deals and delete from tag list?`)) return;
+  // Remove from master list
+  masterTags = masterTags.filter(t=>t.label!==label);
+  saveMasterTags();
+  // Remove from contacts
   let changed = 0;
   contacts.forEach(c=>{
     const before = c.tags?.length||0;
     c.tags = (c.tags||[]).filter(t=>t.label!==label);
     if(c.tags.length!==before){ changed++; sb.patch('contacts',c.id,{tags:c.tags}); }
   });
-  pipelines.forEach(p=>{
-    p.deals.forEach(d=>{
-      d.tags = (d.tags||[]).filter(t=>t.label!==label);
-      sb.patch('deals',d.id,{tags:d.tags});
-    });
-  });
+  // Remove from deals
+  pipelines.forEach(p=>p.deals.forEach(d=>{
+    d.tags = (d.tags||[]).filter(t=>t.label!==label);
+    sb.patch('deals',d.id,{tags:d.tags});
+  }));
   renderTagsPage();
-  showToast(`Tag "${label}" removed from ${changed} contacts`);
+  renderContactTagFilters();
+  showToast(`Tag "${label}" deleted (removed from ${changed} contacts)`);
+}
+
+// Delete tag from master list only — keeps it on contacts/deals that already have it
+function deleteMasterTagOnly(label){
+  const usage = contacts.filter(c=>(c.tags||[]).some(t=>t.label===label)).length;
+  const msg = usage > 0
+    ? `Delete "${label}" from the tag list? It will stay on the ${usage} contact(s) that already have it, but can no longer be applied to new contacts.`
+    : `Delete tag "${label}" from the list?`;
+  if(!confirm(msg)) return;
+  masterTags = masterTags.filter(t=>t.label!==label);
+  saveMasterTags();
+  renderTagsPage();
+  renderContactTagFilters();
+  showToast(`Tag "${label}" removed from tag list`);
 }
 
 // ═══════════════════════════════════════════════
@@ -5797,12 +6601,559 @@ function openConvWithContact(contactId){
   setTimeout(()=>openConversation(contactId), 100);
 }
 
+// ═══════════════════════════════════════════════
+// EMAIL PAGE
+// ═══════════════════════════════════════════════
+let emailStore = JSON.parse(localStorage.getItem('nlm_emails') || '[]');
+let emailFolder = 'sent';
+let activeEmailId = null;
+
+function saveEmailStore(){ localStorage.setItem('nlm_emails', JSON.stringify(emailStore)); }
+
+// ── Get connected email accounts from integrations ──
+function getEmailAccounts(){
+  const accounts = [];
+  const emailData = localStorage.getItem('nlm_int_email');
+  if(emailData){
+    try {
+      const d = JSON.parse(emailData);
+      accounts.push({
+        id: 'main',
+        name: d['email-from-name'] || 'Main Account',
+        email: d['email-from-addr'] || '',
+        provider: d['email-provider'] || 'brevo',
+        apiKey: localStorage.getItem('nlm_int_email_secret') || ''
+      });
+    } catch(e){}
+  }
+  return accounts;
+}
+
+// ── RENDER EMAIL PAGE ──
+function renderEmailPage(){
+  renderEmailAccountsList();
+  renderEmailFolderCounts();
+  renderEmailList();
+  document.getElementById('email-detail-empty').style.display='flex';
+  document.getElementById('email-detail-content').style.display='none';
+}
+
+function renderEmailAccountsList(){
+  const el = document.getElementById('email-accounts-list'); if(!el) return;
+  const accounts = getEmailAccounts();
+  if(!accounts.length){
+    el.innerHTML=`<div style="font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px">No accounts connected yet</div>`;
+    return;
+  }
+  el.innerHTML = accounts.map(a=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);margin-bottom:6px">
+      <div style="width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.name}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.email}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderEmailFolderCounts(){
+  const sent   = emailStore.filter(e=>e.status!=='draft').length;
+  const drafts = emailStore.filter(e=>e.status==='draft').length;
+  const all    = emailStore.length;
+  const sentEl = document.getElementById('efolder-sent');
+  const draftEl= document.getElementById('efolder-drafts');
+  const allEl  = document.getElementById('efolder-all');
+  if(sentEl)  sentEl.textContent  = sent;
+  if(draftEl) draftEl.textContent = drafts;
+  if(allEl)   allEl.textContent   = all;
+  // Update sidebar badge
+  const badge = document.getElementById('nb-email-drafts');
+  if(badge){ badge.textContent=drafts; badge.style.display=drafts>0?'inline':'none'; }
+}
+
+function setEmailFolder(folder, el){
+  emailFolder = folder;
+  document.querySelectorAll('.email-folder').forEach(f=>f.classList.remove('active'));
+  el.classList.add('active');
+  const titles = {sent:'Sent', drafts:'Drafts', all:'All Emails'};
+  const titleEl = document.getElementById('email-folder-title');
+  if(titleEl) titleEl.textContent = titles[folder]||folder;
+  activeEmailId = null;
+  document.getElementById('email-detail-empty').style.display='flex';
+  document.getElementById('email-detail-content').style.display='none';
+  renderEmailList();
+}
+
+function renderEmailList(){
+  const el = document.getElementById('email-list'); if(!el) return;
+  const q = (document.getElementById('email-search')?.value||'').toLowerCase();
+  let items = emailStore;
+  if(emailFolder==='sent')   items = items.filter(e=>e.status!=='draft');
+  if(emailFolder==='drafts') items = items.filter(e=>e.status==='draft');
+  if(q) items = items.filter(e=>
+    (e.to||'').toLowerCase().includes(q)||
+    (e.subject||'').toLowerCase().includes(q)||
+    (e.body||'').toLowerCase().includes(q)||
+    (e.contactName||'').toLowerCase().includes(q)
+  );
+  items = [...items].sort((a,b)=>new Date(b.sentAt||b.createdAt)-new Date(a.sentAt||a.createdAt));
+
+  if(!items.length){
+    el.innerHTML=`<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">${q?'No emails match your search':emailFolder==='drafts'?'No drafts':'No emails yet'}</div>`;
+    return;
+  }
+
+  el.innerHTML = items.map(email=>{
+    const contact = email.contactId ? contacts.find(c=>c.id===email.contactId) : null;
+    const displayName = email.contactName || contact?.name || email.to;
+    const timeStr = email.sentAt||email.createdAt ? relativeTime(email.sentAt||email.createdAt) : '';
+    const statusColor = {sent:'var(--green)',delivered:'var(--accent2)',failed:'var(--red)',draft:'var(--amber)'}[email.status]||'var(--text3)';
+    const isActive = email.id===activeEmailId;
+    return `<div class="email-item ${isActive?'active':''}" onclick="openEmailDetail('${email.id}')">
+      <div class="email-item-header">
+        <div class="email-item-to">${displayName}</div>
+        <div class="email-item-time">${timeStr}</div>
+      </div>
+      <div class="email-item-subject">${email.subject||'(no subject)'}</div>
+      <div class="email-item-preview">${(email.body||'').replace(/\n/g,' ').slice(0,70)}</div>
+      <div class="email-item-badges">
+        <span style="font-size:9px;padding:1px 7px;border-radius:20px;background:${statusColor}20;color:${statusColor};font-weight:600">${email.status||'sent'}</span>
+        ${email.fromEmail?`<span style="font-size:9px;color:var(--text3)">from: ${email.fromEmail}</span>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openEmailDetail(id){
+  activeEmailId = id;
+  const email = emailStore.find(e=>e.id===id); if(!email) return;
+  renderEmailList();
+  document.getElementById('email-detail-empty').style.display='none';
+  const content = document.getElementById('email-detail-content');
+  content.style.display='block';
+  const contact = email.contactId ? contacts.find(c=>c.id===email.contactId) : null;
+  const sentDate = email.sentAt ? new Date(email.sentAt).toLocaleString([],{weekday:'long',month:'long',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+  const statusColor = {sent:'var(--green)',delivered:'var(--accent2)',failed:'var(--red)',draft:'var(--amber)'}[email.status]||'var(--text3)';
+  content.innerHTML=`
+    <div class="email-detail-head">
+      <div class="email-detail-subject">${email.subject||'(no subject)'}</div>
+      <div class="email-detail-meta">
+        <div class="email-detail-meta-item"><strong>To:</strong> ${email.to} ${contact?`(${contact.name})`:''}${email.contactId&&!contact?'':''}</div>
+        <div class="email-detail-meta-item"><strong>From:</strong> ${email.fromName||'You'} &lt;${email.fromEmail||''}&gt;</div>
+        <div class="email-detail-meta-item"><strong>Date:</strong> ${sentDate}</div>
+        <span style="font-size:10px;padding:2px 10px;border-radius:20px;background:${statusColor}20;color:${statusColor};font-weight:600">${email.status||'sent'}</span>
+      </div>
+    </div>
+    <div class="email-detail-body">${(email.body||'').replace(/\n/g,'<br>')}</div>
+    <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0">
+      ${email.status==='draft'?`<button class="btn btn-primary btn-sm" onclick="sendDraftEmail('${email.id}')">Send Now</button>`:''}
+      <button class="btn btn-sm" onclick="replyToEmail('${email.id}')">↩ Reply</button>
+      <button class="btn btn-sm" onclick="openComposeEmail('${email.contactId||''}')">Forward / New</button>
+      <button class="btn btn-sm btn-danger" style="margin-left:auto" onclick="deleteEmail('${email.id}')">Delete</button>
+    </div>`;
+}
+
+function deleteEmail(id){
+  if(!confirm('Delete this email?')) return;
+  emailStore = emailStore.filter(e=>e.id!==id);
+  saveEmailStore();
+  activeEmailId=null;
+  document.getElementById('email-detail-empty').style.display='flex';
+  document.getElementById('email-detail-content').style.display='none';
+  renderEmailList();
+  renderEmailFolderCounts();
+  showToast('Email deleted');
+}
+
+function replyToEmail(id){
+  const email = emailStore.find(e=>e.id===id); if(!email) return;
+  openComposeEmail(email.contactId||'', {
+    to: email.to,
+    subject: 'Re: '+(email.subject||''),
+    body: '\n\n---\nOn '+new Date(email.sentAt||email.createdAt).toLocaleDateString()+', '+email.fromName+' wrote:\n'+(email.body||'')
+  });
+}
+
+async function sendDraftEmail(id){
+  const email = emailStore.find(e=>e.id===id); if(!email) return;
+  await dispatchEmail(email);
+}
+
+// ── COMPOSE EMAIL MODAL ──
+function openComposeEmail(contactId='', prefill={}){
+  const contact = contactId ? contacts.find(c=>c.id===contactId) : null;
+  const accounts = getEmailAccounts();
+  const hasAccount = accounts.length > 0;
+
+  const fromOptions = accounts.map(a=>
+    `<option value="${a.id}">${a.name} &lt;${a.email}&gt;</option>`
+  ).join('');
+
+  openModal(`
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">Compose Email</div>
+        ${hasAccount
+          ? `<div style="font-size:11px;color:var(--green);margin-top:2px">✓ Will send via connected email</div>`
+          : `<div style="font-size:11px;color:var(--amber);margin-top:2px">⚠ No email connected — will save as draft. Connect in <span onclick="closeModal();navigate('integrations')" style="cursor:pointer;text-decoration:underline">Integrations</span></div>`}
+      </div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body" style="padding:0 20px">
+
+      <!-- From -->
+      <div class="compose-header-row">
+        <span class="compose-label">From</span>
+        ${hasAccount
+          ? `<select class="compose-from-select" id="compose-from">${fromOptions}</select>`
+          : `<span style="font-size:12px;color:var(--text3);font-style:italic">No email account connected</span>`}
+      </div>
+
+      <!-- To -->
+      <div class="compose-header-row">
+        <span class="compose-label">To</span>
+        <input class="compose-field" id="compose-to" type="email"
+          value="${contact?.email||prefill.to||''}"
+          placeholder="recipient@email.com"/>
+        ${contact?`<span style="font-size:11px;color:var(--text3);flex-shrink:0">${contact.name}</span>`:''}
+      </div>
+
+      <!-- CC -->
+      <div class="compose-header-row">
+        <span class="compose-label">CC</span>
+        <input class="compose-field" id="compose-cc" type="email" placeholder="cc@email.com"/>
+      </div>
+
+      <!-- Subject -->
+      <div class="compose-header-row">
+        <span class="compose-label">Subject</span>
+        <input class="compose-field" id="compose-subject" placeholder="Email subject…" value="${prefill.subject||''}"/>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="compose-toolbar">
+        <button class="compose-tool-btn" onclick="composeExec('bold')" title="Bold"><b>B</b></button>
+        <button class="compose-tool-btn" onclick="composeExec('italic')" title="Italic"><i>I</i></button>
+        <button class="compose-tool-btn" onclick="composeExec('underline')" title="Underline"><u>U</u></button>
+        <div style="width:1px;background:var(--border);margin:2px 4px"></div>
+        <button class="compose-tool-btn" onclick="insertComposeTag('name')" title="Insert name" style="font-size:10px;width:auto;padding:0 8px">{{name}}</button>
+        <button class="compose-tool-btn" onclick="insertComposeTag('company')" title="Insert company" style="font-size:10px;width:auto;padding:0 8px">{{company}}</button>
+      </div>
+
+      <!-- Body -->
+      <div id="compose-body-editor" contenteditable="true" class="compose-body-area"
+        style="min-height:200px;outline:none;line-height:1.7"
+        placeholder="Write your email…">${prefill.body?prefill.body.replace(/\n/g,'<br>'):''}</div>
+
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="saveEmailDraft('${contactId}')">Save Draft</button>
+      <button class="btn" onclick="closeModalForce()" style="color:var(--red)">Discard</button>
+      <button class="btn btn-primary" onclick="sendEmailFromCompose('${contactId}')">
+        ${hasAccount?'Send Email':'Save Draft'}
+      </button>
+    </div>`, true);
+
+  // Lock modal — won't close on outside click
+  window._modalLocked = true;
+
+  // Focus body
+  setTimeout(()=>document.getElementById('compose-body-editor')?.focus(), 100);
+}
+
+function composeExec(cmd){ document.execCommand(cmd,false,null); }
+function insertComposeTag(field){
+  const editor = document.getElementById('compose-body-editor'); if(!editor) return;
+  editor.focus();
+  document.execCommand('insertText',false,field==='name'?'{{name}}':'{{company}}');
+}
+
+function getComposeData(contactId){
+  const accounts = getEmailAccounts();
+  const fromSel  = document.getElementById('compose-from')?.value;
+  const account  = fromSel ? accounts.find(a=>a.id===fromSel)||accounts[0] : accounts[0];
+  const to       = document.getElementById('compose-to')?.value.trim();
+  const cc       = document.getElementById('compose-cc')?.value.trim();
+  const subject  = document.getElementById('compose-subject')?.value.trim();
+  const bodyEl   = document.getElementById('compose-body-editor');
+  const bodyHtml = bodyEl?.innerHTML||'';
+  const bodyText = bodyEl?.innerText||'';
+  const contact  = contactId ? contacts.find(c=>c.id===contactId) : null;
+
+  // Apply merge tags
+  const applyMerge = str => str
+    .replace(/\{\{name\}\}/gi, contact?.name?.split(' ')[0]||'there')
+    .replace(/\{\{company\}\}/gi, contact?.company||'');
+
+  return { account, to, cc, subject, bodyHtml, bodyText:applyMerge(bodyText), bodyHtmlMerged:applyMerge(bodyHtml), contact, contactId };
+}
+
+async function sendEmailFromCompose(contactId){
+  window._modalLocked = false;
+  const d = getComposeData(contactId);
+  if(!d.to){ showToast('Enter a recipient email','error'); return; }
+  if(!d.subject){ showToast('Enter a subject line','error'); return; }
+
+  const email = {
+    id: 'email_'+Date.now(),
+    contactId: contactId||'',
+    contactName: d.contact?.name||'',
+    to: d.to, cc: d.cc,
+    fromName:  d.account?.name||'Next Level Marketing',
+    fromEmail: d.account?.email||'',
+    subject: d.subject,
+    body: d.bodyText,
+    bodyHtml: d.bodyHtmlMerged,
+    status: 'sending',
+    createdAt: new Date().toISOString(),
+    sentAt: new Date().toISOString()
+  };
+
+  emailStore.unshift(email);
+  saveEmailStore();
+  closeModal();
+
+  // Try to actually send
+  await dispatchEmail(email);
+}
+
+async function saveEmailDraft(contactId){
+  window._modalLocked = false;
+  const d = getComposeData(contactId);
+  const email = {
+    id: 'email_'+Date.now(),
+    contactId: contactId||'',
+    contactName: d.contact?.name||'',
+    to: d.to, cc: d.cc,
+    fromName:  d.account?.name||'Next Level Marketing',
+    fromEmail: d.account?.email||'',
+    subject: d.subject,
+    body: d.bodyText,
+    bodyHtml: d.bodyHtml,
+    status: 'draft',
+    createdAt: new Date().toISOString()
+  };
+  emailStore.unshift(email);
+  saveEmailStore();
+  renderEmailFolderCounts();
+  closeModal();
+  showToast('Draft saved!');
+}
+
+async function dispatchEmail(email){
+  const accounts = getEmailAccounts();
+  const account  = accounts[0]; // use first connected account
+
+  if(!account || !account.apiKey){
+    email.status='draft';
+    saveEmailStore();
+    renderEmailPage();
+    showToast('Saved as draft — connect email in Integrations to send');
+    return;
+  }
+
+  try {
+    let res;
+    if(account.provider==='brevo' || account.provider==='brevo'){
+      const body = {
+        sender: { name:email.fromName, email:email.fromEmail },
+        to: [{ email:email.to }],
+        subject: email.subject,
+        textContent: email.body,
+        htmlContent: email.bodyHtml||email.body
+      };
+      if(email.cc) body.cc = [{email:email.cc}];
+      res = await fetch('https://api.brevo.com/v3/smtp/email',{
+        method:'POST',
+        headers:{'api-key':account.apiKey,'Content-Type':'application/json'},
+        body: JSON.stringify(body)
+      });
+    } else if(account.provider==='sendgrid'){
+      res = await fetch('https://api.sendgrid.com/v3/mail/send',{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+account.apiKey,'Content-Type':'application/json'},
+        body: JSON.stringify({
+          personalizations:[{to:[{email:email.to}]}],
+          from:{email:email.fromEmail,name:email.fromName},
+          subject:email.subject,
+          content:[{type:'text/plain',value:email.body}]
+        })
+      });
+    }
+
+    if(res && (res.ok||res.status===202||res.status===201)){
+      email.status = 'sent';
+      email.sentAt = new Date().toISOString();
+      saveEmailStore();
+      // Sync to Conversations
+      syncEmailToConversation(email);
+      renderEmailPage();
+      renderEmailFolderCounts();
+      showToast(`✅ Email sent to ${email.to}`);
+    } else {
+      const err = res ? await res.json().catch(()=>({})) : {};
+      email.status='failed';
+      saveEmailStore();
+      renderEmailPage();
+      showToast('Failed: '+(err.message||err.errors?.[0]?.message||'Check your API key'),'error');
+    }
+  } catch(e){
+    email.status='failed';
+    saveEmailStore();
+    renderEmailPage();
+    showToast('Network error — saved as failed','error');
+  }
+}
+
+// ── SYNC EMAIL TO CONVERSATIONS ──
+function syncEmailToConversation(email){
+  if(!email.contactId) return;
+  let conv = conversations.find(c=>c.contactId===email.contactId);
+  if(!conv){
+    conv = { id:'conv_'+Date.now(), contactId:email.contactId, messages:[] };
+    conversations.push(conv);
+  }
+  conv.messages.push({
+    id: 'msg_'+Date.now(),
+    ch: 'email',
+    dir: 'outbound',
+    body: email.body,
+    subject: email.subject,
+    ts: email.sentAt||new Date().toISOString(),
+    status: email.status==='sent'?'delivered':'failed'
+  });
+  saveConversations();
+  // Update conversation badge
+  document.getElementById('nb-conversations').textContent = conversations.length;
+}
+
+// ═══════════════════════════════════════════════
+// BULK IMPORT / EXPORT CONTACTS
+// ═══════════════════════════════════════════════
+function openImportContacts(){
+  openModal(`
+    <div class="modal-head"><div class="modal-title">Import Contacts from CSV</div><span class="modal-close" onclick="closeModal()">×</span></div>
+    <div class="modal-body">
+      <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:12px;color:var(--accent2);line-height:1.8">
+        <strong>Required CSV columns:</strong> <code>name</code><br>
+        <strong>Optional columns:</strong> <code>email, phone, company, source, status, tags</code><br>
+        <strong>Tags column:</strong> separate multiple tags with a pipe <code>|</code> e.g. <code>VIP|Hot Lead</code><br>
+        <strong>Status values:</strong> new, active, hot, cold, done
+      </div>
+      <div class="soc-image-drop" onclick="document.getElementById('csv-import-input').click()" style="margin-bottom:12px">
+        📎 Click to select your CSV file
+        <div style="font-size:11px;margin-top:4px;color:var(--text3)">.csv files only</div>
+      </div>
+      <div id="import-preview" style="display:none">
+        <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:8px" id="import-preview-title"></div>
+        <div class="tbl-wrap" style="max-height:200px;overflow-y:auto" id="import-preview-table"></div>
+      </div>
+      <div style="margin-top:8px">
+        <a href="data:text/csv;charset=utf-8,name,email,phone,company,source,status,tags%0AJuan dela Cruz,juan@example.com,+63 912 000 0000,Santos Bakery,Facebook,hot,VIP|Hot Lead" download="contacts-template.csv" style="font-size:11px;color:var(--accent2)">⬇ Download CSV template</a>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="import-confirm-btn" style="display:none" onclick="confirmCSVImport()">Import Contacts</button>
+    </div>`);
+  document.getElementById('csv-import-input').click();
+}
+
+let _csvImportRows = [];
+
+function handleCSVImport(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    const text = ev.target.result;
+    const rows = text.trim().split('\n').map(r=>r.split(',').map(c=>c.trim().replace(/^"|"$/g,'')));
+    if(rows.length<2){ showToast('CSV is empty or invalid','error'); return; }
+    const headers = rows[0].map(h=>h.toLowerCase().trim());
+    const data = rows.slice(1).map(row=>{
+      const obj={};
+      headers.forEach((h,i)=>obj[h]=row[i]||'');
+      return obj;
+    }).filter(r=>r.name);
+
+    _csvImportRows = data;
+    // Show preview
+    const previewEl = document.getElementById('import-preview');
+    const titleEl   = document.getElementById('import-preview-title');
+    const tableEl   = document.getElementById('import-preview-table');
+    const btnEl     = document.getElementById('import-confirm-btn');
+    if(!previewEl||!titleEl||!tableEl) return;
+    titleEl.textContent = `${data.length} contacts found in CSV`;
+    previewEl.style.display='block';
+    if(btnEl) btnEl.style.display='inline-flex';
+    tableEl.innerHTML=`<table><thead><tr><th>Name</th><th>Email</th><th>Company</th><th>Tags</th><th>Status</th></tr></thead>
+    <tbody>${data.slice(0,8).map(r=>`<tr>
+      <td>${r.name}</td>
+      <td style="font-size:11px;font-family:'DM Mono',monospace">${r.email||'—'}</td>
+      <td>${r.company||'—'}</td>
+      <td>${r.tags||'—'}</td>
+      <td>${r.status||'new'}</td>
+    </tr>`).join('')}${data.length>8?`<tr><td colspan="5" style="text-align:center;color:var(--text3);font-size:11px">…and ${data.length-8} more</td></tr>`:''}</tbody></table>`;
+  };
+  reader.readAsText(file);
+  e.target.value=''; // reset so same file can be re-selected
+}
+
+async function confirmCSVImport(){
+  if(!_csvImportRows.length){ showToast('No data to import','error'); return; }
+  const btn = document.getElementById('import-confirm-btn');
+  if(btn){ btn.textContent='Importing…'; btn.disabled=true; }
+
+  let imported=0, skipped=0;
+  const defaultCls = ['tag-blue','tag-green','tag-amber','tag-pink','tag-purple','tag-teal'];
+
+  for(const row of _csvImportRows){
+    // Skip if contact with same email already exists
+    if(row.email && contacts.some(c=>c.email===row.email)){ skipped++; continue; }
+    const tags = (row.tags||'').split('|').map(s=>s.trim()).filter(Boolean).map((label,i)=>{
+      const existing = getMasterTag(label);
+      const cls = existing?.cls || defaultCls[i%defaultCls.length];
+      ensureMasterTag(label, cls);
+      return { label, cls };
+    });
+    try {
+      const res = await sb.post('contacts',{
+        name:row.name, email:row.email||'', phone:row.phone||'',
+        company:row.company||'', source:row.source||'Import',
+        status:['new','active','hot','cold','done'].includes(row.status)?row.status:'new',
+        tags, custom_fields:{}
+      });
+      contacts.unshift({...res[0], tags, customFields:{}});
+      imported++;
+    } catch(e){ skipped++; }
+  }
+  _csvImportRows=[];
+  closeModal();
+  renderContacts();
+  renderContactTagFilters();
+  renderTagsPage();
+  showToast(`✅ Imported ${imported} contacts${skipped?` (${skipped} skipped)`:''}`);
+}
+
+function exportContactsCSV(){
+  const headers = ['name','email','phone','company','source','status','tags'];
+  const rows = contacts.map(c=>[
+    c.name, c.email||'', c.phone||'', c.company||'',
+    c.source||'', c.status||'new',
+    (c.tags||[]).map(t=>t.label).join('|')
+  ].map(v=>`"${String(v).replace(/"/g,'""')}"`));
+  const csv = [headers.join(','), ...rows.map(r=>r.join(','))].join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`contacts-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast(`Exported ${contacts.length} contacts`);
+}
+
 // Update navigate to handle new pages
 const PAGE_TITLES = {
   dashboard:'Dashboard', contacts:'Contacts', pipeline:'Sales Pipeline',
-  calendar:'Calendar', conversations:'Conversations', automations:'Automations',
-  social:'Social Planner', campaigns:'Campaigns', tags:'Tags',
-  integrations:'Integrations', 'custom-fields':'Custom Fields', settings:'Settings'
+  calendar:'Calendar', conversations:'Conversations', email:'Email',
+  automations:'Automations', social:'Social Planner', campaigns:'Campaigns',
+  tags:'Tags', integrations:'Integrations', 'custom-fields':'Custom Fields', settings:'Settings'
 };
 
 function navigate(page){
@@ -5813,10 +7164,12 @@ function navigate(page){
   const pageEl=document.getElementById('page-'+page);
   if(pageEl) pageEl.classList.add('active');
   document.getElementById('page-title').textContent=PAGE_TITLES[page]||page;
-  if(page==='contacts') renderContacts();
+  updateCallWidgetVisibility(page);
+  if(page==='contacts'){ renderContacts(); renderContactTagFilters(); }
   if(page==='pipeline'){ renderPipelineTabs(); renderBoard(); }
   if(page==='calendar') renderCalendar();
   if(page==='conversations') renderConversations();
+  if(page==='email') renderEmailPage();
   if(page==='automations') renderAutoList();
   if(page==='social') renderSocialPlanner();
   if(page==='campaigns') renderCampaignsPage();
