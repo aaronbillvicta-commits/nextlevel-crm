@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Next Level Marketing — CRM</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://accounts.google.com/gsi/client" async></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1359,41 +1360,94 @@ tbody tr:hover td{background:var(--bg3)}
           <div class="int-full-icon" style="background:var(--green-bg)">📅</div>
           <div style="flex:1">
             <div class="int-full-name">Google Calendar</div>
-            <div class="int-full-desc">Sync meetings and follow-up reminders. Create calendar events from deal and contact actions</div>
+            <div class="int-full-desc">Create and sync events directly into Google Calendar for you and your clients</div>
           </div>
           <div class="int-status-badge" id="calendar-status">Not connected</div>
           <button class="btn btn-sm" id="calendar-toggle-btn" onclick="toggleIntSection('calendar')">Connect</button>
         </div>
         <div class="int-form" id="calendar-form" style="display:none">
-          <div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.2);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:12px;color:var(--green);line-height:1.6">
-            Go to <strong>console.cloud.google.com</strong> → New Project → Enable "Google Calendar API" → Credentials → Create OAuth 2.0 Client ID → Web Application → add your CRM URL as authorized origin. Copy Client ID and Secret.
+
+          <!-- Step 1: Client ID input -->
+          <div id="gcal-setup-panel">
+            <div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.2);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:12px;color:var(--green);line-height:1.8">
+              <strong>Setup (one time):</strong><br>
+              1. Go to <strong>console.cloud.google.com</strong><br>
+              2. New Project → Enable <strong>Google Calendar API</strong><br>
+              3. Credentials → Create OAuth 2.0 Client ID → <strong>Web application</strong><br>
+              4. Add <strong>Authorized JavaScript origin:</strong> <code style="background:rgba(0,0,0,.2);padding:1px 5px;border-radius:3px">https://mynextlevel-crm.vercel.app</code><br>
+              5. Paste your Client ID below and click <strong>Authorize with Google</strong>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Google OAuth Client ID</label>
+              <input class="form-input" id="gcal-client-id" placeholder="123456789-abc.apps.googleusercontent.com"/>
+            </div>
+            <div class="int-form-actions">
+              <button class="btn" onclick="toggleIntSection('calendar')">Cancel</button>
+              <button class="btn btn-primary" onclick="gcalAuthorize()">🔐 Authorize with Google</button>
+            </div>
           </div>
-          <div class="int-form-grid">
-            <div class="form-group"><label class="form-label">OAuth Client ID</label><input class="form-input" id="gcal-client-id" placeholder="xxxx.apps.googleusercontent.com"/></div>
-            <div class="form-group"><label class="form-label">OAuth Client Secret</label><input class="form-input" id="gcal-secret" type="password" placeholder="GOCSPX-xxxxxx"/></div>
-            <div class="form-group"><label class="form-label">Calendar ID (optional)</label><input class="form-input" id="gcal-calendar-id" placeholder="primary (or paste specific calendar ID)"/></div>
-          </div>
-          <div class="int-form-actions">
-            <button class="btn" onclick="toggleIntSection('calendar')">Cancel</button>
-            <button class="btn btn-primary" onclick="saveIntegration('calendar')">Save & Connect</button>
-          </div>
-          <!-- Calendar Event Creator -->
-          <div id="calendar-composer" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
-            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Create Calendar Event</div>
+
+          <!-- Step 2: Connected state + composer -->
+          <div id="gcal-connected-panel" style="display:none">
+            <div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.25);border-radius:var(--radius);padding:12px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+              <span style="font-size:18px">✅</span>
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--green)">Google Calendar connected</div>
+                <div id="gcal-account-label" style="font-size:11px;color:var(--text3)"></div>
+              </div>
+              <button class="btn btn-sm" style="margin-left:auto;color:var(--red)" onclick="gcalDisconnect()">Disconnect</button>
+            </div>
+
+            <!-- Create event form -->
+            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px">Create Calendar Event</div>
             <div class="int-form-grid">
-              <div class="form-group"><label class="form-label">Event Title</label><input class="form-input" id="cal-title" placeholder="Call with Maria Santos"/></div>
-              <div class="form-group"><label class="form-label">Date & Time</label><input class="form-input" id="cal-datetime" type="datetime-local"/></div>
-              <div class="form-group"><label class="form-label">Duration (mins)</label><input class="form-input" id="cal-duration" type="number" value="30" placeholder="30"/></div>
-              <div class="form-group"><label class="form-label">Contact (optional)</label>
-                <select class="form-select" id="cal-contact"><option value="">— select contact —</option></select>
+              <div class="form-group">
+                <label class="form-label">Event Title</label>
+                <input class="form-input" id="gcal-title" placeholder="Call with Maria Santos"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Start Date & Time</label>
+                <input class="form-input" id="gcal-start" type="datetime-local"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Duration (minutes)</label>
+                <input class="form-input" id="gcal-duration" type="number" value="30"/>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Client / Contact</label>
+                <select class="form-select" id="gcal-contact">
+                  <option value="">— select contact —</option>
+                </select>
               </div>
             </div>
-            <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="cal-notes" style="min-height:60px" placeholder="Agenda or notes…"></textarea></div>
-            <div style="display:flex;justify-content:flex-end">
-              <button class="btn btn-primary btn-sm" onclick="createCalendarEvent()">Create Event</button>
+            <div class="form-group">
+              <label class="form-label">Guest Email (client's email)</label>
+              <input class="form-input" id="gcal-guest-email" placeholder="client@email.com (auto-filled when contact selected)"/>
             </div>
-            <div id="cal-log" style="margin-top:12px"></div>
+            <div class="form-group">
+              <label class="form-label">Description / Agenda</label>
+              <textarea class="form-textarea" id="gcal-notes" style="min-height:70px" placeholder="Meeting agenda, notes…"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Video Conference</label>
+              <select class="form-select" id="gcal-conference">
+                <option value="none">No video link</option>
+                <option value="meet">Add Google Meet link</option>
+              </select>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px">
+              <button class="btn btn-primary btn-sm" onclick="gcalCreateEvent()">Create Event in Google Calendar</button>
+            </div>
+            <div id="gcal-event-log" style="margin-top:12px"></div>
+
+            <!-- Recent events -->
+            <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+              <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Upcoming Events from Google</div>
+              <div id="gcal-events-list"><div style="font-size:12px;color:var(--text3)">Click "Load Events" to fetch from Google Calendar</div></div>
+              <button class="btn btn-sm" style="margin-top:8px" onclick="gcalLoadEvents()">↻ Load Events</button>
+            </div>
           </div>
+
         </div>
       </div>
 
@@ -3041,21 +3095,223 @@ function updateEmailPlaceholders(){
 }
 
 // ── GOOGLE CALENDAR EVENT ──
-async function createCalendarEvent(){
-  const title    = document.getElementById('cal-title').value.trim();
-  const datetime = document.getElementById('cal-datetime').value;
-  const duration = parseInt(document.getElementById('cal-duration').value)||30;
-  const notes    = document.getElementById('cal-notes').value.trim();
-  const clientId = JSON.parse(localStorage.getItem('nlm_int_calendar')||'{}')['gcal-client-id']||'';
-  if(!title||!datetime){ showToast('Enter title and date/time','error'); return; }
-  if(!clientId){ showToast('Google Calendar not connected','error'); return; }
-  const start  = new Date(datetime).toISOString();
-  const end    = new Date(new Date(datetime).getTime()+duration*60000).toISOString();
-  addIntLog('cal-log',`✅ Event created: "${title}" on ${new Date(datetime).toLocaleString()}`,'ok');
-  document.getElementById('cal-title').value='';
-  document.getElementById('cal-notes').value='';
-  showToast('Calendar event created! ✅');
-  logActivity('calendar',`Event created: "${title}" at ${new Date(datetime).toLocaleString()}`);
+// ═══════════════════════════════════════════════
+// GOOGLE CALENDAR — Real OAuth Integration
+// ═══════════════════════════════════════════════
+let gcalAccessToken = localStorage.getItem('nlm_gcal_token') || null;
+let gcalTokenExpiry = parseInt(localStorage.getItem('nlm_gcal_expiry') || '0');
+
+const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/userinfo.email';
+
+function gcalGetClientId(){
+  const saved = localStorage.getItem('nlm_int_calendar');
+  if(saved){ try{ return JSON.parse(saved)['gcal-client-id']||''; }catch(e){} }
+  return '';
+}
+
+function gcalIsConnected(){
+  return gcalAccessToken && Date.now() < gcalTokenExpiry;
+}
+
+function gcalAuthorize(){
+  const clientId = document.getElementById('gcal-client-id')?.value.trim();
+  if(!clientId || !clientId.includes('.apps.googleusercontent.com')){
+    showToast('Enter a valid Google OAuth Client ID','error'); return;
+  }
+  // Save client ID
+  localStorage.setItem('nlm_int_calendar', JSON.stringify({'gcal-client-id': clientId}));
+
+  // Use Google Identity Services token client
+  if(!window.google?.accounts?.oauth2){
+    showToast('Google script not loaded yet — try again in a second','error'); return;
+  }
+
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: GCAL_SCOPE,
+    callback: (response) => {
+      if(response.error){
+        showToast('Google authorization failed: '+response.error,'error'); return;
+      }
+      gcalAccessToken = response.access_token;
+      gcalTokenExpiry = Date.now() + (response.expires_in * 1000);
+      localStorage.setItem('nlm_gcal_token',  gcalAccessToken);
+      localStorage.setItem('nlm_gcal_expiry', gcalTokenExpiry.toString());
+      gcalOnConnected();
+    },
+  });
+  tokenClient.requestAccessToken({prompt:'consent'});
+}
+
+async function gcalOnConnected(){
+  // Fetch user email to confirm who's connected
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo',{
+      headers:{'Authorization':'Bearer '+gcalAccessToken}
+    });
+    const info = await r.json();
+    const label = document.getElementById('gcal-account-label');
+    if(label) label.textContent = 'Connected as: '+info.email;
+    localStorage.setItem('nlm_gcal_email', info.email);
+  } catch(e){}
+
+  // Update UI
+  document.getElementById('gcal-setup-panel').style.display='none';
+  document.getElementById('gcal-connected-panel').style.display='block';
+  markIntConnected('calendar',{});
+  updateIntCount();
+  gcalPopulateContacts();
+  showToast('Google Calendar connected! ✅');
+}
+
+function gcalCheckAndRestoreSession(){
+  // Called on page load — restore connection state if token still valid
+  if(gcalIsConnected()){
+    setTimeout(()=>{
+      const email = localStorage.getItem('nlm_gcal_email')||'';
+      const label = document.getElementById('gcal-account-label');
+      if(label) label.textContent = email?'Connected as: '+email:'Connected';
+      const setup = document.getElementById('gcal-setup-panel');
+      const connected = document.getElementById('gcal-connected-panel');
+      if(setup) setup.style.display='none';
+      if(connected) connected.style.display='block';
+      markIntConnected('calendar',{});
+      gcalPopulateContacts();
+    },200);
+  }
+}
+
+function gcalDisconnect(){
+  gcalAccessToken=null; gcalTokenExpiry=0;
+  localStorage.removeItem('nlm_gcal_token');
+  localStorage.removeItem('nlm_gcal_expiry');
+  localStorage.removeItem('nlm_gcal_email');
+  localStorage.removeItem('nlm_int_calendar');
+  document.getElementById('gcal-setup-panel').style.display='block';
+  document.getElementById('gcal-connected-panel').style.display='none';
+  markIntDisconnected('calendar');
+  updateIntCount();
+  showToast('Google Calendar disconnected');
+}
+
+function gcalPopulateContacts(){
+  const sel = document.getElementById('gcal-contact'); if(!sel) return;
+  sel.innerHTML = '<option value="">— select contact —</option>' +
+    contacts.map(c=>`<option value="${c.id}" data-email="${c.email||''}">${c.name}${c.company?' — '+c.company:''}</option>`).join('');
+  sel.onchange = ()=>{
+    const opt = sel.options[sel.selectedIndex];
+    const emailEl = document.getElementById('gcal-guest-email');
+    if(emailEl && opt && opt.dataset.email) emailEl.value = opt.dataset.email;
+  };
+}
+
+async function gcalCreateEvent(){
+  if(!gcalIsConnected()){ showToast('Google Calendar not connected','error'); return; }
+  const title    = document.getElementById('gcal-title')?.value.trim();
+  const start    = document.getElementById('gcal-start')?.value;
+  const duration = parseInt(document.getElementById('gcal-duration')?.value)||30;
+  const notes    = document.getElementById('gcal-notes')?.value.trim();
+  const guestEmail = document.getElementById('gcal-guest-email')?.value.trim();
+  const conference = document.getElementById('gcal-conference')?.value;
+
+  if(!title||!start){ showToast('Enter a title and start time','error'); return; }
+
+  const startISO = new Date(start).toISOString();
+  const endISO   = new Date(new Date(start).getTime()+duration*60000).toISOString();
+
+  const event = {
+    summary: title,
+    description: notes||'',
+    start:{ dateTime: startISO, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+    end:  { dateTime: endISO,   timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+    attendees: guestEmail ? [{email: guestEmail}] : [],
+    sendUpdates: guestEmail ? 'all' : 'none',
+  };
+
+  if(conference==='meet'){
+    event.conferenceData = {
+      createRequest:{ requestId:'nlm-'+Date.now(), conferenceSolutionKey:{type:'hangoutsMeet'} }
+    };
+  }
+
+  const logEl = document.getElementById('gcal-event-log');
+  if(logEl) logEl.innerHTML = '<div style="font-size:12px;color:var(--text3)">Creating event…</div>';
+
+  try {
+    const url = conference==='meet'
+      ? 'https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1&sendUpdates='+(guestEmail?'all':'none')
+      : 'https://www.googleapis.com/calendar/v3/calendars/primary/events?sendUpdates='+(guestEmail?'all':'none');
+
+    const r = await fetch(url, {
+      method:'POST',
+      headers:{'Authorization':'Bearer '+gcalAccessToken,'Content-Type':'application/json'},
+      body: JSON.stringify(event)
+    });
+    const data = await r.json();
+
+    if(r.ok){
+      const meetLink = data.conferenceData?.entryPoints?.find(e=>e.entryPointType==='video')?.uri||'';
+      const htmlLink = data.htmlLink||'';
+      if(logEl) logEl.innerHTML = `
+        <div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.2);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--green)">
+          ✅ Event created!${guestEmail?` Invite sent to <strong>${guestEmail}</strong>`:''}<br>
+          ${htmlLink?`<a href="${htmlLink}" target="_blank" style="color:var(--accent2)">Open in Google Calendar →</a>`:''}
+          ${meetLink?`<br><a href="${meetLink}" target="_blank" style="color:var(--accent2)">Join Google Meet →</a>`:''}
+        </div>`;
+      // Also add to CRM calendar
+      calEvents.push({
+        id:'gcal_'+data.id, title, start:startISO, end:endISO,
+        sourceId:'crm', notes, contactId:document.getElementById('gcal-contact')?.value,
+        gcalLink: htmlLink
+      });
+      saveCalEvents();
+      // Clear form
+      document.getElementById('gcal-title').value='';
+      document.getElementById('gcal-notes').value='';
+      document.getElementById('gcal-guest-email').value='';
+      showToast('Event created in Google Calendar! ✅');
+    } else {
+      const msg = data.error?.message||'Unknown error';
+      if(logEl) logEl.innerHTML=`<div style="color:var(--red);font-size:12px">❌ ${msg}</div>`;
+      if(data.error?.status==='UNAUTHENTICATED'){ gcalDisconnect(); showToast('Session expired — please reconnect','error'); }
+      else showToast('Error: '+msg,'error');
+    }
+  } catch(e){
+    if(logEl) logEl.innerHTML=`<div style="color:var(--red);font-size:12px">❌ Network error: ${e.message}</div>`;
+    showToast('Network error','error');
+  }
+}
+
+async function gcalLoadEvents(){
+  if(!gcalIsConnected()){ showToast('Google Calendar not connected','error'); return; }
+  const listEl = document.getElementById('gcal-events-list');
+  if(listEl) listEl.innerHTML='<div style="font-size:12px;color:var(--text3)">Loading…</div>';
+  try {
+    const now = new Date().toISOString();
+    const r = await fetch(
+      `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(now)}&maxResults=10&orderBy=startTime&singleEvents=true`,
+      { headers:{'Authorization':'Bearer '+gcalAccessToken} }
+    );
+    const data = await r.json();
+    if(!r.ok){ listEl.innerHTML=`<div style="color:var(--red);font-size:12px">Error: ${data.error?.message}</div>`; return; }
+    const items = data.items||[];
+    if(items.length===0){ listEl.innerHTML='<div style="font-size:12px;color:var(--text3)">No upcoming events</div>'; return; }
+    listEl.innerHTML = items.map(ev=>{
+      const start = ev.start?.dateTime||ev.start?.date;
+      const dateStr = start ? new Date(start).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
+      const meetLink = ev.conferenceData?.entryPoints?.find(e=>e.entryPointType==='video')?.uri;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;color:var(--text)">${ev.summary||'(no title)'}</div>
+          <div style="font-size:11px;color:var(--text3)">${dateStr}${ev.attendees?.length?' · '+ev.attendees.length+' attendee(s)':''}</div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          ${meetLink?`<a href="${meetLink}" target="_blank" class="btn btn-sm" style="font-size:10px;padding:3px 8px;background:var(--green-bg);color:var(--green);border-color:rgba(62,207,142,.3)">Meet</a>`:''}
+          <a href="${ev.htmlLink}" target="_blank" class="btn btn-sm" style="font-size:10px;padding:3px 8px">Open</a>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e){ listEl.innerHTML=`<div style="color:var(--red);font-size:12px">Error: ${e.message}</div>`; }
 }
 
 // ── ZAPIER WEBHOOK ──
@@ -5109,7 +5365,7 @@ function navigate(page){
   if(page==='custom-fields') renderCustomFieldsPage();
   if(page==='settings') renderSettingsPage();
   if(page==='dashboard') renderDashboard();
-  if(page==='integrations') setTimeout(loadIntegrations,50);
+  if(page==='integrations') setTimeout(()=>{ loadIntegrations(); gcalCheckAndRestoreSession(); },50);
 }
 
 document.querySelectorAll('.nav-item').forEach(item=>{
