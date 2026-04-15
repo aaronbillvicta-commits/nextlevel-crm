@@ -658,6 +658,55 @@ tbody tr:hover td{background:var(--bg3)}
 .conv-action-btn{display:flex;align-items:center;gap:7px;padding:8px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-size:12px;color:var(--text2);transition:all .15s;width:100%;margin-bottom:6px}
 .conv-action-btn:hover{background:var(--bg4);color:var(--text);border-color:var(--border2)}
 
+/* ── CUSTOM DATE PICKER ── */
+.datepicker-wrap{position:relative}
+.datepicker-display{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:border-color .15s;font-size:13px;color:var(--text)}
+.datepicker-display:hover{border-color:var(--border2)}
+.datepicker-display.open{border-color:var(--accent)}
+.datepicker-popup{position:absolute;top:calc(100% + 6px);left:0;z-index:1000;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.4);min-width:300px}
+.datepicker-popup.right{right:0;left:auto}
+.dp-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.dp-nav-btn{width:28px;height:28px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
+.dp-nav-btn:hover{background:var(--bg4);border-color:var(--border2)}
+.dp-month-label{font-size:13px;font-weight:600;color:var(--text)}
+.dp-days-header{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px}
+.dp-day-hdr{font-size:10px;font-weight:600;color:var(--text3);text-align:center;padding:4px 0;text-transform:uppercase;letter-spacing:.05em}
+.dp-days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.dp-day{height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius);cursor:pointer;font-size:12px;color:var(--text2);transition:all .12s;border:1px solid transparent}
+.dp-day:hover{background:var(--bg3);color:var(--text)}
+.dp-day.today{color:var(--accent2);font-weight:600;border-color:var(--accent-border)}
+.dp-day.selected{background:var(--accent);color:#fff;border-color:var(--accent)}
+.dp-day.other-month{color:var(--text3);opacity:.4}
+.dp-day.disabled{opacity:.25;cursor:not-allowed;pointer-events:none}
+.dp-time-row{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.dp-time-label{font-size:11px;color:var(--text3);font-weight:500;width:40px}
+.dp-time-select{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:6px 8px;font-size:12px;color:var(--text);outline:none;font-family:inherit}
+.dp-confirm-row{display:flex;justify-content:flex-end;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+
+/* Duration presets */
+.dur-presets{display:flex;gap:6px;margin-top:6px}
+.dur-preset-btn{flex:1;padding:6px 0;text-align:center;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);font-size:11px;font-weight:500;color:var(--text3);cursor:pointer;transition:all .15s}
+.dur-preset-btn:hover{border-color:var(--border2);color:var(--text)}
+.dur-preset-btn.active{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2)}
+
+/* Guest/recipients */
+.guest-list{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.guest-row{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px}
+.guest-email{flex:1;font-size:12px;color:var(--text);font-family:'DM Mono',monospace}
+.guest-optional{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500}
+.guest-opt-yes{background:var(--amber-bg);color:var(--amber)}
+.guest-opt-no{background:var(--accent-bg);color:var(--accent2)}
+.guest-del{color:var(--text3);cursor:pointer;font-size:16px;line-height:1;transition:color .12s}
+.guest-del:hover{color:var(--red)}
+
+/* Upcoming events list */
+.cal-upcoming-item{padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.cal-upcoming-item:last-child{border-bottom:none}
+.cal-upcoming-item:hover .cal-upcoming-title{color:var(--accent2)}
+.cal-upcoming-title{font-size:12px;font-weight:500;color:var(--text);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-upcoming-time{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace}
+.cal-upcoming-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
+
 /* ── LOGIN SCREEN ── */
 #login-screen{position:fixed;inset:0;z-index:9999;background:var(--bg)}
 .login-bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 60% 40%,rgba(79,126,248,.08) 0%,transparent 60%)}
@@ -786,7 +835,6 @@ tbody tr:hover td{background:var(--bg3)}
       <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
       <input id="search-input" placeholder="Search contacts, deals…"/>
     </div>
-    <button class="btn btn-primary" onclick="openContactModal()">+ Add Contact</button>
   </header>
 
   <div class="content">
@@ -840,31 +888,62 @@ tbody tr:hover td{background:var(--bg3)}
 
     <!-- CALENDAR -->
     <div class="page" id="page-calendar">
-      <div class="sec-head">
-        <div>
-          <div class="sec-title">Calendar</div>
-          <div style="font-size:12px;color:var(--text3);margin-top:2px">Schedule meetings, calls, and follow-ups</div>
-        </div>
-        <div style="display:flex;gap:8px">
-          <div style="display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:3px">
-            <button class="btn btn-sm cal-view-btn active" data-view="month" onclick="setCalView('month',this)">Month</button>
-            <button class="btn btn-sm cal-view-btn" data-view="week" onclick="setCalView('week',this)">Week</button>
-            <button class="btn btn-sm cal-view-btn" data-view="day" onclick="setCalView('day',this)">Day</button>
+      <div style="display:grid;grid-template-columns:1fr 280px;gap:16px;height:100%">
+
+        <!-- LEFT: main calendar -->
+        <div style="display:flex;flex-direction:column;min-width:0">
+          <!-- Topbar -->
+          <div class="sec-head" style="margin-bottom:12px">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <div style="display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:3px">
+                <button class="btn btn-sm cal-view-btn active" data-view="month" onclick="setCalView('month',this)">Month</button>
+                <button class="btn btn-sm cal-view-btn" data-view="week" onclick="setCalView('week',this)">Week</button>
+                <button class="btn btn-sm cal-view-btn" data-view="day" onclick="setCalView('day',this)">Day</button>
+              </div>
+              <button class="btn btn-sm" onclick="calNavigate(-1)">‹ Prev</button>
+              <div class="cal-month-label" id="cal-header" style="font-size:15px;font-weight:600;color:var(--text);min-width:160px"></div>
+              <button class="btn btn-sm" onclick="calNavigate(1)">Next ›</button>
+              <button class="btn btn-sm" onclick="calToday()">Today</button>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="openEventModal()">+ New Event</button>
           </div>
-          <button class="btn btn-sm" onclick="calNavigate(-1)">‹ Prev</button>
-          <button class="btn btn-sm" onclick="calNavigate(1)">Next ›</button>
-          <button class="btn btn-sm" onclick="calToday()">Today</button>
-          <button class="btn btn-primary btn-sm" onclick="openEventModal()">+ New Event</button>
+
+          <!-- Calendar sources row -->
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
+            <span style="font-size:11px;color:var(--text3);font-weight:500">Calendars:</span>
+            <div id="cal-sources" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+            <button class="btn btn-sm" style="font-size:11px" onclick="openCalSourceModal()">+ Add Calendar</button>
+          </div>
+
+          <!-- Calendar grid -->
+          <div class="cal-grid" id="cal-grid" style="flex:1"></div>
+        </div>
+
+        <!-- RIGHT: sidebar -->
+        <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto">
+
+          <!-- Contact filter -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px">
+            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Filter by Contact</div>
+            <div style="position:relative">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input id="cal-contact-filter" class="form-input" style="padding-left:28px;font-size:12px" placeholder="Search contacts…" oninput="filterCalByContact(this.value)"/>
+            </div>
+            <div id="cal-contact-filter-list" style="margin-top:6px;display:none;max-height:160px;overflow-y:auto;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)"></div>
+            <div id="cal-contact-filter-active" style="margin-top:6px"></div>
+          </div>
+
+          <!-- Upcoming events -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;flex:1">
+            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+              Upcoming Events
+              <button class="btn btn-sm" style="font-size:10px;padding:2px 8px" onclick="renderUpcomingEvents()">↻</button>
+            </div>
+            <div id="cal-upcoming-list"></div>
+          </div>
+
         </div>
       </div>
-      <!-- Calendar sources -->
-      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">
-        <span style="font-size:11px;color:var(--text3);font-weight:500">Calendars:</span>
-        <div id="cal-sources"></div>
-        <button class="btn btn-sm" style="font-size:11px" onclick="openCalSourceModal()">+ Connect Calendar</button>
-      </div>
-      <div class="cal-header" id="cal-header"></div>
-      <div class="cal-grid" id="cal-grid"></div>
     </div>
 
     <!-- AUTOMATIONS -->
@@ -1387,7 +1466,7 @@ tbody tr:hover td{background:var(--bg3)}
             </div>
           </div>
 
-          <!-- Step 2: Connected state + composer -->
+          <!-- Step 2: Connected state -->
           <div id="gcal-connected-panel" style="display:none">
             <div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.25);border-radius:var(--radius);padding:12px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
               <span style="font-size:18px">✅</span>
@@ -1397,50 +1476,10 @@ tbody tr:hover td{background:var(--bg3)}
               </div>
               <button class="btn btn-sm" style="margin-left:auto;color:var(--red)" onclick="gcalDisconnect()">Disconnect</button>
             </div>
-
-            <!-- Create event form -->
-            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:12px">Create Calendar Event</div>
-            <div class="int-form-grid">
-              <div class="form-group">
-                <label class="form-label">Event Title</label>
-                <input class="form-input" id="gcal-title" placeholder="Call with Maria Santos"/>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Start Date & Time</label>
-                <input class="form-input" id="gcal-start" type="datetime-local"/>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Duration (minutes)</label>
-                <input class="form-input" id="gcal-duration" type="number" value="30"/>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Client / Contact</label>
-                <select class="form-select" id="gcal-contact">
-                  <option value="">— select contact —</option>
-                </select>
-              </div>
+            <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--accent2);line-height:1.6">
+              📅 To create events and invite clients, go to the <strong>Calendar</strong> section and click <strong>+ New Event</strong>. All events sync directly to your Google Calendar.
             </div>
-            <div class="form-group">
-              <label class="form-label">Guest Email (client's email)</label>
-              <input class="form-input" id="gcal-guest-email" placeholder="client@email.com (auto-filled when contact selected)"/>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Description / Agenda</label>
-              <textarea class="form-textarea" id="gcal-notes" style="min-height:70px" placeholder="Meeting agenda, notes…"></textarea>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Video Conference</label>
-              <select class="form-select" id="gcal-conference">
-                <option value="none">No video link</option>
-                <option value="meet">Add Google Meet link</option>
-              </select>
-            </div>
-            <div style="display:flex;justify-content:flex-end;gap:8px">
-              <button class="btn btn-primary btn-sm" onclick="gcalCreateEvent()">Create Event in Google Calendar</button>
-            </div>
-            <div id="gcal-event-log" style="margin-top:12px"></div>
-
-            <!-- Recent events -->
+            <!-- Upcoming events preview -->
             <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
               <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Upcoming Events from Google</div>
               <div id="gcal-events-list"><div style="font-size:12px;color:var(--text3)">Click "Load Events" to fetch from Google Calendar</div></div>
@@ -3367,15 +3406,7 @@ function renderCalendar(){
   if(calView==='month') renderMonthGrid();
   else if(calView==='week') renderWeekGrid();
   else renderDayGrid();
-}
-
-function renderCalSources(){
-  const el = document.getElementById('cal-sources'); if(!el) return;
-  el.innerHTML = calSources.map(s=>`
-    <div class="cal-source-chip ${s.active?'active':''}" onclick="toggleCalSource('${s.id}')" style="background:${s.active?hexAlpha(s.color,0.12):'var(--bg3)'};color:${s.active?s.color:'var(--text3)'};border-color:${s.active?hexAlpha(s.color,0.3):'var(--border)'}">
-      <div class="cal-source-dot" style="background:${s.color}"></div>
-      ${s.name}
-    </div>`).join('');
+  renderUpcomingEvents();
 }
 
 function hexAlpha(hex,a){ return hex+'33'.slice(0,Math.round(a*255).toString(16).length+1); }
@@ -3396,7 +3427,7 @@ function renderCalHeader(){
   } else {
     label = `${CAL_DAYS[calDate.getDay()]}, ${CAL_MONTHS[calDate.getMonth()]} ${calDate.getDate()}, ${calDate.getFullYear()}`;
   }
-  el.innerHTML = `<div class="cal-month-label">${label}</div>`;
+  el.textContent = label;
 }
 
 function renderMonthGrid(){
@@ -3496,43 +3527,435 @@ function calNavigate(dir){
 
 function calToday(){ calDate=new Date(); renderCalendar(); }
 
-function openEventModal(date){
-  const d = date||new Date();
-  const fmt = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:00`;
-  openModal(`
-    <div class="modal-head"><div class="modal-title">New Event</div><span class="modal-close" onclick="closeModal()">×</span></div>
-    <div class="modal-body">
-      <div class="form-group"><label class="form-label">Event Title</label><input class="form-input" id="ev-title" placeholder="Call with Maria Santos"/></div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Start</label><input class="form-input" id="ev-start" type="datetime-local" value="${fmt}"/></div>
-        <div class="form-group"><label class="form-label">End</label><input class="form-input" id="ev-end" type="datetime-local"/></div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Calendar</label>
-          <select class="form-select" id="ev-source">${calSources.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select>
-        </div>
-        <div class="form-group"><label class="form-label">Contact (optional)</label>
-          <select class="form-select" id="ev-contact"><option value="">— none —</option>${contacts.map(c=>`<option value="${c.id}">${c.name}</option>`).join('')}</select>
-        </div>
-      </div>
-      <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="ev-notes" placeholder="Agenda…"></textarea></div>
-    </div>
-    <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveCalEvent()">Save Event</button></div>`);
+// ── CONTACT FILTER FOR CALENDAR ──
+let calContactFilter = null;
+
+function filterCalByContact(q){
+  const listEl = document.getElementById('cal-contact-filter-list');
+  if(!q.trim()){ listEl.style.display='none'; return; }
+  const matches = contacts.filter(c=>(c.name||'').toLowerCase().includes(q.toLowerCase())).slice(0,6);
+  if(!matches.length){ listEl.style.display='none'; return; }
+  listEl.style.display='block';
+  listEl.innerHTML = matches.map(c=>`
+    <div onclick="setCalContactFilter('${c.id}')" style="padding:7px 10px;cursor:pointer;font-size:12px;color:var(--text);display:flex;align-items:center;gap:8px;transition:background .12s" onmouseenter="this.style.background='var(--bg4)'" onmouseleave="this.style.background=''">
+      <div class="av-sm ${getAv(c.id)}" style="width:22px;height:22px;font-size:9px">${initials(c.name)}</div>
+      <div><div style="font-weight:500">${c.name}</div><div style="font-size:10px;color:var(--text3)">${c.company||''}</div></div>
+    </div>`).join('');
 }
 
-function saveCalEvent(){
-  const title = document.getElementById('ev-title').value.trim();
-  const start = document.getElementById('ev-start').value;
-  const end   = document.getElementById('ev-end').value;
-  const src   = document.getElementById('ev-source').value;
-  const notes = document.getElementById('ev-notes').value.trim();
-  const contactId = document.getElementById('ev-contact').value;
-  if(!title||!start){ showToast('Enter a title and start time','error'); return; }
-  calEvents.push({ id:'ev_'+Date.now(), title, start, end, sourceId:src, notes, contactId });
-  saveCalEvents();
-  closeModal();
+function setCalContactFilter(id){
+  calContactFilter = id;
+  const c = contacts.find(x=>x.id===id);
+  document.getElementById('cal-contact-filter').value = '';
+  document.getElementById('cal-contact-filter-list').style.display='none';
+  const activeEl = document.getElementById('cal-contact-filter-active');
+  if(activeEl && c) activeEl.innerHTML=`<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);font-size:11px;color:var(--accent2)">
+    Showing: <strong>${c.name}</strong>
+    <span onclick="clearCalContactFilter()" style="cursor:pointer;margin-left:auto;color:var(--text3);font-size:14px;line-height:1">×</span>
+  </div>`;
   renderCalendar();
-  showToast('Event saved!');
+}
+
+function clearCalContactFilter(){
+  calContactFilter = null;
+  document.getElementById('cal-contact-filter-active').innerHTML='';
+  renderCalendar();
+}
+
+// Patch getFilteredCalEvents to use contact filter
+function getCalEventsForDay(year, month, d){
+  return calEvents.filter(ev=>{
+    const ed = new Date(ev.start);
+    const matchDay = ed.getDate()===d && ed.getMonth()===month && ed.getFullYear()===year;
+    const activeSourceIds = calSources.filter(s=>s.active).map(s=>s.id);
+    const matchSource = activeSourceIds.includes(ev.sourceId||'crm');
+    const matchContact = !calContactFilter || ev.contactId===calContactFilter;
+    return matchDay && matchSource && matchContact;
+  });
+}
+
+// ── UPCOMING EVENTS LIST ──
+function renderUpcomingEvents(){
+  const el = document.getElementById('cal-upcoming-list'); if(!el) return;
+  const now = new Date();
+  const upcoming = calEvents
+    .filter(ev=>new Date(ev.start)>=now)
+    .sort((a,b)=>new Date(a.start)-new Date(b.start))
+    .slice(0,10);
+
+  if(!upcoming.length){
+    el.innerHTML=`<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">No upcoming events</div>`;
+    return;
+  }
+  el.innerHTML = upcoming.map(ev=>{
+    const src = calSources.find(s=>s.id===(ev.sourceId||'crm'));
+    const color = src?.color||'var(--accent)';
+    const d = new Date(ev.start);
+    const dateStr = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+    const timeStr = d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+    const contact = ev.contactId ? contacts.find(c=>c.id===ev.contactId) : null;
+    return `<div class="cal-upcoming-item" onclick="editCalEvent('${ev.id}')">
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <div class="cal-upcoming-dot" style="background:${color};margin-top:4px"></div>
+        <div style="flex:1;min-width:0">
+          <div class="cal-upcoming-title">${ev.title}</div>
+          <div class="cal-upcoming-time">${dateStr} · ${timeStr}</div>
+          ${contact?`<div style="font-size:10px;color:var(--text3);margin-top:2px">👤 ${contact.name}</div>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── CUSTOM DATE PICKER ──
+let _dpState = { year: new Date().getFullYear(), month: new Date().getMonth(), selectedDate: null, selectedHour: new Date().getHours(), selectedMin: 0, targetId: null, onConfirm: null };
+
+function openDatePicker(targetId, initialVal, onConfirm, popupRight=false){
+  closeDatePicker();
+  _dpState.targetId = targetId;
+  _dpState.onConfirm = onConfirm;
+  const now = new Date();
+  if(initialVal){
+    const d = new Date(initialVal);
+    _dpState.year = d.getFullYear(); _dpState.month = d.getMonth();
+    _dpState.selectedDate = d.getDate(); _dpState.selectedHour = d.getHours();
+    _dpState.selectedMin = Math.round(d.getMinutes()/5)*5;
+  } else {
+    _dpState.year = now.getFullYear(); _dpState.month = now.getMonth();
+    _dpState.selectedDate = now.getDate(); _dpState.selectedHour = now.getHours();
+    _dpState.selectedMin = 0;
+  }
+  const anchor = document.getElementById(targetId); if(!anchor) return;
+  const popup = document.createElement('div');
+  popup.id = 'dp-popup';
+  popup.className = 'datepicker-popup'+(popupRight?' right':'');
+  anchor.parentElement.style.position='relative';
+  anchor.parentElement.appendChild(popup);
+  renderDatePickerPopup();
+  anchor.classList.add('open');
+  setTimeout(()=>document.addEventListener('click', dpOutsideClick), 10);
+}
+
+function dpOutsideClick(e){
+  const popup = document.getElementById('dp-popup');
+  if(popup && !popup.contains(e.target) && e.target.id!==_dpState.targetId && !e.target.closest('.datepicker-display')){
+    closeDatePicker();
+  }
+}
+
+function closeDatePicker(){
+  const popup = document.getElementById('dp-popup');
+  if(popup) popup.remove();
+  const anchor = document.getElementById(_dpState.targetId||'');
+  if(anchor) anchor.classList.remove('open');
+  document.removeEventListener('click', dpOutsideClick);
+}
+
+function renderDatePickerPopup(){
+  const popup = document.getElementById('dp-popup'); if(!popup) return;
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dayNames = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  const {year, month, selectedDate, selectedHour, selectedMin} = _dpState;
+  const firstDay = new Date(year,month,1).getDay();
+  const daysInMonth = new Date(year,month+1,0).getDate();
+  const prevDays = new Date(year,month,0).getDate();
+  const today = new Date();
+
+  // Hours options
+  const hours = Array.from({length:24},(_,i)=>i);
+  const mins = [0,5,10,15,20,25,30,35,40,45,50,55];
+
+  let daysHtml = '';
+  for(let i=firstDay-1;i>=0;i--) daysHtml+=`<div class="dp-day other-month">${prevDays-i}</div>`;
+  for(let d=1;d<=daysInMonth;d++){
+    const isToday = d===today.getDate()&&month===today.getMonth()&&year===today.getFullYear();
+    const isSel = d===selectedDate;
+    daysHtml+=`<div class="dp-day ${isToday?'today':''} ${isSel?'selected':''}" onclick="dpSelectDay(${d})">${d}</div>`;
+  }
+  const rem = 42-(firstDay+daysInMonth);
+  for(let d=1;d<=rem;d++) daysHtml+=`<div class="dp-day other-month">${d}</div>`;
+
+  popup.innerHTML=`
+    <div class="dp-nav">
+      <div class="dp-nav-btn" onclick="dpChangeMonth(-1)">‹</div>
+      <div class="dp-month-label">${monthNames[month]} ${year}</div>
+      <div class="dp-nav-btn" onclick="dpChangeMonth(1)">›</div>
+    </div>
+    <div class="dp-days-header">${dayNames.map(d=>`<div class="dp-day-hdr">${d}</div>`).join('')}</div>
+    <div class="dp-days">${daysHtml}</div>
+    <div class="dp-time-row">
+      <span class="dp-time-label">Time</span>
+      <select class="dp-time-select" id="dp-hour" onchange="dpSetHour(this.value)">
+        ${hours.map(h=>`<option value="${h}" ${h===selectedHour?'selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}
+      </select>
+      <span style="color:var(--text3)">:</span>
+      <select class="dp-time-select" id="dp-min" onchange="dpSetMin(this.value)" style="max-width:70px">
+        ${mins.map(m=>`<option value="${m}" ${m===selectedMin?'selected':''}>${String(m).padStart(2,'0')}</option>`).join('')}
+      </select>
+    </div>
+    <div class="dp-confirm-row">
+      <button class="btn btn-sm" onclick="closeDatePicker()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="dpConfirm()">Confirm</button>
+    </div>`;
+}
+
+function dpChangeMonth(dir){
+  _dpState.month += dir;
+  if(_dpState.month>11){_dpState.month=0;_dpState.year++;}
+  if(_dpState.month<0){_dpState.month=11;_dpState.year--;}
+  renderDatePickerPopup();
+}
+function dpSelectDay(d){ _dpState.selectedDate=d; renderDatePickerPopup(); }
+function dpSetHour(v){ _dpState.selectedHour=parseInt(v); }
+function dpSetMin(v){ _dpState.selectedMin=parseInt(v); }
+function dpConfirm(){
+  if(!_dpState.selectedDate){ showToast('Select a date first','error'); return; }
+  const d = new Date(_dpState.year, _dpState.month, _dpState.selectedDate, _dpState.selectedHour, _dpState.selectedMin);
+  const iso = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  // Update display
+  const anchor = document.getElementById(_dpState.targetId);
+  if(anchor){
+    anchor.dataset.value = iso;
+    const span = anchor.querySelector('.dp-display-val');
+    if(span) span.textContent = d.toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  }
+  if(_dpState.onConfirm) _dpState.onConfirm(iso, d);
+  closeDatePicker();
+}
+
+// ── NEW EVENT MODAL (fully synced to Google Calendar) ──
+let _evGuests = []; // [{email, optional}]
+let _evStartISO = null;
+
+function openEventModal(date){
+  _evGuests = [];
+  _evStartISO = null;
+  const d = date||new Date();
+  d.setMinutes(0,0,0);
+  if(!date) d.setHours(d.getHours()+1);
+
+  const sourceOpts = calSources.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  const contactOpts = `<option value="">— none —</option>`+contacts.map(c=>`<option value="${c.id}" data-email="${c.email||''}">${c.name}</option>`).join('');
+  const gcalConnected = gcalIsConnected();
+
+  openModal(`
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">New Event</div>
+        ${gcalConnected?`<div style="font-size:11px;color:var(--green);margin-top:2px">✓ Will sync to Google Calendar</div>`:
+          `<div style="font-size:11px;color:var(--amber);margin-top:2px">⚠ Connect Google Calendar in Integrations to sync</div>`}
+      </div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body">
+
+      <!-- Title -->
+      <div class="form-group">
+        <label class="form-label">Event Title</label>
+        <input class="form-input" id="ev-title" placeholder="Discovery Call with Maria Santos…"/>
+      </div>
+
+      <!-- Date/Time picker -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Date & Time</label>
+          <div class="datepicker-display" id="ev-start-picker" data-value="" onclick="openDatePicker('ev-start-picker','',function(iso){_evStartISO=iso;updateEvEndFromDuration();})">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span class="dp-display-val" style="color:var(--text3)">Pick date & time…</span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Duration</label>
+          <div style="display:flex;align-items:center;gap:6px">
+            <input class="form-input" id="ev-duration" type="number" value="30" min="5" step="5" style="width:70px" oninput="updateEvEndFromDuration()"/>
+            <span style="font-size:12px;color:var(--text3)">mins</span>
+          </div>
+          <div class="dur-presets">
+            <div class="dur-preset-btn active" onclick="setEvDuration(30,this)">30 min</div>
+            <div class="dur-preset-btn" onclick="setEvDuration(45,this)">45 min</div>
+            <div class="dur-preset-btn" onclick="setEvDuration(60,this)">1 hour</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Source + Contact -->
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Calendar</label>
+          <select class="form-select" id="ev-source">${sourceOpts}</select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Contact (auto-fills email)</label>
+          <select class="form-select" id="ev-contact" onchange="evAutoFillGuest(this)">${contactOpts}</select>
+        </div>
+      </div>
+
+      <!-- Guests / Recipients -->
+      <div class="form-group">
+        <label class="form-label">Guest Emails <span style="color:var(--text3);font-weight:400">(multiple supported)</span></label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <input class="form-input" id="ev-guest-input" placeholder="guest@email.com" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addEvGuest()}"/>
+          <select class="form-select" id="ev-guest-optional" style="width:auto;font-size:11px;padding:8px">
+            <option value="no">Required</option>
+            <option value="yes">Optional</option>
+          </select>
+          <button class="btn btn-sm" onclick="addEvGuest()">Add</button>
+        </div>
+        <div class="guest-list" id="ev-guest-list"></div>
+      </div>
+
+      <!-- Video conference -->
+      <div class="form-group">
+        <label class="form-label">Video Conference</label>
+        <select class="form-select" id="ev-conference">
+          <option value="none">No video link</option>
+          <option value="meet">Google Meet</option>
+        </select>
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group">
+        <label class="form-label">Description / Agenda</label>
+        <textarea class="form-textarea" id="ev-notes" placeholder="Meeting agenda, talking points…" style="min-height:70px"></textarea>
+      </div>
+
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCalEvent()">
+        ${gcalConnected?'Create Event & Sync to Google':'Save Event'}
+      </button>
+    </div>`, true);
+
+  // Set initial date
+  const initISO = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}T${String(d.getHours()).padStart(2,'0')}:00`;
+  _evStartISO = initISO;
+  const picker = document.getElementById('ev-start-picker');
+  if(picker){
+    picker.dataset.value = initISO;
+    const span = picker.querySelector('.dp-display-val');
+    if(span) span.textContent = d.toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    span.style.color = 'var(--text)';
+  }
+  // Re-bind picker with correct initial value
+  picker.onclick = ()=>openDatePicker('ev-start-picker', initISO, (iso)=>{_evStartISO=iso; updateEvEndFromDuration(); const sp=picker.querySelector('.dp-display-val'); if(sp){sp.textContent=new Date(iso).toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});sp.style.color='var(--text)';}});
+}
+
+function setEvDuration(mins, btn){
+  document.getElementById('ev-duration').value = mins;
+  document.querySelectorAll('.dur-preset-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  updateEvEndFromDuration();
+}
+
+function updateEvEndFromDuration(){
+  if(!_evStartISO) return;
+  const dur = parseInt(document.getElementById('ev-duration')?.value)||30;
+  const end = new Date(new Date(_evStartISO).getTime() + dur*60000);
+  window._evEndISO = end.toISOString();
+}
+
+function evAutoFillGuest(sel){
+  const opt = sel.options[sel.selectedIndex];
+  const email = opt?.dataset?.email;
+  if(email && email.includes('@')){
+    const input = document.getElementById('ev-guest-input');
+    if(input) input.value = email;
+  }
+}
+
+function addEvGuest(){
+  const input = document.getElementById('ev-guest-input');
+  const optSel = document.getElementById('ev-guest-optional');
+  const email = input?.value.trim().toLowerCase();
+  if(!email||!email.includes('@')){ showToast('Enter a valid email','error'); return; }
+  if(_evGuests.find(g=>g.email===email)){ showToast('Already added','error'); return; }
+  _evGuests.push({ email, optional: optSel?.value==='yes' });
+  input.value='';
+  renderEvGuestList();
+}
+
+function removeEvGuest(email){
+  _evGuests = _evGuests.filter(g=>g.email!==email);
+  renderEvGuestList();
+}
+
+function renderEvGuestList(){
+  const el = document.getElementById('ev-guest-list'); if(!el) return;
+  el.innerHTML = _evGuests.map(g=>`
+    <div class="guest-row">
+      <span class="guest-email">${g.email}</span>
+      <span class="guest-optional ${g.optional?'guest-opt-yes':'guest-opt-no'}">${g.optional?'Optional':'Required'}</span>
+      <span class="guest-del" onclick="removeEvGuest('${g.email}')">×</span>
+    </div>`).join('');
+}
+
+async function saveCalEvent(){
+  const title    = document.getElementById('ev-title')?.value.trim();
+  const src      = document.getElementById('ev-source')?.value;
+  const notes    = document.getElementById('ev-notes')?.value.trim();
+  const contactId= document.getElementById('ev-contact')?.value;
+  const conf     = document.getElementById('ev-conference')?.value;
+  const dur      = parseInt(document.getElementById('ev-duration')?.value)||30;
+
+  if(!title){ showToast('Enter an event title','error'); return; }
+  if(!_evStartISO){ showToast('Pick a date and time','error'); return; }
+
+  const startISO = new Date(_evStartISO).toISOString();
+  const endISO   = new Date(new Date(_evStartISO).getTime()+dur*60000).toISOString();
+
+  // Save to CRM calendar
+  const evId = 'ev_'+Date.now();
+  calEvents.push({ id:evId, title, start:startISO, end:endISO, sourceId:src, notes, contactId });
+  saveCalEvents();
+
+  // Sync to Google Calendar if connected
+  if(gcalIsConnected()){
+    const btn = document.querySelector('.modal-foot .btn-primary');
+    if(btn){ btn.textContent='Creating…'; btn.disabled=true; }
+    try {
+      const event = {
+        summary: title,
+        description: notes||'',
+        start:{ dateTime: startISO, timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+        end:  { dateTime: endISO,   timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
+        attendees: _evGuests.map(g=>({ email:g.email, optional:g.optional })),
+        sendUpdates: _evGuests.length?'all':'none',
+      };
+      if(conf==='meet'){
+        event.conferenceData={ createRequest:{ requestId:'nlm-'+Date.now(), conferenceSolutionKey:{type:'hangoutsMeet'} }};
+      }
+      const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?${conf==='meet'?'conferenceDataVersion=1&':''}sendUpdates=${_evGuests.length?'all':'none'}`;
+      const r = await fetch(url,{
+        method:'POST',
+        headers:{'Authorization':'Bearer '+gcalAccessToken,'Content-Type':'application/json'},
+        body: JSON.stringify(event)
+      });
+      const data = await r.json();
+      if(r.ok){
+        const meetLink = data.conferenceData?.entryPoints?.find(e=>e.entryPointType==='video')?.uri||'';
+        // Update CRM event with Google link
+        const ev = calEvents.find(e=>e.id===evId);
+        if(ev){ ev.gcalId=data.id; ev.gcalLink=data.htmlLink; ev.meetLink=meetLink; saveCalEvents(); }
+        closeModal();
+        renderCalendar();
+        renderUpcomingEvents();
+        const guestNames = _evGuests.length ? ` · Invite sent to ${_evGuests.length} guest(s)` : '';
+        showToast(`✅ Event synced to Google Calendar${guestNames}`);
+      } else {
+        closeModal(); renderCalendar(); renderUpcomingEvents();
+        showToast('Saved locally (Google Calendar error: '+data.error?.message+')','error');
+      }
+    } catch(e){
+      closeModal(); renderCalendar(); renderUpcomingEvents();
+      showToast('Saved locally (network error)','error');
+    }
+  } else {
+    closeModal();
+    renderCalendar();
+    renderUpcomingEvents();
+    showToast('Event saved!');
+  }
 }
 
 function editCalEvent(id){
@@ -3541,54 +3964,88 @@ function editCalEvent(id){
     <div class="modal-head"><div class="modal-title">Edit Event</div><span class="modal-close" onclick="closeModal()">×</span></div>
     <div class="modal-body">
       <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="ev-title" value="${ev.title}"/></div>
-      <div class="form-row">
-        <div class="form-group"><label class="form-label">Start</label><input class="form-input" id="ev-start" type="datetime-local" value="${ev.start}"/></div>
-        <div class="form-group"><label class="form-label">End</label><input class="form-input" id="ev-end" type="datetime-local" value="${ev.end||''}"/></div>
+      <div class="form-group"><label class="form-label">Date & Time</label>
+        <div class="datepicker-display" id="ev-start-picker" data-value="${ev.start||''}" onclick="openDatePicker('ev-start-picker','${ev.start||''}',function(iso){_evStartISO=iso;const sp=document.getElementById('ev-start-picker').querySelector('.dp-display-val');if(sp){sp.textContent=new Date(iso).toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});sp.style.color='var(--text)';}})">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="dp-display-val" style="color:var(--text)">${ev.start?new Date(ev.start).toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'Pick date…'}</span>
+        </div>
       </div>
       <div class="form-group"><label class="form-label">Calendar</label>
         <select class="form-select" id="ev-source">${calSources.map(s=>`<option value="${s.id}" ${s.id===ev.sourceId?'selected':''}>${s.name}</option>`).join('')}</select>
       </div>
       <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="ev-notes">${ev.notes||''}</textarea></div>
+      ${ev.gcalLink?`<div style="margin-top:8px"><a href="${ev.gcalLink}" target="_blank" class="btn btn-sm" style="color:var(--green)">Open in Google Calendar →</a>${ev.meetLink?` <a href="${ev.meetLink}" target="_blank" class="btn btn-sm" style="color:var(--accent2)">Join Meet →</a>`:''}</div>`:''}
     </div>
     <div class="modal-foot">
       <button class="btn btn-danger btn-sm" onclick="deleteCalEvent('${id}')">Delete</button>
       <button class="btn" onclick="closeModal()">Cancel</button>
       <button class="btn btn-primary" onclick="updateCalEvent('${id}')">Save</button>
     </div>`);
+  _evStartISO = ev.start||null;
 }
 
 function updateCalEvent(id){
   const ev = calEvents.find(e=>e.id===id); if(!ev) return;
-  ev.title  = document.getElementById('ev-title').value.trim()||ev.title;
-  ev.start  = document.getElementById('ev-start').value;
-  ev.end    = document.getElementById('ev-end').value;
-  ev.sourceId = document.getElementById('ev-source').value;
-  ev.notes  = document.getElementById('ev-notes').value.trim();
-  saveCalEvents(); closeModal(); renderCalendar(); showToast('Event updated!');
+  ev.title    = document.getElementById('ev-title')?.value.trim()||ev.title;
+  ev.start    = _evStartISO||ev.start;
+  ev.sourceId = document.getElementById('ev-source')?.value;
+  ev.notes    = document.getElementById('ev-notes')?.value.trim();
+  saveCalEvents(); closeModal(); renderCalendar(); renderUpcomingEvents(); showToast('Event updated!');
 }
 
 function deleteCalEvent(id){
   if(!confirm('Delete this event?')) return;
   calEvents = calEvents.filter(e=>e.id!==id);
-  saveCalEvents(); closeModal(); renderCalendar(); showToast('Event deleted');
+  saveCalEvents(); closeModal(); renderCalendar(); renderUpcomingEvents(); showToast('Event deleted');
+}
+
+// ── CALENDAR SOURCES — with remove option ──
+function renderCalSources(){
+  const el = document.getElementById('cal-sources'); if(!el) return;
+  el.innerHTML = calSources.map(s=>`
+    <div class="cal-source-chip ${s.active?'active':''}"
+      style="background:${s.active?s.color+'20':'var(--bg3)'};color:${s.active?s.color:'var(--text3)'};border-color:${s.active?s.color+'44':'var(--border)'};display:inline-flex;align-items:center;gap:5px;padding:3px 8px 3px 10px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid;transition:all .15s">
+      <div class="cal-source-dot" style="background:${s.color};width:7px;height:7px;border-radius:50%;flex-shrink:0"></div>
+      <span onclick="toggleCalSource('${s.id}')">${s.name}</span>
+      <span onclick="removeCalSource('${s.id}')" title="Remove calendar" style="margin-left:2px;color:${s.active?s.color:'var(--text3)'};opacity:.6;font-size:14px;line-height:1;cursor:pointer;transition:opacity .12s" onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='.6'">×</span>
+    </div>`).join('');
+}
+
+function removeCalSource(id){
+  if(calSources.length<=1){ showToast("Can't remove the only calendar",'error'); return; }
+  const src = calSources.find(s=>s.id===id);
+  if(!confirm(`Remove calendar "${src?.name}"?`)) return;
+  calSources = calSources.filter(s=>s.id!==id);
+  saveCalSources(); renderCalendar(); showToast(`Calendar removed`);
 }
 
 function openCalSourceModal(){
+  const gcalConnected = gcalIsConnected();
+  const gcalEmail = localStorage.getItem('nlm_gcal_email')||'';
   openModal(`
-    <div class="modal-head"><div class="modal-title">Connect Calendar</div><span class="modal-close" onclick="closeModal()">×</span></div>
+    <div class="modal-head"><div class="modal-title">Add Calendar</div><span class="modal-close" onclick="closeModal()">×</span></div>
     <div class="modal-body">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:16px">Add a calendar to layer events by source — great for separating Google Calendar, team calendars, or project calendars.</div>
-      <div class="form-group"><label class="form-label">Calendar Name</label><input class="form-input" id="cs-name" placeholder="e.g. Google Calendar, Work, Personal"/></div>
+      ${gcalConnected?`<div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.2);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="addGcalSource()">
+        <span style="font-size:18px">📅</span>
+        <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--green)">Add Google Calendar</div><div style="font-size:11px;color:var(--text3)">${gcalEmail}</div></div>
+        <button class="btn btn-sm" style="background:var(--green-bg);color:var(--green);border-color:rgba(62,207,142,.3)">Add</button>
+      </div>`:''}
+      <div class="form-group"><label class="form-label">Calendar Name</label><input class="form-input" id="cs-name" placeholder="e.g. Work, Personal, Client XYZ"/></div>
       <div class="form-group"><label class="form-label">Color</label>
-        <div style="display:flex;gap:8px;margin-top:6px">
-          ${CAL_COLORS.map((c,i)=>`<div onclick="selectCalColor(this)" data-color="${c}" style="width:24px;height:24px;border-radius:50%;background:${c};cursor:pointer;border:2px solid ${i===0?'#fff':'transparent'};transition:border-color .15s"></div>`).join('')}
+        <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap">
+          ${CAL_COLORS.map((c,i)=>`<div onclick="selectCalColor(this)" data-color="${c}" style="width:26px;height:26px;border-radius:50%;background:${c};cursor:pointer;border:3px solid ${i===0?'#fff':'transparent'};transition:border-color .15s"></div>`).join('')}
         </div>
-      </div>
-      <div style="margin-top:12px;padding:12px;background:var(--bg3);border-radius:var(--radius);font-size:12px;color:var(--text3);line-height:1.6">
-        To sync with <strong style="color:var(--text)">Google Calendar</strong>, connect it in Integrations → Google Calendar first, then it will appear automatically here.
       </div>
     </div>
     <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="addCalSource()">Add Calendar</button></div>`);
+}
+
+function addGcalSource(){
+  const gcalEmail = localStorage.getItem('nlm_gcal_email')||'Google Calendar';
+  const name = 'Google — '+gcalEmail.split('@')[0];
+  if(calSources.find(s=>s.name.includes('Google'))){ showToast('Google Calendar already added'); closeModal(); return; }
+  calSources.push({ id:'gcal_'+Date.now(), name, color:'#4285F4', active:true });
+  saveCalSources(); closeModal(); renderCalendar(); showToast('Google Calendar added!');
 }
 
 function selectCalColor(el){
@@ -3597,12 +4054,14 @@ function selectCalColor(el){
 }
 
 function addCalSource(){
-  const name = document.getElementById('cs-name').value.trim();
-  const colorEl = document.querySelector('[data-color][style*="border-color: white"], [data-color][style*="border-color:#fff"], [data-color][style*="borderColor"]');
-  const color = colorEl?.dataset.color || CAL_COLORS[Math.floor(Math.random()*CAL_COLORS.length)];
+  const name = document.getElementById('cs-name')?.value.trim();
+  const colorEl = document.querySelector('#dp-popup [data-color][style*="border-color: white"], [data-color][style*="white"]');
+  const allColorEls = document.querySelectorAll('[data-color]');
+  let color = CAL_COLORS[0];
+  allColorEls.forEach(el=>{ if(el.style.borderColor==='white'||el.style.borderColor==='rgb(255, 255, 255)') color=el.dataset.color; });
   if(!name){ showToast('Enter a calendar name','error'); return; }
   calSources.push({ id:'cs_'+Date.now(), name, color, active:true });
-  saveCalSources(); closeModal(); renderCalendar(); showToast(`Calendar "${name}" added!`);
+  saveCalSources(); closeModal(); renderCalendar(); showToast(`"${name}" added!`);
 }
 
 // ═══════════════════════════════════════════════
