@@ -142,6 +142,9 @@ tr:last-child td{border-bottom:none}
 tbody tr{transition:background .12s}
 tbody tr:hover td{background:var(--bg3)}
 .td-name{display:flex;align-items:center;gap:9px}
+.td-name[onclick]{cursor:pointer}
+.td-name[onclick]:hover span{color:var(--accent2)!important}
+.td-name[onclick]:hover .av-sm{transform:scale(1.08);transition:transform .15s}
 .av-sm{width:26px;height:26px;border-radius:50%;font-size:9px;font-weight:600;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace}
 .av-blue{background:var(--accent-bg);color:var(--accent2)}
 .av-green{background:var(--green-bg);color:var(--green)}
@@ -327,7 +330,7 @@ tbody tr:hover td{background:var(--bg3)}
 .detail-panel{position:fixed;inset:0;z-index:900;display:none}
 .detail-panel.open{display:flex}
 .detail-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.5)}
-.detail-drawer{position:absolute;right:0;top:0;bottom:0;width:480px;background:var(--bg2);border-left:1px solid var(--border2);overflow-y:auto;animation:slideIn .2s ease}
+.detail-drawer{position:absolute;right:0;top:0;bottom:0;width:500px;background:var(--bg2);border-left:1px solid var(--border2);display:flex;flex-direction:column;animation:slideIn .2s ease;overflow:hidden}
 @keyframes slideIn{from{transform:translateX(100%)}to{transform:none}}
 .detail-head{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;position:sticky;top:0;background:var(--bg2);z-index:1}
 .detail-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;flex-shrink:0;font-family:'DM Mono',monospace}
@@ -587,7 +590,7 @@ tbody tr:hover td{background:var(--bg3)}
 @keyframes skel{from{opacity:.5}to{opacity:1}}
 
 /* ── CONVERSATIONS ── */
-.conv-layout{display:grid;grid-template-columns:300px 1fr 300px;height:100%;overflow:hidden}
+.conv-layout{display:grid;grid-template-columns:300px 1fr 300px;height:100%;overflow:hidden;flex:1;min-height:0}
 .conv-sidebar{border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--bg2);overflow:hidden}
 .conv-sidebar-head{padding:12px;border-bottom:1px solid var(--border);flex-shrink:0}
 .conv-search-wrap{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;margin-bottom:8px}
@@ -719,7 +722,7 @@ tbody tr:hover td{background:var(--bg3)}
 .cal-upcoming-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
 
 /* ── EMAIL PAGE ── */
-.email-layout{display:grid;grid-template-columns:200px 320px 1fr;height:calc(100vh - 54px);overflow:hidden;margin:-20px;border-top:1px solid var(--border)}
+.email-layout{display:grid;grid-template-columns:200px 320px 1fr;height:100%;overflow:hidden;flex:1;min-height:0;border-top:1px solid var(--border)}
 .email-sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:16px 12px;overflow-y:auto}
 .email-folder{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:var(--radius);cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;margin-bottom:2px}
 .email-folder:hover{background:var(--bg3);color:var(--text)}
@@ -2196,6 +2199,7 @@ async function loadAllData() {
         id: d.id,
         pipeline_id: d.pipeline_id,
         stage: d.stage_id,
+        contactId: d.contact_id || null,
         name: d.name,
         company: d.company || '',
         value: d.value || 0,
@@ -3431,7 +3435,7 @@ function openContactDetail(contactId, tab='info') {
   ];
 
   document.getElementById('detail-drawer').innerHTML=`
-    <div class="detail-head">
+    <div class="detail-head" style="flex-shrink:0">
       <div style="display:flex;align-items:center;gap:12px">
         <div class="detail-avatar" style="background:${avBg};color:${avClr}">${initials(c.name)}</div>
         <div>
@@ -3441,13 +3445,13 @@ function openContactDetail(contactId, tab='info') {
       </div>
       <span style="cursor:pointer;font-size:22px;color:var(--text3);line-height:1" onclick="closeDetail()">×</span>
     </div>
-    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 16px">
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 16px;flex-shrink:0;overflow-x:auto">
       ${tabs.map(t=>`<div onclick="openContactDetail('${contactId}','${t.id}')"
-        style="padding:10px 12px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid ${tab===t.id?'var(--accent)':'transparent'};color:${tab===t.id?'var(--accent2)':'var(--text3)'};transition:all .15s;white-space:nowrap">
+        style="padding:10px 12px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid ${tab===t.id?'var(--accent)':'transparent'};color:${tab===t.id?'var(--accent2)':'var(--text3)'};transition:all .15s;white-space:nowrap;flex-shrink:0">
         ${t.label}
       </div>`).join('')}
     </div>
-    <div class="detail-body" style="padding:16px;overflow-y:auto;flex:1">${body}</div>`;
+    <div style="padding:16px;overflow-y:auto;flex:1;min-height:0">${body}</div>`;
 
   document.getElementById('detail-panel').classList.add('open');
 }
@@ -3597,6 +3601,13 @@ function renderBoard(){
 
 function renderDealCard(deal){
   const preview = dealCustomFields.slice(0,1).map(f=>`${f.name}: ${(deal.customFields||{})[f.id]||'—'}`).join(' · ');
+  const linkedContact = deal.contactId ? contacts.find(c=>c.id===deal.contactId) : null;
+  const contactBadge = linkedContact
+    ? `<div style="display:flex;align-items:center;gap:5px;margin-top:4px">
+        <div class="av-sm ${getAv(linkedContact.id)}" style="width:16px;height:16px;font-size:7px;flex-shrink:0">${initials(linkedContact.name)}</div>
+        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${linkedContact.name}</span>
+       </div>`
+    : '';
   return `
     <div class="deal" draggable="true" data-id="${deal.id}" data-value="${deal.value}"
       ondragstart="onDealDragStart(event)" ondragend="onDealDragEnd(event)"
@@ -3604,6 +3615,7 @@ function renderDealCard(deal){
       <div class="deal-grip">⠿</div>
       <div class="deal-name">${deal.name}</div>
       <div class="deal-co">${deal.company||''}</div>
+      ${contactBadge}
       <div class="deal-val">₱${(deal.value||0).toLocaleString()}/mo</div>
       <div class="deal-tags">${(deal.tags||[]).map(t=>`<span class="tag ${t.cls}">${t.label}</span>`).join('')}</div>
       ${preview?`<div class="deal-custom-preview">${preview}</div>`:''}
@@ -3890,17 +3902,32 @@ function openDealDetail(dealId){
   const pipeline=getActivePipeline();
   const deal=pipeline?.deals.find(d=>d.id===dealId); if(!deal) return;
   const stageOpts=pipeline.stages.map(s=>`<option value="${s.id}" ${s.id===deal.stage?'selected':''}>${s.label}</option>`).join('');
+  const linkedContact = deal.contactId ? contacts.find(c=>c.id===deal.contactId) : null;
+  const contactSection = linkedContact ? `
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);margin-bottom:14px">
+      <div class="av-sm ${getAv(linkedContact.id)}">${initials(linkedContact.name)}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--accent2)">${linkedContact.name}</div>
+        <div style="font-size:11px;color:var(--text3)">${linkedContact.email||''} ${linkedContact.phone?'· '+linkedContact.phone:''}</div>
+      </div>
+      <button class="btn btn-sm" onclick="closeModal();openContactDetail('${linkedContact.id}')">View Contact</button>
+    </div>` : `
+    <div style="font-size:11px;color:var(--text3);margin-bottom:14px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius)">
+      No contact linked. <span onclick="closeModal();navigate('contacts')" style="color:var(--accent2);cursor:pointer">Link from Contacts →</span>
+    </div>`;
   openModal(`
     <div class="modal-head"><div class="modal-title">Deal: ${deal.name}</div><span class="modal-close" onclick="closeModal()">×</span></div>
     <div class="modal-body">
       <div class="modal-section">
+        <div class="modal-section-title">Linked Contact</div>
+        ${contactSection}
         <div class="modal-section-title">Deal Info</div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Contact</label><input class="form-input" id="dd-name" value="${deal.name}"/></div>
+          <div class="form-group"><label class="form-label">Deal Name</label><input class="form-input" id="dd-name" value="${deal.name}"/></div>
           <div class="form-group"><label class="form-label">Company</label><input class="form-input" id="dd-company" value="${deal.company||''}"/></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Value ($/mo)</label><input class="form-input" id="dd-value" type="number" value="${deal.value}"/></div>
+          <div class="form-group"><label class="form-label">Value (₱)</label><input class="form-input" id="dd-value" type="number" value="${deal.value}"/></div>
           <div class="form-group"><label class="form-label">Stage</label><select class="form-select" id="dd-stage">${stageOpts}</select></div>
         </div>
       </div>
@@ -3908,6 +3935,7 @@ function openDealDetail(dealId){
         <div class="modal-section-title">Tags</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
           ${(deal.tags||[]).map((t,i)=>`<span class="tag ${t.cls}">${t.label}<span class="tag-remove" onclick="removeDealTag('${dealId}',${i})">×</span></span>`).join('')}
+          ${!(deal.tags||[]).length?'<span style="font-size:12px;color:var(--text3)">No tags</span>':''}
         </div>
         <div class="tag-input-wrap">
           <input class="tag-input" id="deal-tag-input" placeholder="New tag…" onkeydown="if(event.key==='Enter')addDealTag('${dealId}')"/>
@@ -3917,18 +3945,17 @@ function openDealDetail(dealId){
           <button class="btn btn-sm btn-primary" onclick="addDealTag('${dealId}')">Add</button>
         </div>
       </div>
-      <div class="modal-section">
+      ${dealCustomFields.length?`<div class="modal-section">
         <div class="modal-section-title">Custom Fields</div>
-        ${dealCustomFields.map(f=>`<div class="form-group"><label class="form-label">${f.name} <span style="color:var(--text3);font-weight:400">(${f.type})</span></label>
+        ${dealCustomFields.map(f=>`<div class="form-group"><label class="form-label">${f.name}</label>
           ${f.type==='dropdown'?`<select class="form-select" id="ddf-${f.id}"><option>— select —</option>${(f.options||[]).map(o=>`<option ${(deal.customFields||{})[f.id]===o?'selected':''}>${o}</option>`).join('')}</select>`
           :`<input class="form-input" id="ddf-${f.id}" value="${(deal.customFields||{})[f.id]||''}" placeholder="${f.name}…"/>`}</div>`).join('')}
-        ${dealCustomFields.length===0?'<div style="font-size:12px;color:var(--text3)">No custom fields. Add them in Custom Fields settings.</div>':''}
-      </div>
+      </div>`:''}
     </div>
     <div class="modal-foot">
-      <button class="btn btn-danger btn-sm" onclick="deleteDeal('${dealId}')">Delete</button>
+      <button class="btn btn-sm" style="color:var(--red);margin-right:auto" onclick="deleteDeal('${dealId}')">Delete Deal</button>
       <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveDeal('${dealId}')">Save</button>
+      <button class="btn btn-primary" onclick="saveDeal('${dealId}')">Save Changes</button>
     </div>`,true);
 }
 
