@@ -929,8 +929,16 @@ tbody tr:hover td{background:var(--bg3)}
 }
 .col-toggle-switch.on .col-toggle-knob{left:16px}
 .col-toggle-switch.off .col-toggle-knob{left:2px}
-.col-drag-handle{color:var(--text3);cursor:grab;font-size:14px;padding:0 2px}
+.col-drag-handle{
+  color:var(--text3);cursor:grab;font-size:16px;padding:4px 6px;
+  user-select:none;flex-shrink:0;letter-spacing:1px;
+  border-radius:4px;transition:background .12s,color .12s
+}
+.col-drag-handle:hover{background:var(--bg4);color:var(--text2)}
 .col-drag-handle:active{cursor:grabbing}
+.col-drag-row{transition:border-color .1s,background .1s}
+.col-drag-row.drag-over-top{border-top:2px solid var(--accent)!important}
+.col-drag-row.drag-over-bottom{border-bottom:2px solid var(--accent)!important}
 
 table th[onclick]:hover{background:var(--bg3);color:var(--accent2)}
 table th[onclick]{transition:background .15s,color .15s}
@@ -2583,8 +2591,27 @@ const ALL_COLUMNS=[
 let customColumns = JSON.parse(localStorage.getItem('nlm_custom_cols')||'[]');
 function saveCustomColumns(){ localStorage.setItem('nlm_custom_cols', JSON.stringify(customColumns)); }
 
-// All columns combined (built-in + custom)
-function getAllCols(){ return [...ALL_COLUMNS, ...customColumns.map(c=>({...c, required:false, sortable:true, custom:true}))]; }
+// Column order — array of column IDs in display order (persisted)
+let columnOrder = JSON.parse(localStorage.getItem('nlm_col_order')||'null') || null;
+function saveColumnOrder(){ localStorage.setItem('nlm_col_order', JSON.stringify(columnOrder)); }
+
+// All columns combined (built-in + custom), sorted by columnOrder
+function getAllCols(){
+  const base = [...ALL_COLUMNS, ...customColumns.map(c=>({...c, required:false, sortable:true, custom:true}))];
+  if(!columnOrder) return base;
+  // Sort by columnOrder, append any new cols not yet in order
+  const ordered = columnOrder.map(id=>base.find(c=>c.id===id)).filter(Boolean);
+  const remaining = base.filter(c=>!columnOrder.includes(c.id));
+  return [...ordered, ...remaining];
+}
+
+// Initialize columnOrder from defaults if not set
+function initColumnOrder(){
+  if(!columnOrder){
+    columnOrder = getAllCols().map(c=>c.id);
+    saveColumnOrder();
+  }
+}
 
 let visibleColumns = JSON.parse(localStorage.getItem('nlm_contact_cols')||'null') ||
   ['name','company','email','phone','source','tags','status','pipeline'];
@@ -2595,6 +2622,7 @@ function saveVisibleColumns(){ localStorage.setItem('nlm_contact_cols', JSON.str
 
 // ── COLUMN CUSTOMIZER MODAL ──
 function openColumnCustomizer(){
+  initColumnOrder();
   openModal(`
     <div class="modal-head">
       <div class="modal-title">Customize Columns</div>
@@ -2602,9 +2630,9 @@ function openColumnCustomizer(){
     </div>
     <div class="modal-body" style="padding:0">
 
-      <!-- Section: toggle built-in + custom columns -->
-      <div style="padding:8px 16px 4px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
-        <span>Columns</span>
+      <!-- Section: toggle + drag to reorder -->
+      <div style="padding:8px 16px 6px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span><strong>⠿ Drag</strong> to reorder &nbsp;·&nbsp; <strong>Click toggle</strong> to show/hide</span>
         <button class="btn btn-sm" style="font-size:10px" onclick="resetColumns()">Reset defaults</button>
       </div>
       <div id="col-customizer-list">${buildColList()}</div>
@@ -2647,14 +2675,25 @@ function openColumnCustomizer(){
 
 function buildColList(){
   const all = getAllCols();
-  return all.map(col=>{
+  return all.map((col,idx)=>{
     const isOn = col.required || visibleColumns.includes(col.id);
     const deleteBtn = col.custom
-      ? `<button onclick="event.stopPropagation();deleteCustomColumn('${col.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;line-height:1;padding:0 4px;opacity:.7" title="Delete column">×</button>`
+      ? `<button onclick="event.stopPropagation();deleteCustomColumn('${col.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;line-height:1;padding:2px 6px;opacity:.7;flex-shrink:0" title="Delete column">×</button>`
       : '';
     return `
-    <div class="col-toggle-item" onclick="${col.required?'':('toggleColumn(\''+col.id+'\')')}">
-      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+    <div class="col-toggle-item col-drag-row"
+      draggable="true"
+      data-col-id="${col.id}"
+      data-idx="${idx}"
+      ondragstart="colDragStart(event,${idx})"
+      ondragover="colDragOver(event)"
+      ondrop="colDrop(event,${idx})"
+      ondragleave="colDragLeave(event)"
+      ondragend="colDragEnd(event)">
+      <!-- Drag handle — separate from toggle click -->
+      <div class="col-drag-handle" title="Drag to reorder" ondragstart="event.stopPropagation()" onclick="event.stopPropagation()" style="cursor:grab;padding:4px 6px;color:var(--text3);font-size:16px;flex-shrink:0;user-select:none">⠿</div>
+      <!-- Toggle switch (separate click target) -->
+      <div onclick="${col.required?'event.stopPropagation()':('event.stopPropagation();toggleColumn(\''+col.id+'\')')}" style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;cursor:${col.required?'default':'pointer'}">
         <div class="col-toggle-switch ${isOn?'on':'off'}" style="pointer-events:none;flex-shrink:0">
           <div class="col-toggle-knob"></div>
         </div>
@@ -2666,7 +2705,7 @@ function buildColList(){
           ${col.custom?`<div style="font-size:10px;color:var(--text3)">${col.type||'text'}</div>`:''}
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px">
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
         <span style="font-size:11px;color:${isOn?'var(--green)':'var(--text3)'}">
           ${isOn?'✓ Visible':'Hidden'}
         </span>
@@ -2674,6 +2713,76 @@ function buildColList(){
       </div>
     </div>`;
   }).join('');
+}
+
+// ── DRAG AND DROP for column reordering ──
+let _dragColIdx = null;
+
+function colDragStart(e, idx){
+  _dragColIdx = idx;
+  e.dataTransfer.effectAllowed = 'move';
+  e.currentTarget.style.opacity = '0.4';
+}
+
+function colDragEnd(e){
+  e.currentTarget.style.opacity = '1';
+  // Remove all drag-over highlights
+  document.querySelectorAll('.col-drag-row').forEach(el=>{
+    el.style.borderTop = '';
+    el.style.borderBottom = '';
+    el.style.background = '';
+  });
+}
+
+function colDragOver(e){
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  // Visual indicator
+  document.querySelectorAll('.col-drag-row').forEach(el=>{ el.style.borderTop=''; el.style.borderBottom=''; });
+  const rect = e.currentTarget.getBoundingClientRect();
+  const midY = rect.top + rect.height/2;
+  if(e.clientY < midY) e.currentTarget.style.borderTop = '2px solid var(--accent)';
+  else e.currentTarget.style.borderBottom = '2px solid var(--accent)';
+}
+
+function colDragLeave(e){
+  e.currentTarget.style.borderTop = '';
+  e.currentTarget.style.borderBottom = '';
+}
+
+function colDrop(e, targetIdx){
+  e.preventDefault();
+  if(_dragColIdx === null || _dragColIdx === targetIdx) return;
+
+  // Reorder columnOrder array
+  const cols = getAllCols();
+  const fromId = cols[_dragColIdx]?.id;
+  const toId   = cols[targetIdx]?.id;
+  if(!fromId || !toId) return;
+
+  // Build/refresh columnOrder from current getAllCols order
+  columnOrder = cols.map(c=>c.id);
+
+  // Move fromId to position of toId
+  const fromPos = columnOrder.indexOf(fromId);
+  const toPos   = columnOrder.indexOf(toId);
+  columnOrder.splice(fromPos, 1);
+
+  // Insert before or after target based on mouse position
+  const rect = e.currentTarget.getBoundingClientRect();
+  const insertAfter = e.clientY > rect.top + rect.height/2;
+  const insertAt = insertAfter ? toPos : toPos;
+  columnOrder.splice(insertAt, 0, fromId);
+
+  saveColumnOrder();
+  _dragColIdx = null;
+
+  // Rebuild list
+  const list = document.getElementById('col-customizer-list');
+  if(list) list.innerHTML = buildColList();
+
+  // Live preview — update contact table immediately
+  renderContacts();
 }
 
 function toggleColumn(id){
@@ -2727,9 +2836,10 @@ function deleteCustomColumn(id){
 }
 
 function resetColumns(){
-  // Only reset built-in columns, keep custom ones
   visibleColumns = ['name','company','email','phone','source','tags','status','pipeline',
     ...customColumns.map(c=>c.id)];
+  columnOrder = null; // reset to default order
+  localStorage.removeItem('nlm_col_order');
   saveVisibleColumns();
   const list = document.getElementById('col-customizer-list');
   if(list) list.innerHTML = buildColList();
@@ -4026,7 +4136,8 @@ async function doLogin(){
 async function enterApp(){
   document.getElementById('login-screen').style.display='none';
   await loadAllData();
-  syncMasterTags(); // build master tag list from existing data
+  syncMasterTags();
+  initColumnOrder(); // initialize column order on boot
   updateSidebarUser();
   renderContacts();
   renderContactTagFilters();
