@@ -911,8 +911,9 @@ tbody tr:hover td{background:var(--bg3)}
 
 /* ── COLUMN CUSTOMIZER ── */
 .col-toggle-item{
-  display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;
-  border-bottom:1px solid var(--border);transition:background .1s
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:11px 16px;cursor:pointer;
+  border-bottom:1px solid var(--border);transition:background .12s
 }
 .col-toggle-item:last-child{border-bottom:none}
 .col-toggle-item:hover{background:var(--bg3)}
@@ -930,6 +931,9 @@ tbody tr:hover td{background:var(--bg3)}
 .col-toggle-switch.off .col-toggle-knob{left:2px}
 .col-drag-handle{color:var(--text3);cursor:grab;font-size:14px;padding:0 2px}
 .col-drag-handle:active{cursor:grabbing}
+
+table th[onclick]:hover{background:var(--bg3);color:var(--accent2)}
+table th[onclick]{transition:background .15s,color .15s}
 
 /* ── LOGIN SCREEN ── */
 #login-screen{position:fixed;inset:0;z-index:9999;background:var(--bg)}
@@ -2564,58 +2568,265 @@ document.addEventListener("click",e=>{
 
 // ── COLUMN CUSTOMIZER ──
 const ALL_COLUMNS=[
-  {id:"name",label:"Name",required:true},
-  {id:"company",label:"Company",required:false},
-  {id:"email",label:"Email",required:false},
-  {id:"phone",label:"Phone",required:false},
-  {id:"source",label:"Source",required:false},
-  {id:"tags",label:"Tags",required:false},
-  {id:"status",label:"Status",required:false},
-  {id:"pipeline",label:"Pipeline/Stage",required:false},
-  {id:"created",label:"Date Added",required:false},
+  {id:'name',    label:'Name',           required:true,  sortable:true,  custom:false},
+  {id:'company', label:'Company',        required:false, sortable:true,  custom:false},
+  {id:'email',   label:'Email',          required:false, sortable:true,  custom:false},
+  {id:'phone',   label:'Phone',          required:false, sortable:false, custom:false},
+  {id:'source',  label:'Source',         required:false, sortable:true,  custom:false},
+  {id:'tags',    label:'Tags',           required:false, sortable:false, custom:false},
+  {id:'status',  label:'Status',         required:false, sortable:true,  custom:false},
+  {id:'pipeline',label:'Pipeline/Stage', required:false, sortable:true,  custom:false},
+  {id:'created', label:'Date Added',     required:false, sortable:true,  custom:false},
 ];
-let visibleColumns=JSON.parse(localStorage.getItem("nlm_contact_cols")||"null")||["name","company","email","phone","source","tags","status","pipeline"];
-function saveVisibleColumns(){localStorage.setItem("nlm_contact_cols",JSON.stringify(visibleColumns));}
+
+// Custom columns: [{id, label, type: 'text'|'number'|'date'|'select', options:[]}]
+let customColumns = JSON.parse(localStorage.getItem('nlm_custom_cols')||'[]');
+function saveCustomColumns(){ localStorage.setItem('nlm_custom_cols', JSON.stringify(customColumns)); }
+
+// All columns combined (built-in + custom)
+function getAllCols(){ return [...ALL_COLUMNS, ...customColumns.map(c=>({...c, required:false, sortable:true, custom:true}))]; }
+
+let visibleColumns = JSON.parse(localStorage.getItem('nlm_contact_cols')||'null') ||
+  ['name','company','email','phone','source','tags','status','pipeline'];
+
+let contactSort = {col:'name', dir:'asc'};
+
+function saveVisibleColumns(){ localStorage.setItem('nlm_contact_cols', JSON.stringify(visibleColumns)); }
+
+// ── COLUMN CUSTOMIZER MODAL ──
 function openColumnCustomizer(){
-  openModal(`<div class="modal-head"><div class="modal-title">Customize Columns</div><span class="modal-close" onclick="closeModal()">×</span></div>
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">Customize Columns</div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
     <div class="modal-body" style="padding:0">
-    <div style="padding:10px 14px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">Toggle columns on/off. Name is always shown.</div>
-    <div id="col-customizer-list">${buildColList()}</div></div>
+
+      <!-- Section: toggle built-in + custom columns -->
+      <div style="padding:8px 16px 4px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+        <span>Columns</span>
+        <button class="btn btn-sm" style="font-size:10px" onclick="resetColumns()">Reset defaults</button>
+      </div>
+      <div id="col-customizer-list">${buildColList()}</div>
+
+      <!-- Section: add new custom column -->
+      <div style="padding:12px 16px;border-top:2px solid var(--border);background:var(--bg2)">
+        <div style="font-size:11px;font-weight:600;color:var(--text);margin-bottom:10px">+ Add Custom Column</div>
+        <div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+          <div style="flex:2;min-width:120px">
+            <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px">Column Name</label>
+            <input class="form-input" id="new-col-name" placeholder="e.g. Priority, Budget, Notes…" style="font-size:12px"/>
+          </div>
+          <div style="flex:1;min-width:100px">
+            <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px">Type</label>
+            <select class="form-select" id="new-col-type" style="font-size:12px">
+              <option value="text">Text</option>
+              <option value="number">Number</option>
+              <option value="date">Date</option>
+              <option value="select">Dropdown</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="addCustomColumn()" style="flex-shrink:0;height:36px">Add Column</button>
+        </div>
+        <div id="new-col-select-opts" style="display:none;margin-top:8px">
+          <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px">Dropdown Options (comma-separated)</label>
+          <input class="form-input" id="new-col-options" placeholder="Option 1, Option 2, Option 3" style="font-size:12px"/>
+        </div>
+      </div>
+    </div>
     <div class="modal-foot">
-      <button class="btn btn-sm" onclick="resetColumns()">Reset</button>
       <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="closeModal();renderContacts()">Apply</button>
-    </div>`);
+      <button class="btn btn-primary" onclick="applyColumns()">Apply &amp; Close</button>
+    </div>`, true);
+
+  // Show/hide dropdown options field
+  document.getElementById('new-col-type')?.addEventListener('change', function(){
+    document.getElementById('new-col-select-opts').style.display = this.value==='select'?'block':'none';
+  });
 }
+
 function buildColList(){
-  return ALL_COLUMNS.map(col=>{
-    const isOn=visibleColumns.includes(col.id)||col.required;
-    return `<div class="col-toggle-item" onclick="${col.required?"":"toggleColumn('"+col.id+"')"}">
-      <span class="col-drag-handle">⠿</span>
-      <span style="flex:1;font-size:13px;color:${col.required?"var(--text3)":"var(--text)"}">
-        ${col.label}${col.required?" <span style='font-size:10px;color:var(--text3)'>(required)</span>":""}
-      </span>
-      <div class="col-toggle-switch ${isOn?"on":"off"}"><div class="col-toggle-knob"></div></div>
+  const all = getAllCols();
+  return all.map(col=>{
+    const isOn = col.required || visibleColumns.includes(col.id);
+    const deleteBtn = col.custom
+      ? `<button onclick="event.stopPropagation();deleteCustomColumn('${col.id}')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;line-height:1;padding:0 4px;opacity:.7" title="Delete column">×</button>`
+      : '';
+    return `
+    <div class="col-toggle-item" onclick="${col.required?'':('toggleColumn(\''+col.id+'\')')}">
+      <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
+        <div class="col-toggle-switch ${isOn?'on':'off'}" style="pointer-events:none;flex-shrink:0">
+          <div class="col-toggle-knob"></div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;color:${isOn?'var(--text)':'var(--text3)'};font-weight:${isOn?'500':'400'}">${col.label}
+            ${col.custom?'<span style="font-size:9px;background:var(--purple-bg);color:var(--purple);padding:1px 6px;border-radius:10px;margin-left:5px">custom</span>':''}
+            ${col.required?'<span style="font-size:9px;color:var(--text3);margin-left:4px">(required)</span>':''}
+          </div>
+          ${col.custom?`<div style="font-size:10px;color:var(--text3)">${col.type||'text'}</div>`:''}
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:${isOn?'var(--green)':'var(--text3)'}">
+          ${isOn?'✓ Visible':'Hidden'}
+        </span>
+        ${deleteBtn}
+      </div>
     </div>`;
-  }).join("");
+  }).join('');
 }
+
 function toggleColumn(id){
-  if(visibleColumns.includes(id))visibleColumns=visibleColumns.filter(c=>c!==id);
+  if(visibleColumns.includes(id)) visibleColumns = visibleColumns.filter(c=>c!==id);
   else visibleColumns.push(id);
   saveVisibleColumns();
-  const list=document.getElementById("col-customizer-list");
-  if(list)list.innerHTML=buildColList();
+  const list = document.getElementById('col-customizer-list');
+  if(list) list.innerHTML = buildColList();
 }
-function resetColumns(){visibleColumns=["name","company","email","phone","source","tags","status","pipeline"];saveVisibleColumns();const list=document.getElementById("col-customizer-list");if(list)list.innerHTML=buildColList();}
+
+function addCustomColumn(){
+  const name = document.getElementById('new-col-name')?.value.trim();
+  const type = document.getElementById('new-col-type')?.value || 'text';
+  const optsRaw = document.getElementById('new-col-options')?.value || '';
+
+  if(!name){ showToast('Enter a column name','error'); return; }
+  if(getAllCols().some(c=>c.label.toLowerCase()===name.toLowerCase())){
+    showToast('A column with that name already exists','error'); return;
+  }
+
+  const id = 'custom_'+Date.now();
+  const col = { id, label:name, type, options: type==='select' ? optsRaw.split(',').map(s=>s.trim()).filter(Boolean) : [] };
+  customColumns.push(col);
+  saveCustomColumns();
+
+  // Auto-show new column
+  visibleColumns.push(id);
+  saveVisibleColumns();
+
+  // Reset input
+  const nameEl = document.getElementById('new-col-name');
+  if(nameEl) nameEl.value='';
+
+  const list = document.getElementById('col-customizer-list');
+  if(list) list.innerHTML = buildColList();
+  showToast(`Column "${name}" added!`);
+}
+
+function deleteCustomColumn(id){
+  const col = customColumns.find(c=>c.id===id);
+  if(!confirm(`Delete column "${col?.label}"? This removes the column and all data stored in it.`)) return;
+  customColumns = customColumns.filter(c=>c.id!==id);
+  visibleColumns = visibleColumns.filter(c=>c!==id);
+  saveCustomColumns();
+  saveVisibleColumns();
+  // Clear data from all contacts
+  contacts.forEach(c=>{ if(c.customFields) delete c.customFields[id]; });
+  const list = document.getElementById('col-customizer-list');
+  if(list) list.innerHTML = buildColList();
+  showToast(`Column deleted`);
+}
+
+function resetColumns(){
+  // Only reset built-in columns, keep custom ones
+  visibleColumns = ['name','company','email','phone','source','tags','status','pipeline',
+    ...customColumns.map(c=>c.id)];
+  saveVisibleColumns();
+  const list = document.getElementById('col-customizer-list');
+  if(list) list.innerHTML = buildColList();
+}
+
+function applyColumns(){
+  window._modalLocked = false;
+  closeModalForce();
+  renderContacts();
+}
+
+// ── INLINE EDIT for custom column cells ──
+function editCustomCell(contactId, colId, currentVal, type, options){
+  const c = contacts.find(x=>x.id===contactId); if(!c) return;
+  if(!c.customFields) c.customFields={};
+
+  let input;
+  if(type==='select'){
+    const opts = options.map(o=>`<option value="${o}" ${o===currentVal?'selected':''}>${o}</option>`).join('');
+    input = `<select onchange="saveCustomCell('${contactId}','${colId}',this.value)" onblur="renderContacts()" style="background:var(--bg3);border:1px solid var(--accent);border-radius:4px;color:var(--text);padding:2px 6px;font-size:11px;font-family:inherit">
+      <option value="">—</option>${opts}
+    </select>`;
+  } else if(type==='date'){
+    input = `<input type="date" value="${currentVal||''}" onchange="saveCustomCell('${contactId}','${colId}',this.value)" onblur="renderContacts()" style="background:var(--bg3);border:1px solid var(--accent);border-radius:4px;color:var(--text);padding:2px 6px;font-size:11px;font-family:inherit"/>`;
+  } else {
+    input = `<input type="${type==='number'?'number':'text'}" value="${currentVal||''}" onchange="saveCustomCell('${contactId}','${colId}',this.value)" onblur="renderContacts()" onkeydown="if(event.key==='Enter')saveCustomCell('${contactId}','${colId}',this.value)" style="background:var(--bg3);border:1px solid var(--accent);border-radius:4px;color:var(--text);padding:2px 6px;font-size:11px;font-family:inherit;width:100px" autofocus/>`;
+  }
+
+  const cell = document.getElementById('custom-cell-'+contactId+'-'+colId);
+  if(cell){ cell.innerHTML=input; cell.querySelector('input,select')?.focus(); }
+}
+
+async function saveCustomCell(contactId, colId, value){
+  const c = contacts.find(x=>x.id===contactId); if(!c) return;
+  if(!c.customFields) c.customFields={};
+  c.customFields[colId] = value;
+  try { await sb.patch('contacts', contactId, {custom_fields: c.customFields}); }
+  catch(e){ console.warn('Custom field save error',e); }
+}
+
+// ── SORT ──
+function setContactSort(col){
+  if(contactSort.col===col) contactSort.dir = contactSort.dir==='asc'?'desc':'asc';
+  else { contactSort.col=col; contactSort.dir='asc'; }
+  renderContacts();
+}
+
+function sortContactList(list){
+  const {col, dir} = contactSort;
+  const mul = dir==='asc' ? 1 : -1;
+  return [...list].sort((a,b)=>{
+    let av='', bv='';
+    if(col==='name')    { av=a.name||''; bv=b.name||''; }
+    if(col==='company') { av=a.company||''; bv=b.company||''; }
+    if(col==='email')   { av=a.email||''; bv=b.email||''; }
+    if(col==='source')  { av=a.source||''; bv=b.source||''; }
+    if(col==='status')  { av=a.status||''; bv=b.status||''; }
+    if(col==='created') { av=a.created_at||''; bv=b.created_at||''; }
+    if(col==='pipeline'){
+      const getStage=c=>{
+        for(const p of pipelines){
+          const d=p.deals.find(d=>d.name===c.name||(c.email&&d.company===c.company)||d.contactId===c.id);
+          if(d){ const s=p.stages.find(s=>s.id===d.stage); return s?.label||''; }
+        }
+        return '';
+      };
+      av=getStage(a); bv=getStage(b);
+    }
+    // Custom column sort
+    const customCol = customColumns.find(c=>c.id===col);
+    if(customCol){ av=(a.customFields||{})[col]||''; bv=(b.customFields||{})[col]||''; }
+    if(av<bv) return -1*mul;
+    if(av>bv) return  1*mul;
+    return 0;
+  });
+}
+
+// ── TABLE HEADER WITH SORT ARROWS ──
 function renderContactTableHeader(){
-  const tr=document.querySelector("#contacts-table thead tr");if(!tr)return;
-  const cols=ALL_COLUMNS.filter(c=>c.required||visibleColumns.includes(c.id));
-  tr.innerHTML=cols.map(c=>`<th>${c.label}</th>`).join("")+"<th></th>";
+  const tr = document.querySelector('#contacts-table thead tr'); if(!tr) return;
+  const cols = getAllCols().filter(c=>c.required||visibleColumns.includes(c.id));
+  tr.innerHTML = cols.map(c=>{
+    if(!c.sortable) return `<th>${c.label}</th>`;
+    const isActive = contactSort.col===c.id;
+    const arrow = isActive
+      ? (contactSort.dir==='asc' ? '<span style="color:var(--accent2)">↑</span>' : '<span style="color:var(--accent2)">↓</span>')
+      : '<span style="opacity:.25;font-size:10px">↕</span>';
+    return `<th onclick="setContactSort('${c.id}')" style="cursor:pointer;user-select:none;white-space:nowrap">
+      ${c.label} ${arrow}
+    </th>`;
+  }).join('') + '<th></th>';
 }
+
 function clearAllContactFilters(){
-  activeSourceFilters.clear();activePipelineFilter=null;activeContactTagFilters.clear();
-  const si=document.getElementById("contact-search");if(si)si.value="";
-  updateSourceLabel();updatePipelineLabel();renderContactTagFilters();renderContacts();
+  activeSourceFilters.clear(); activePipelineFilter=null; activeContactTagFilters.clear();
+  const si=document.getElementById('contact-search'); if(si) si.value='';
+  updateSourceLabel(); updatePipelineLabel(); renderContactTagFilters(); renderContacts();
 }
 
 // ── RENDER CONTACTS TABLE ──
@@ -2652,7 +2863,9 @@ function renderContacts(){
     if(parts.length){summaryEl.style.display="block";summaryEl.innerHTML=`<strong>${filtered.length}</strong> of ${contacts.length} · ${parts.join(" · ")} <span onclick="clearAllContactFilters()" style="margin-left:8px;cursor:pointer;opacity:.7">✕ Clear all</span>`;}
     else summaryEl.style.display="none";
   }
-  const cols=ALL_COLUMNS.filter(c=>c.required||visibleColumns.includes(c.id)).map(c=>c.id);
+  // Apply sort
+  filtered = sortContactList(filtered);
+  const cols = getAllCols().filter(c=>c.required||visibleColumns.includes(c.id)).map(c=>c.id);
   const totalCols=cols.length+1;
   const statusLabels={hot:"pill-hot",active:"pill-active",new:"pill-new",cold:"pill-cold",done:"pill-done"};
   if(filtered.length===0){
@@ -2664,8 +2877,17 @@ function renderContacts(){
     pipelines.forEach(p=>{p.deals.filter(d=>d.name===c.name||(c.email&&d.company===c.company)||d.contactId===c.id).forEach(d=>{const stage=p.stages.find(s=>s.id===d.stage);deals.push({pName:p.name,sLabel:stage?.label||"—"});});});
     const pipelineCell=deals.length?`<div style="line-height:1.3"><div style="font-size:11px;font-weight:500;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px">${deals[0].sLabel}</div><div style="font-size:10px;color:var(--text3)">${deals[0].pName}</div></div>`:`<span style="font-size:11px;color:var(--text3)">—</span>`;
     const created=c.created_at?new Date(c.created_at).toLocaleDateString([],{month:"short",day:"numeric",year:"numeric"}):"-";
+    // Build custom column cells
+    const customCells={};
+    customColumns.forEach(col=>{
+      const val=(c.customFields||{})[col.id]||'';
+      const optStr=col.options?JSON.stringify(col.options):'[]';
+      customCells[col.id]=`<td id="custom-cell-${c.id}-${col.id}" onclick="editCustomCell('${c.id}','${col.id}','${val.replace(/'/g,"\\'")}','${col.type}',${optStr})" style="cursor:pointer;min-width:80px;color:${val?'var(--text2)':'var(--text3)'};font-size:12px" title="Click to edit">
+        ${val||'<span style="opacity:.4">—</span>'}
+      </td>`;
+    });
     const cm={
-      name:`<td><div class="td-name"><div class="av-sm ${getAv(c.id)}">${initials(c.name)}</div>${c.name}</div></td>`,
+      name:`<td><div class="td-name" onclick="openContactDetail('${c.id}')" style="cursor:pointer" title="View ${c.name}"><div class="av-sm ${getAv(c.id)}">${initials(c.name)}</div><span style="color:var(--text);font-weight:500">${c.name}</span></div></td>`,
       company:`<td style="color:var(--text2)">${c.company||"-"}</td>`,
       email:`<td><div style="display:flex;align-items:center;gap:5px"><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.email||'—'}</span>${c.email?`<button class="btn-email-inline" onclick="openComposeEmail('${c.id}')" title="Email ${c.name}"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>`:''}</div></td>`,
       phone:`<td><div style="display:flex;align-items:center;gap:5px"><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.phone||'—'}</span>${c.phone?`<button class="btn-call-inline" onclick="initiateCall('${c.id}','${c.phone.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>`:''}</div></td>`,
@@ -2674,6 +2896,7 @@ function renderContacts(){
       status:`<td><span class="pill ${statusLabels[c.status]||"pill-cold"}">${(c.status||"new").charAt(0).toUpperCase()+(c.status||"new").slice(1)}</span></td>`,
       pipeline:`<td>${pipelineCell}</td>`,
       created:`<td style="font-size:11px;color:var(--text3)">${created}</td>`,
+      ...customCells
     };
     return `<tr>${cols.map(id=>cm[id]||"<td>—</td>").join("")}<td style="white-space:nowrap"><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">💬</button></td></tr>`;
   }).join("");
@@ -2887,54 +3110,216 @@ async function saveContact(id, tab, keepOpen=false) {
 }
 
 // ─── CONTACT DETAIL PANEL ───
-function openContactDetail(contactId) {
+function openContactDetail(contactId, tab='info') {
   const c = contacts.find(x=>x.id===contactId); if(!c) return;
   const avCls = getAv(contactId);
-  const avClrMap = {'av-pink':'var(--pink)','av-blue':'var(--accent2)','av-amber':'var(--amber)','av-green':'var(--green)','av-purple':'var(--purple)'};
-  const avBgMap  = {'av-pink':'var(--pink-bg)','av-blue':'var(--accent-bg)','av-amber':'var(--amber-bg)','av-green':'var(--green-bg)','av-purple':'var(--purple-bg)'};
-  const statusLabel = {hot:'Hot 🔥',active:'Active',new:'New',cold:'Cold',done:'Client'}[c.status]||c.status;
-  const cfRows = contactCustomFields.map(f=>`
-    <div class="cf-display-row">
-      <span class="cf-display-key">${f.name}</span>
-      <span class="cf-display-val">${(c.customFields||{})[f.id]||'—'}</span>
-    </div>`).join('');
+  const avClr = {'av-pink':'var(--pink)','av-blue':'var(--accent2)','av-amber':'var(--amber)','av-green':'var(--green)','av-purple':'var(--purple)'}[avCls]||'var(--accent2)';
+  const avBg  = {'av-pink':'var(--pink-bg)','av-blue':'var(--accent-bg)','av-amber':'var(--amber-bg)','av-green':'var(--green-bg)','av-purple':'var(--purple-bg)'}[avCls]||'var(--accent-bg)';
+
+  // Tab content
+  let body = '';
+
+  if(tab==='info'){
+    body = `
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Full Name</label>
+          <input class="form-input" id="cd-name" value="${c.name||''}" placeholder="Maria Santos"/></div>
+        <div class="form-group"><label class="form-label">Company</label>
+          <input class="form-input" id="cd-company" value="${c.company||''}" placeholder="Santos Bakery"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Email</label>
+          <input class="form-input" id="cd-email" type="email" value="${c.email||''}" placeholder="email@example.com"/></div>
+        <div class="form-group"><label class="form-label">Phone</label>
+          <input class="form-input" id="cd-phone" value="${c.phone||''}" placeholder="+63 912 000 0000"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Source</label>
+          <select class="form-select" id="cd-source">
+            ${['Facebook','Instagram','LinkedIn','Google Ads','Website','Referral','Walk-in','Email','Phone','Import','Other'].map(s=>`<option ${(c.source||'')==s?'selected':''}>${s}</option>`).join('')}
+          </select></div>
+        <div class="form-group"><label class="form-label">Status</label>
+          <select class="form-select" id="cd-status">
+            ${[['new','New'],['active','Active'],['hot','Hot 🔥'],['cold','Cold'],['done','Client']].map(([v,l])=>`<option value="${v}" ${c.status===v?'selected':''}>${l}</option>`).join('')}
+          </select></div>
+      </div>
+      <div class="form-group"><label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="cd-notes" style="min-height:80px" placeholder="Add notes about this contact…">${(c.customFields||{})['__notes__']||''}</textarea>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn btn-primary" onclick="saveContactDetail('${contactId}')">💾 Save Changes</button>
+        <button class="btn btn-sm" style="color:var(--green)" onclick="openComposeEmail('${contactId}')">📧 Email</button>
+        <button class="btn btn-sm" style="color:var(--accent2)" onclick="openConvWithContact('${contactId}');closeDetail()">💬 Message</button>
+        ${c.phone?`<button class="btn btn-sm" style="color:var(--green)" onclick="initiateCall('${contactId}','${c.phone.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')">📞 Call</button>`:''}
+      </div>`;
+
+  } else if(tab==='pipeline'){
+    // Find existing deals for this contact
+    const contactDeals = [];
+    pipelines.forEach(p=>{
+      p.deals.filter(d=>d.contactId===contactId||d.name===c.name||(c.company&&d.company===c.company)).forEach(d=>{
+        const stage = p.stages.find(s=>s.id===d.stage);
+        contactDeals.push({...d, pipelineName:p.name, stageName:stage?.label||'—', pipelineId:p.id});
+      });
+    });
+
+    const pipelineOpts = pipelines.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+    const stageOpts = pipelines[0]?.stages.map(s=>`<option value="${s.id}">${s.label}</option>`).join('') || '';
+
+    body = `
+      <!-- Existing deals -->
+      ${contactDeals.length ? `
+        <div class="modal-section-title" style="margin-bottom:10px">Current Deals</div>
+        ${contactDeals.map(d=>`
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px">
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:500;color:var(--text)">${d.name}</div>
+              <div style="font-size:11px;color:var(--text3)">${d.pipelineName} → <span style="color:var(--accent2)">${d.stageName}</span></div>
+            </div>
+            <div style="font-size:12px;color:var(--green);font-weight:600">₱${(d.value||0).toLocaleString()}</div>
+          </div>`).join('')}
+        <div style="border-top:1px solid var(--border);margin:14px 0"></div>
+      ` : '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">No pipeline deals yet for this contact.</div>'}
+
+      <!-- Add to pipeline -->
+      <div class="modal-section-title" style="margin-bottom:10px">Add to Pipeline</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Pipeline</label>
+          <select class="form-select" id="cd-pipeline" onchange="updateDetailStages(this.value)">
+            ${pipelineOpts||'<option value="">No pipelines yet</option>'}
+          </select></div>
+        <div class="form-group"><label class="form-label">Stage</label>
+          <select class="form-select" id="cd-stage">${stageOpts}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Deal Name</label>
+          <input class="form-input" id="cd-deal-name" value="${c.name}" placeholder="Deal name…"/></div>
+        <div class="form-group"><label class="form-label">Value (₱)</label>
+          <input class="form-input" id="cd-deal-value" type="number" placeholder="0" value="0"/></div>
+      </div>
+      <button class="btn btn-primary" onclick="addContactToPipeline('${contactId}')">+ Add to Pipeline</button>`;
+
+  } else if(tab==='tags'){
+    body = `
+      <div class="modal-section-title" style="margin-bottom:8px">Current Tags</div>
+      <div class="tags-manager" id="cd-tags-box" style="min-height:36px;margin-bottom:16px">
+        ${(c.tags||[]).map((t,i)=>`<span class="tag ${t.cls}">${t.label}<span class="tag-remove" onclick="removeTagFromContact('${contactId}',${i});openContactDetail('${contactId}','tags')">×</span></span>`).join('')}
+        ${(!c.tags||!c.tags.length)?'<span style="font-size:12px;color:var(--text3)">No tags yet</span>':''}
+      </div>
+      <div class="modal-section-title" style="margin-bottom:8px">Add from master list</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+        ${masterTags.filter(mt=>!(c.tags||[]).some(t=>t.label===mt.label)).map(mt=>`
+          <span class="tag ${mt.cls}" style="cursor:pointer;opacity:.7;transition:opacity .15s"
+            onmouseenter="this.style.opacity='1'" onmouseleave="this.style.opacity='.7'"
+            onclick="quickAddTagToContact('${contactId}','${mt.label}','${mt.cls}');openContactDetail('${contactId}','tags')">${mt.label} +</span>`).join('')}
+        ${masterTags.filter(mt=>!(c.tags||[]).some(t=>t.label===mt.label)).length===0?'<span style="font-size:11px;color:var(--text3)">All tags already applied</span>':''}
+      </div>`;
+
+  } else if(tab==='activity'){
+    const conv = conversations.find(x=>x.contactId===contactId);
+    const msgs = [...(conv?.messages||[])].reverse().slice(0,10);
+    const sentEmails = emailStore.filter(e=>e.contactId===contactId||e.to===c.email).slice(0,5);
+    body = `
+      <div class="modal-section-title" style="margin-bottom:10px">Recent Messages</div>
+      ${msgs.length ? msgs.map(m=>{
+        const d=new Date(m.ts);
+        const timeStr=d.toLocaleDateString([],{month:'short',day:'numeric'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+        const icon = m.ch==='email'?'📧':'💬';
+        const dir = m.dir==='inbound'?'←':'→';
+        return `<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-start">
+          <span style="font-size:14px;flex-shrink:0">${icon}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11px;color:var(--text3)">${dir} ${timeStr} · <span style="color:var(--accent2)">${m.status||'sent'}</span></div>
+            ${m.subject?`<div style="font-size:12px;font-weight:500;color:var(--text);margin-top:2px">${m.subject}</div>`:''}
+            <div style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(m.body||'').slice(0,80)}</div>
+          </div>
+        </div>`;
+      }).join('') : '<div style="font-size:12px;color:var(--text3)">No messages yet</div>'}
+      <div style="margin-top:16px;display:flex;gap:8px">
+        <button class="btn btn-sm btn-primary" onclick="openConvWithContact('${contactId}');closeDetail()">Open Conversation</button>
+        <button class="btn btn-sm" onclick="openComposeEmail('${contactId}')">Compose Email</button>
+      </div>`;
+  }
+
+  const tabs = [
+    {id:'info',   label:'✏️ Info'},
+    {id:'pipeline',label:'📊 Pipeline'},
+    {id:'tags',   label:'🏷 Tags'},
+    {id:'activity',label:'🕐 Activity'},
+  ];
 
   document.getElementById('detail-drawer').innerHTML=`
     <div class="detail-head">
       <div style="display:flex;align-items:center;gap:12px">
-        <div class="detail-avatar" style="background:${avBgMap[avCls]||'var(--accent-bg)'};color:${avClrMap[avCls]||'var(--accent2)'}">${initials(c.name)}</div>
+        <div class="detail-avatar" style="background:${avBg};color:${avClr}">${initials(c.name)}</div>
         <div>
-          <div style="font-size:15px;font-weight:600;color:var(--text)">${c.name}</div>
-          <div style="font-size:12px;color:var(--text3)">${c.company||'—'}</div>
+          <div style="font-size:16px;font-weight:700;color:var(--text)">${c.name}</div>
+          <div style="font-size:12px;color:var(--text3)">${c.company||''} ${c.source?'· '+c.source:''}</div>
         </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-sm" onclick="closeDetail();openContactModal('${c.id}','info')">Edit</button>
-        <span style="cursor:pointer;font-size:20px;color:var(--text3)" onclick="closeDetail()">×</span>
-      </div>
+      <span style="cursor:pointer;font-size:22px;color:var(--text3);line-height:1" onclick="closeDetail()">×</span>
     </div>
-    <div class="detail-body">
-      <div class="detail-section">
-        <div class="detail-section-title">Contact Info</div>
-        <div class="detail-row"><span class="detail-key">Email</span><span class="detail-val" style="font-family:'DM Mono',monospace;font-size:12px">${c.email||'—'}</span></div>
-        <div class="detail-row"><span class="detail-key">Phone</span><span class="detail-val" style="font-family:'DM Mono',monospace;font-size:12px">${c.phone||'—'}</span></div>
-        <div class="detail-row"><span class="detail-key">Source</span><span class="detail-val">${c.source||'—'}</span></div>
-        <div class="detail-row"><span class="detail-key">Status</span><span class="detail-val">${statusLabel}</span></div>
-      </div>
-      <div class="detail-section">
-        <div class="detail-section-title">Tags <button class="btn btn-sm" onclick="closeDetail();openContactModal('${c.id}','tags')">Manage</button></div>
-        <div style="display:flex;flex-wrap:wrap;gap:5px">
-          ${(c.tags||[]).map(t=>`<span class="tag ${t.cls}">${t.label}</span>`).join('')}
-          ${(!c.tags||c.tags.length===0)?'<span style="font-size:12px;color:var(--text3)">No tags</span>':''}
-        </div>
-      </div>
-      <div class="detail-section">
-        <div class="detail-section-title">Custom Fields <button class="btn btn-sm" onclick="closeDetail();openContactModal('${c.id}','custom')">Edit</button></div>
-        ${cfRows||'<div style="font-size:12px;color:var(--text3)">No custom fields yet.</div>'}
-      </div>
-    </div>`;
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border);padding:0 16px">
+      ${tabs.map(t=>`<div onclick="openContactDetail('${contactId}','${t.id}')"
+        style="padding:10px 12px;font-size:12px;font-weight:500;cursor:pointer;border-bottom:2px solid ${tab===t.id?'var(--accent)':'transparent'};color:${tab===t.id?'var(--accent2)':'var(--text3)'};transition:all .15s;white-space:nowrap">
+        ${t.label}
+      </div>`).join('')}
+    </div>
+    <div class="detail-body" style="padding:16px;overflow-y:auto;flex:1">${body}</div>`;
+
   document.getElementById('detail-panel').classList.add('open');
 }
+
+async function saveContactDetail(contactId){
+  const c = contacts.find(x=>x.id===contactId); if(!c) return;
+  const name    = document.getElementById('cd-name')?.value.trim();
+  const company = document.getElementById('cd-company')?.value.trim();
+  const email   = document.getElementById('cd-email')?.value.trim();
+  const phone   = document.getElementById('cd-phone')?.value.trim();
+  const source  = document.getElementById('cd-source')?.value;
+  const status  = document.getElementById('cd-status')?.value;
+  const notes   = document.getElementById('cd-notes')?.value.trim();
+  if(!name){ showToast('Name is required','error'); return; }
+  if(!c.customFields) c.customFields={};
+  c.customFields['__notes__'] = notes;
+  try {
+    await sb.patch('contacts', contactId, {name,company,email,phone,source,status,custom_fields:c.customFields});
+    Object.assign(c, {name,company,email,phone,source,status});
+    showToast('Contact saved! ✅');
+    renderContacts();
+    openContactDetail(contactId,'info'); // refresh drawer
+  } catch(e){ showToast('Error saving contact','error'); }
+}
+
+function updateDetailStages(pipelineId){
+  const pl = pipelines.find(p=>p.id===pipelineId);
+  const sel = document.getElementById('cd-stage'); if(!sel||!pl) return;
+  sel.innerHTML = pl.stages.map(s=>`<option value="${s.id}">${s.label}</option>`).join('');
+}
+
+async function addContactToPipeline(contactId){
+  const c = contacts.find(x=>x.id===contactId); if(!c) return;
+  const pipelineId = document.getElementById('cd-pipeline')?.value;
+  const stageId    = document.getElementById('cd-stage')?.value;
+  const dealName   = document.getElementById('cd-deal-name')?.value.trim() || c.name;
+  const value      = parseFloat(document.getElementById('cd-deal-value')?.value)||0;
+  if(!pipelineId||!stageId){ showToast('Select a pipeline and stage','error'); return; }
+  const pl = pipelines.find(p=>p.id===pipelineId);
+  if(!pl){ showToast('Pipeline not found','error'); return; }
+  try {
+    const res = await sb.post('deals',{
+      name:dealName, company:c.company||'', value,
+      pipeline_id:pipelineId, stage_id:stageId,
+      tags:[], custom_fields:{}, contact_id:contactId
+    });
+    const newDeal = {...res[0], stage:stageId, contactId, tags:[], customFields:{}};
+    pl.deals.push(newDeal);
+    showToast(`✅ "${dealName}" added to ${pl.name}!`);
+    openContactDetail(contactId,'pipeline');
+    renderBoard();
+  } catch(e){ showToast('Error adding to pipeline','error'); console.error(e); }
+}
+
 function closeDetail(){ document.getElementById('detail-panel').classList.remove('open'); }
 
 // ═══════════════════════════════════════════════
