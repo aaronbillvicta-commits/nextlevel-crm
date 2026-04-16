@@ -75,6 +75,17 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-size:14px;line
 .content{flex:1;overflow-y:auto;padding:20px}
 .page{display:none}
 .page.active{display:block;animation:fadeIn .18s ease}
+/* Full-height full-width pages — strip content padding */
+#page-pipeline.active{
+  display:flex;flex-direction:row;gap:0;
+  padding:0;margin:-20px;width:calc(100% + 40px);
+  height:calc(100vh - 54px);overflow:hidden;animation:none
+}
+#page-conversations.active,#page-email.active{
+  display:flex;flex-direction:column;
+  padding:0;margin:-20px;width:calc(100% + 40px);
+  height:calc(100vh - 54px);overflow:hidden;animation:none
+}
 @keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 
 /* ── STATS ── */
@@ -943,6 +954,41 @@ tbody tr:hover td{background:var(--bg3)}
 table th[onclick]:hover{background:var(--bg3);color:var(--accent2)}
 table th[onclick]{transition:background .15s,color .15s}
 
+/* ── PIPELINE & DEAL — 2-panel layout ── */
+.pl-left-panel{
+  width:280px;flex-shrink:0;display:flex;flex-direction:column;
+  background:var(--bg2);overflow:hidden
+}
+.pl-left-head{
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0
+}
+.pl-right-panel{
+  flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden
+}
+.pl-right-head{
+  padding:14px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0
+}
+.pl-pipeline-card{
+  background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-lg);
+  padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all .15s;
+  display:flex;align-items:flex-start;gap:10px
+}
+.pl-pipeline-card:hover{border-color:var(--border2);background:var(--bg4)}
+.pl-pipeline-card.active{border-color:var(--accent);background:var(--accent-bg)}
+.pl-pipeline-card.active .pl-pipeline-name{color:var(--accent2)}
+.pl-pipeline-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px}
+.pl-pipeline-meta{font-size:11px;color:var(--text3);line-height:1.5}
+.pl-pipeline-actions{display:flex;gap:4px;flex-shrink:0;margin-top:2px}
+.pl-pipeline-action{
+  width:24px;height:24px;border-radius:var(--radius);border:1px solid var(--border);
+  background:var(--bg2);display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:12px;transition:all .15s;color:var(--text3)
+}
+.pl-pipeline-action:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.pl-pipeline-action.danger:hover{background:var(--red-bg);color:var(--red);border-color:rgba(255,77,109,.3)}
+
 /* ── LOGIN SCREEN ── */
 #login-screen{position:fixed;inset:0;z-index:9999;background:var(--bg)}
 .login-bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 60% 40%,rgba(79,126,248,.08) 0%,transparent 60%)}
@@ -1006,7 +1052,7 @@ table th[onclick]{transition:background .15s,color .15s}
     </div>
     <div class="nav-item" data-page="pipeline">
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M2 20h20M5 20V10m4 10V4m4 16v-7m4 7v-3"/></svg>
-      Pipeline
+      Pipeline &amp; Deal
     </div>
     <div class="nav-item" data-page="calendar">
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
@@ -1216,17 +1262,43 @@ table th[onclick]{transition:background .15s,color .15s}
     </div>
 
     <div class="page" id="page-pipeline">
-      <div class="pipeline-toolbar">
-        <div class="pipeline-tabs" id="pipeline-tabs"></div>
-        <div style="display:flex;gap:8px;flex-shrink:0">
-          <button class="btn btn-sm" onclick="openPipelineModal('new-pipeline')">+ New Pipeline</button>
-          <button class="btn btn-primary btn-sm" onclick="openPipelineModal('new-deal')">+ Add Deal</button>
+
+      <!-- LEFT PANEL: Pipelines list -->
+      <div class="pl-left-panel">
+        <div class="pl-left-head">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--text)">Pipelines</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px" id="pl-pipeline-count">0 pipelines</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openPipelineModal('new-pipeline')">+ New Pipeline</button>
+        </div>
+        <div id="pl-pipeline-list" style="flex:1;overflow-y:auto;padding:8px"></div>
+      </div>
+
+      <!-- DIVIDER -->
+      <div style="width:1px;background:var(--border);flex-shrink:0"></div>
+
+      <!-- RIGHT PANEL: Active pipeline + deals kanban -->
+      <div class="pl-right-panel">
+        <div class="pl-right-head">
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--text)" id="pl-active-name">Select a pipeline</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:1px" id="pl-active-stats"></div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="openPipelineModal('new-deal')" id="pl-add-deal-btn" style="display:none">+ Add Deal</button>
+        </div>
+        <!-- Empty state -->
+        <div id="pl-empty-state" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3)">
+          <div style="font-size:36px;margin-bottom:12px">📊</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Select a pipeline</div>
+          <div style="font-size:12px">Click a pipeline on the left to view its deals</div>
+        </div>
+        <!-- Kanban board -->
+        <div class="pipeline-scroll" id="pl-board-wrap" style="display:none;flex:1;overflow-x:auto">
+          <div class="pipeline" id="pipeline-board"></div>
         </div>
       </div>
-      <div class="pipeline-hint">Drag deal cards between stages · manage stages in Settings → Pipeline</div>
-      <div class="pipeline-scroll">
-        <div class="pipeline" id="pipeline-board"></div>
-      </div>
+
     </div>
 
     <div class="page" id="page-calendar">
@@ -1356,7 +1428,7 @@ table th[onclick]{transition:background .15s,color .15s}
       </div>
     </div>
 
-    <div class="page" id="page-conversations" style="padding:0;height:calc(100vh - 54px);overflow:hidden">
+    <div class="page" id="page-conversations">
       <div class="conv-layout">
 
         <div class="conv-sidebar">
@@ -3438,11 +3510,69 @@ function closeDetail(){ document.getElementById('detail-panel').classList.remove
 function getActivePipeline(){ return pipelines.find(p=>p.id===activePipelineId); }
 
 function renderPipelineTabs(){
-  document.getElementById('pipeline-tabs').innerHTML = pipelines.map(p=>
-    `<div class="pipeline-tab ${p.id===activePipelineId?'active':''}" onclick="switchPipeline('${p.id}')">${p.name}</div>`
-  ).join('');
+  // Render left panel pipeline list
+  const listEl = document.getElementById('pl-pipeline-list');
+  const countEl = document.getElementById('pl-pipeline-count');
+  if(!listEl) return;
+
+  if(countEl) countEl.textContent = `${pipelines.length} pipeline${pipelines.length!==1?'s':''}`;
+
+  if(!pipelines.length){
+    listEl.innerHTML=`<div style="text-align:center;padding:24px 12px;color:var(--text3);font-size:12px">
+      No pipelines yet.<br><br>
+      <button class="btn btn-primary btn-sm" onclick="openPipelineModal('new-pipeline')">+ Create First Pipeline</button>
+    </div>`;
+    return;
+  }
+
+  listEl.innerHTML = pipelines.map(p=>{
+    const totalDeals = p.deals?.length||0;
+    const totalValue = p.deals?.reduce((s,d)=>s+(d.value||0),0)||0;
+    const isActive = p.id===activePipelineId;
+    return `
+    <div class="pl-pipeline-card ${isActive?'active':''}" onclick="switchPipeline('${p.id}')">
+      <div style="flex:1;min-width:0">
+        <div class="pl-pipeline-name">${p.name}</div>
+        <div class="pl-pipeline-meta">
+          ${p.stages?.length||0} stages &nbsp;·&nbsp; ${totalDeals} deal${totalDeals!==1?'s':''}
+          ${totalValue>0?`<br>₱${totalValue.toLocaleString()} total`:''}
+        </div>
+        <!-- Stage progress pills -->
+        <div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:6px">
+          ${(p.stages||[]).map(s=>{
+            const cnt = (p.deals||[]).filter(d=>d.stage===s.id).length;
+            return `<span style="font-size:9px;padding:1px 6px;border-radius:10px;background:${isActive?'rgba(0,210,255,.15)':'var(--bg4)'};color:${isActive?'var(--accent2)':'var(--text3)'}">${s.label} (${cnt})</span>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="pl-pipeline-actions" onclick="event.stopPropagation()">
+        <div class="pl-pipeline-action" onclick="editPipelineModal('${p.id}')" title="Edit pipeline">✏️</div>
+        <div class="pl-pipeline-action danger" onclick="deletePipelineConfirm('${p.id}')" title="Delete pipeline">🗑</div>
+      </div>
+    </div>`;
+  }).join('');
 }
-function switchPipeline(id){ activePipelineId=id; renderPipelineTabs(); renderBoard(); }
+
+function switchPipeline(id){
+  activePipelineId = id;
+  renderPipelineTabs();
+  renderBoard();
+  // Show right panel
+  const emptyEl = document.getElementById('pl-empty-state');
+  const boardWrap = document.getElementById('pl-board-wrap');
+  const addBtn = document.getElementById('pl-add-deal-btn');
+  const nameEl = document.getElementById('pl-active-name');
+  const statsEl = document.getElementById('pl-active-stats');
+  const pl = pipelines.find(p=>p.id===id);
+  if(emptyEl) emptyEl.style.display='none';
+  if(boardWrap) boardWrap.style.display='flex';
+  if(addBtn) addBtn.style.display='inline-flex';
+  if(pl && nameEl) nameEl.textContent = pl.name;
+  if(pl && statsEl){
+    const totalVal = pl.deals?.reduce((s,d)=>s+(d.value||0),0)||0;
+    statsEl.textContent = `${pl.deals?.length||0} deals · ₱${totalVal.toLocaleString()} total value`;
+  }
+}
 
 function renderBoard(){
   const pipeline = getActivePipeline(); if(!pipeline) return;
@@ -3558,7 +3688,18 @@ function updateAllColumns(){
   });
 }
 
-// ─── PIPELINE MODALS ───
+function refreshPipelineHeader(){
+  const pl = getActivePipeline(); if(!pl) return;
+  const nameEl = document.getElementById('pl-active-name');
+  const statsEl = document.getElementById('pl-active-stats');
+  if(nameEl) nameEl.textContent = pl.name;
+  if(statsEl){
+    const totalVal = pl.deals?.reduce((s,d)=>s+(d.value||0),0)||0;
+    statsEl.textContent = `${pl.deals?.length||0} deals · ₱${totalVal.toLocaleString()} total value`;
+  }
+  // Also refresh left panel counts
+  renderPipelineTabs();
+}
 function openPipelineModal(type){
   const pipeline=getActivePipeline();
   if(type==='new-pipeline'){
@@ -3603,16 +3744,15 @@ function openPipelineModal(type){
 }
 
 function addStageRow(){
-  const list=document.getElementById('new-stage-list');
-  const row=document.createElement('div');
-  row.className='stage-row';
-  row.innerHTML=`<span class="stage-grip">⠿</span><input class="stage-name-input" placeholder="Stage name…"/><span class="stage-del-btn" onclick="delStageRow(this)">×</span>`;
-  list.appendChild(row); row.querySelector('input').focus();
+  addStageRowTo('new-stage-list');
 }
 function delStageRow(btn){
-  const rows=document.querySelectorAll('#new-stage-list .stage-row');
-  if(rows.length<=1){showToast('Need at least one stage'); return;}
-  btn.closest('.stage-row').remove();
+  const row = btn.closest('.stage-row');
+  const list = row?.parentElement;
+  if(!list) return;
+  const rows = list.querySelectorAll('.stage-row');
+  if(rows.length<=1){ showToast('Need at least one stage','error'); return; }
+  row.remove();
 }
 async function createPipeline(){
   const name=document.getElementById('np-name').value.trim();
@@ -3622,9 +3762,104 @@ async function createPipeline(){
     const res=await sb.post('pipelines',{name,stages});
     pipelines.push({id:res[0].id,name,stages,deals:[]});
     activePipelineId=res[0].id;
-    closeModal(); renderPipelineTabs(); renderBoard();
+    closeModal(); renderPipelineTabs(); switchPipeline(res[0].id);
     showToast(`Pipeline "${name}" created!`);
   } catch(e){showToast('Error creating pipeline','error');console.error(e);}
+}
+
+// ── EDIT PIPELINE ──
+function editPipelineModal(pipelineId){
+  const pl = pipelines.find(p=>p.id===pipelineId); if(!pl) return;
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">Edit Pipeline</div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Pipeline Name</label>
+        <input class="form-input" id="ep-name" value="${pl.name}" placeholder="Pipeline name…"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Stages</label>
+        <div class="stage-list" id="edit-stage-list">
+          ${pl.stages.map(s=>`<div class="stage-row" data-id="${s.id}">
+            <span class="stage-grip">⠿</span>
+            <input class="stage-name-input" value="${s.label}"/>
+            <span class="stage-del-btn" onclick="delStageRow(this)">×</span>
+          </div>`).join('')}
+        </div>
+        <button class="add-stage-btn" onclick="addStageRowTo('edit-stage-list')">+ Add Stage</button>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="savePipelineEdit('${pipelineId}')">Save Changes</button>
+    </div>`);
+}
+
+async function savePipelineEdit(pipelineId){
+  const pl = pipelines.find(p=>p.id===pipelineId); if(!pl) return;
+  const name = document.getElementById('ep-name')?.value.trim();
+  if(!name){ showToast('Enter a pipeline name','error'); return; }
+  const rows = [...document.querySelectorAll('#edit-stage-list .stage-row')];
+  const stages = rows.map(row=>{
+    const existingId = row.dataset.id;
+    const label = row.querySelector('.stage-name-input')?.value.trim()||'Stage';
+    return { id: existingId||('ns_'+Date.now()+'_'+Math.random()), label };
+  });
+  try {
+    await sb.patch('pipelines', pipelineId, {name, stages});
+    pl.name = name;
+    pl.stages = stages;
+    closeModal();
+    renderPipelineTabs();
+    renderBoard();
+    // Refresh right panel header
+    const nameEl = document.getElementById('pl-active-name');
+    if(nameEl && activePipelineId===pipelineId) nameEl.textContent = name;
+    showToast(`Pipeline "${name}" updated!`);
+  } catch(e){ showToast('Error saving pipeline','error'); console.error(e); }
+}
+
+function addStageRowTo(listId){
+  const list = document.getElementById(listId); if(!list) return;
+  const row = document.createElement('div');
+  row.className = 'stage-row';
+  row.innerHTML = `<span class="stage-grip">⠿</span><input class="stage-name-input" placeholder="Stage name…"/><span class="stage-del-btn" onclick="delStageRow(this)">×</span>`;
+  list.appendChild(row);
+}
+
+// ── DELETE PIPELINE ──
+async function deletePipelineConfirm(pipelineId){
+  const pl = pipelines.find(p=>p.id===pipelineId); if(!pl) return;
+  const dealCount = pl.deals?.length||0;
+  const msg = dealCount>0
+    ? `Delete pipeline "${pl.name}"? This will also delete ${dealCount} deal${dealCount!==1?'s':''} inside it. This cannot be undone.`
+    : `Delete pipeline "${pl.name}"?`;
+  if(!confirm(msg)) return;
+  try {
+    await sb.del('pipelines', pipelineId);
+    pipelines = pipelines.filter(p=>p.id!==pipelineId);
+    // Switch to another pipeline if this was active
+    if(activePipelineId===pipelineId){
+      activePipelineId = pipelines[0]?.id||null;
+      const emptyEl=document.getElementById('pl-empty-state');
+      const boardWrap=document.getElementById('pl-board-wrap');
+      const addBtn=document.getElementById('pl-add-deal-btn');
+      const nameEl=document.getElementById('pl-active-name');
+      if(!pipelines.length){
+        if(emptyEl) emptyEl.style.display='flex';
+        if(boardWrap) boardWrap.style.display='none';
+        if(addBtn) addBtn.style.display='none';
+        if(nameEl) nameEl.textContent='Select a pipeline';
+      } else {
+        switchPipeline(activePipelineId);
+      }
+    }
+    renderPipelineTabs();
+    showToast(`Pipeline "${pl.name}" deleted`);
+  } catch(e){ showToast('Error deleting pipeline','error'); console.error(e); }
 }
 
 async function addDeal(){
@@ -3646,7 +3881,7 @@ async function addDeal(){
     });
     const newDeal={id:res[0].id,pipeline_id:pipeline.id,stage,name,company:res[0].company,value,tags:[{label:tagLabel,cls:tagCls}],customFields:cf};
     pipeline.deals.push(newDeal);
-    closeModal(); renderBoard(); showToast(`Deal "${name}" added!`);
+    closeModal(); renderBoard(); refreshPipelineHeader(); showToast(`Deal "${name}" added!`);
   } catch(e){showToast('Error adding deal','error');console.error(e);}
 }
 
@@ -3725,7 +3960,7 @@ async function saveDeal(dealId){
   try {
     await sb.patch('deals',dealId,{name,company,value,stage_id:stage,custom_fields:cf});
     Object.assign(deal,{name,company,value,stage,customFields:cf});
-    closeModal(); renderBoard(); showToast('Deal saved!');
+    closeModal(); renderBoard(); refreshPipelineHeader(); showToast('Deal saved!');
   } catch(e){showToast('Error saving deal','error');console.error(e);}
 }
 async function deleteDeal(dealId){
@@ -3734,7 +3969,7 @@ async function deleteDeal(dealId){
   try {
     await sb.del('deals',dealId);
     pipeline.deals=pipeline.deals.filter(d=>d.id!==dealId);
-    closeModal(); renderBoard(); showToast('Deal deleted');
+    closeModal(); renderBoard(); refreshPipelineHeader(); showToast('Deal deleted');
   } catch(e){showToast('Error deleting deal','error');}
 }
 
@@ -4302,13 +4537,10 @@ function saveIntegration(key){
     data = {'twilio-sid':sid,'twilio-phone':phone};
     localStorage.setItem('nlm_int_twilio_secret', token); // store token separately
   } else if(key==='email'){
-    const fromName = document.getElementById('email-from-name').value.trim();
-    const fromAddr = document.getElementById('email-from-addr').value.trim();
-    const apiKey   = document.getElementById('email-apikey').value.trim();
-    const provider = document.getElementById('email-provider').value;
-    if(!fromName||!fromAddr||!apiKey){ showToast('Fill in all email fields','error'); return; }
-    data = {'email-from-name':fromName,'email-from-addr':fromAddr,'email-provider':provider};
-    localStorage.setItem('nlm_int_email_secret', apiKey);
+    // Email accounts are now managed via the multi-account system
+    closeModal();
+    openAddEmailAccountModal();
+    return;
   } else if(key==='facebook'){
     const pageId  = document.getElementById('fb-page-id').value.trim();
     const verify  = document.getElementById('fb-verify').value.trim();
@@ -4377,9 +4609,10 @@ function fillSmsNumber(){
   if(opt && opt.dataset.phone) document.getElementById('sms-to').value = opt.dataset.phone;
 }
 function fillEmailAddress(){
-  const sel = document.getElementById('email-to-contact');
+  const sel = document.getElementById('email-to-contact'); if(!sel) return;
   const opt = sel.options[sel.selectedIndex];
-  if(opt && opt.dataset.email) document.getElementById('email-to-addr').value = opt.dataset.email;
+  const addrEl = document.getElementById('email-to-addr');
+  if(opt && opt.dataset.email && addrEl) addrEl.value = opt.dataset.email;
 }
 
 // ── SMS CHARACTER COUNT ──
@@ -4467,19 +4700,31 @@ async function sendEmail(){
 }
 
 function updateEmailPlaceholders(){
-  const provider = document.getElementById('email-provider').value;
+  // Now handled by the new-col-type select in the add account modal
+  const provider = document.getElementById('new-acct-provider')?.value||
+                   document.getElementById('email-provider')?.value;
+  if(!provider) return;
   const keyLabel = document.getElementById('email-key-label');
   const keyInput = document.getElementById('email-apikey');
   const hostWrap = document.getElementById('smtp-host-wrap');
   const portWrap = document.getElementById('smtp-port-wrap');
-  if(provider==='brevo'){ keyLabel.textContent='Brevo API Key'; keyInput.placeholder='xkeysib-…'; }
-  else if(provider==='sendgrid'){ keyLabel.textContent='SendGrid API Key'; keyInput.placeholder='SG.xxxxxx…'; }
-  else if(provider==='gmail'){ keyLabel.textContent='Gmail App Password'; keyInput.placeholder='xxxx xxxx xxxx xxxx'; }
-  else if(provider==='smtp'){ keyLabel.textContent='SMTP Password'; keyInput.placeholder='Your password'; }
+  if(keyLabel){
+    if(provider==='brevo') keyLabel.textContent='Brevo API Key';
+    else if(provider==='sendgrid') keyLabel.textContent='SendGrid API Key';
+    else if(provider==='gmail') keyLabel.textContent='Gmail App Password';
+    else keyLabel.textContent='SMTP Password';
+  }
+  if(keyInput){
+    if(provider==='brevo') keyInput.placeholder='xkeysib-…';
+    else if(provider==='sendgrid') keyInput.placeholder='SG.xxxxxx…';
+    else if(provider==='gmail') keyInput.placeholder='xxxx xxxx xxxx xxxx';
+    else keyInput.placeholder='Your password';
+  }
   const isSmtp = provider==='smtp'||provider==='gmail';
-  hostWrap.style.display = isSmtp?'block':'none';
-  portWrap.style.display = isSmtp?'block':'none';
+  if(hostWrap) hostWrap.style.display = isSmtp?'block':'none';
+  if(portWrap) portWrap.style.display = isSmtp?'block':'none';
 }
+
 
 // ── GOOGLE CALENDAR EVENT ──
 // ═══════════════════════════════════════════════
@@ -7947,7 +8192,7 @@ function exportContactsCSV(){
 
 // Update navigate to handle new pages
 const PAGE_TITLES = {
-  dashboard:'Dashboard', contacts:'Contacts', pipeline:'Sales Pipeline',
+  dashboard:'Dashboard', contacts:'Contacts', pipeline:'Pipeline & Deal',
   calendar:'Calendar', conversations:'Conversations', email:'Email',
   automations:'Automations', social:'Social Planner', campaigns:'Campaigns',
   tags:'Tags', integrations:'Integrations', 'custom-fields':'Custom Fields', settings:'Settings'
@@ -7963,7 +8208,11 @@ function navigate(page){
   document.getElementById('page-title').textContent=PAGE_TITLES[page]||page;
   updateCallWidgetVisibility(page);
   if(page==='contacts'){ renderContacts(); renderContactTagFilters(); }
-  if(page==='pipeline'){ renderPipelineTabs(); renderBoard(); }
+  if(page==='pipeline'){
+    renderPipelineTabs();
+    if(activePipelineId) switchPipeline(activePipelineId);
+    else renderBoard();
+  }
   if(page==='calendar') renderCalendar();
   if(page==='conversations') renderConversations();
   if(page==='email') renderEmailPage();
