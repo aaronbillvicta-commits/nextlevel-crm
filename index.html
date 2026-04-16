@@ -876,6 +876,61 @@ tbody tr:hover td{background:var(--bg3)}
 }
 .btn-call-inline:hover{background:rgba(0,229,160,.2);border-color:var(--green);transform:scale(1.1)}
 
+/* ── CONTACT FILTER BAR ── */
+.cf-filter-input{
+  height:34px;font-size:11px;padding:0 10px;
+  background:var(--bg3);border:1px solid var(--border2);
+  border-radius:var(--radius);color:var(--text);outline:none;width:100%;
+  transition:border-color .15s
+}
+.cf-filter-input:focus{border-color:var(--accent)}
+.cf-filter-select{
+  display:flex;align-items:center;gap:6px;height:34px;padding:0 9px;
+  background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);
+  cursor:pointer;transition:all .15s;user-select:none
+}
+.cf-filter-select:hover{border-color:var(--border2);background:var(--bg4)}
+.cf-filter-select.active{border-color:var(--accent);background:var(--accent-bg)}
+.cf-filter-dropdown{
+  position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:600;
+  background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);
+  box-shadow:0 8px 24px rgba(0,0,0,.4);overflow:hidden;max-height:220px;overflow-y:auto
+}
+.cf-filter-opt{
+  display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;
+  font-size:12px;color:var(--text2);transition:background .1s
+}
+.cf-filter-opt:hover{background:var(--bg3);color:var(--text)}
+.cf-filter-opt.selected{background:var(--accent-bg);color:var(--accent2)}
+.cf-filter-opt-check{
+  width:14px;height:14px;border-radius:3px;border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-size:9px;transition:all .1s
+}
+.cf-filter-opt.selected .cf-filter-opt-check{background:var(--accent);border-color:var(--accent);color:#000}
+
+/* ── COLUMN CUSTOMIZER ── */
+.col-toggle-item{
+  display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;
+  border-bottom:1px solid var(--border);transition:background .1s
+}
+.col-toggle-item:last-child{border-bottom:none}
+.col-toggle-item:hover{background:var(--bg3)}
+.col-toggle-switch{
+  width:32px;height:18px;border-radius:9px;position:relative;flex-shrink:0;
+  transition:background .2s;cursor:pointer
+}
+.col-toggle-switch.on{background:var(--accent)}
+.col-toggle-switch.off{background:var(--bg4)}
+.col-toggle-knob{
+  width:14px;height:14px;border-radius:50%;background:#fff;
+  position:absolute;top:2px;transition:left .2s
+}
+.col-toggle-switch.on .col-toggle-knob{left:16px}
+.col-toggle-switch.off .col-toggle-knob{left:2px}
+.col-drag-handle{color:var(--text3);cursor:grab;font-size:14px;padding:0 2px}
+.col-drag-handle:active{cursor:grabbing}
+
 /* ── LOGIN SCREEN ── */
 #login-screen{position:fixed;inset:0;z-index:9999;background:var(--bg)}
 .login-bg{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 60% 40%,rgba(79,126,248,.08) 0%,transparent 60%)}
@@ -908,7 +963,6 @@ tbody tr:hover td{background:var(--bg3)}
 <body>
 <div class="app">
 
-<!-- ─── SIDEBAR ─── -->
 <aside class="sidebar">
   <div class="logo-wrap">
     <div class="logo-mark">
@@ -1001,21 +1055,19 @@ tbody tr:hover td{background:var(--bg3)}
   </div>
 </aside>
 
-<!-- ─── MAIN ─── -->
 <div class="main">
   <header class="topbar">
     <div class="topbar-title" id="page-title">Dashboard</div>
 
-    <!-- VOICE CALL TOGGLE BUTTON — upper RIGHT, hidden on Settings -->
     <div style="margin-left:auto" id="topbar-call-widget">
-      <!-- Idle: just the phone icon button -->
+      
       <div id="call-widget-idle">
         <button class="call-toggle-btn" id="call-toggle-btn" onclick="toggleDialpad()" title="Open Dialer">
           <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
           <span style="font-size:11px;font-weight:600">Call</span>
         </button>
       </div>
-      <!-- Active call bar (replaces toggle when in call) -->
+      
       <div class="call-active-bar" id="call-widget-active" style="display:none">
         <div class="call-active-pulse"></div>
         <div id="call-active-name" style="font-size:12px;font-weight:600;color:var(--text);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Calling…</div>
@@ -1030,20 +1082,19 @@ tbody tr:hover td{background:var(--bg3)}
     </div>
   </header>
 
-  <!-- FLOATING DIALPAD (outside topbar so it can overlap content) -->
   <div class="dialpad-float" id="dialpad-float" style="display:none">
     <div class="dialpad-head">
       <span style="font-size:12px;font-weight:600;color:var(--text)">Dialer</span>
       <span style="cursor:pointer;color:var(--text3);font-size:18px;line-height:1" onclick="toggleDialpad()">×</span>
     </div>
-    <!-- Number display -->
+    
     <div class="dialpad-display">
       <input class="dialpad-number-input" id="call-dial-number" placeholder="Enter number…" readonly/>
       <span class="dialpad-backspace" onclick="dialpadBackspace()" title="Backspace">⌫</span>
     </div>
-    <!-- Contact match -->
+    
     <div id="dialpad-contact-match" style="font-size:11px;color:var(--accent2);text-align:center;min-height:16px;margin-bottom:6px"></div>
-    <!-- Dial grid -->
+    
     <div class="dialpad-grid">
       <button class="dialpad-key" onclick="dialpadPress('1')">1</button>
       <button class="dialpad-key" onclick="dialpadPress('2')">2</button>
@@ -1058,7 +1109,7 @@ tbody tr:hover td{background:var(--bg3)}
       <button class="dialpad-key" onclick="dialpadPress('0')">0</button>
       <button class="dialpad-key" onclick="dialpadPress('#')">#</button>
     </div>
-    <!-- Actions -->
+    
     <div class="dialpad-actions">
       <button class="btn-call-action call-btn-start" onclick="startCall()" title="Call" style="width:44px;height:44px">
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
@@ -1068,7 +1119,6 @@ tbody tr:hover td{background:var(--bg3)}
 
   <div class="content">
 
-    <!-- DASHBOARD -->
     <div class="page active" id="page-dashboard">
       <div class="dash-header">
         <div>
@@ -1083,9 +1133,8 @@ tbody tr:hover td{background:var(--bg3)}
       <div class="widget-grid" id="widget-grid"></div>
     </div>
 
-    <!-- CONTACTS -->
     <div class="page" id="page-contacts">
-      <!-- Header -->
+      
       <div class="sec-head">
         <div class="sec-title">All Contacts <span id="contact-count-label" style="color:var(--text3);font-weight:400"></span></div>
         <div style="display:flex;gap:8px">
@@ -1095,48 +1144,65 @@ tbody tr:hover td{background:var(--bg3)}
         </div>
       </div>
 
-      <!-- Search + Tag filter bar (compact, right-aligned) -->
-      <div style="display:flex;gap:10px;align-items:flex-start;margin-bottom:14px">
-        <!-- Main search — takes most space -->
-        <div style="position:relative;flex:1;min-width:180px">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="form-input" id="contact-search" style="padding-left:32px;height:34px;font-size:12px" placeholder="Search name, email, company…" oninput="renderContacts()"/>
+      <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;flex-wrap:nowrap">
+
+        <div style="position:relative;flex:1;min-width:0">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="form-input cf-filter-input" id="contact-search" placeholder="Search name, email…" oninput="renderContacts()"/>
         </div>
 
-        <!-- Tag filter — compact, right side, 1/4 width -->
-        <div style="position:relative;width:220px;flex-shrink:0">
-          <div class="tag-filter-bar" id="tag-filter-bar" onclick="document.getElementById('tag-filter-input').focus()" style="height:34px;min-height:34px;padding:4px 8px">
+        <div style="position:relative;flex:1;min-width:0">
+          <div class="cf-filter-select" id="source-filter-btn" onclick="toggleSourceDropdown()" title="Filter by source">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="color:var(--text3);flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span id="source-filter-label" style="flex:1;font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Source</span>
+            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--text3)"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="cf-filter-dropdown" id="source-filter-dropdown" style="display:none"></div>
+        </div>
+
+        <div style="position:relative;flex:1;min-width:0">
+          <div class="cf-filter-select" id="pipeline-filter-btn" onclick="togglePipelineDropdown()" title="Filter by pipeline/stage">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="color:var(--text3);flex-shrink:0"><path d="M2 20h20M5 20V10m4 10V4m4 16v-7m4 7v-3"/></svg>
+            <span id="pipeline-filter-label" style="flex:1;font-size:11px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Pipeline</span>
+            <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--text3)"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="cf-filter-dropdown" id="pipeline-filter-dropdown" style="display:none"></div>
+        </div>
+
+        <div style="position:relative;flex:1;min-width:0">
+          <div class="tag-filter-bar cf-filter-input" id="tag-filter-bar" onclick="document.getElementById('tag-filter-input').focus()" style="height:34px;min-height:34px;padding:4px 8px;cursor:text">
             <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="color:var(--text3);flex-shrink:0"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-            <div class="tag-filter-chips" id="tag-filter-chips" style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;flex:1;min-width:0"></div>
+            <div class="tag-filter-chips" id="tag-filter-chips" style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;flex:1;min-width:0;overflow:hidden"></div>
             <input class="tag-filter-input" id="tag-filter-input"
-              placeholder="Filter by tag…"
+              placeholder="Tag…"
               oninput="searchTagSuggestions(this.value)"
               onfocus="showAllTagSuggestions()"
               onkeydown="handleTagFilterKey(event)"
               autocomplete="off"
-              style="font-size:11px;min-width:60px;flex:1"/>
+              style="font-size:11px;min-width:40px;flex:1;max-width:80px"/>
             <span class="tag-filter-clear" id="tag-filter-clear-btn" onclick="clearContactTagFilters()" style="display:none;font-size:15px" title="Clear">×</span>
           </div>
-          <!-- Dropdown anchored to this container -->
           <div class="tag-filter-dropdown" id="tag-filter-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:500"></div>
         </div>
+
+        <button class="btn btn-sm" onclick="openColumnCustomizer()" title="Customize columns" style="flex-shrink:0;height:34px;padding:0 10px;display:flex;align-items:center;gap:5px">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          Columns
+        </button>
       </div>
 
-      <!-- Filter summary -->
-      <div id="contact-filter-summary" style="display:none;margin-bottom:8px;padding:6px 10px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);font-size:11px;color:var(--accent2)"></div>
+      <div id="contact-filter-summary" style="display:none;margin-bottom:8px;padding:5px 10px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);font-size:11px;color:var(--accent2)"></div>
 
       <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>Name</th><th>Company</th><th>Email</th><th>Phone</th><th>Source</th><th>Tags</th><th>Status</th><th>Pipeline / Stage</th><th></th></tr></thead>
+        <table id="contacts-table">
+          <thead id="contacts-thead"><tr></tr></thead>
           <tbody id="contacts-tbody"></tbody>
         </table>
       </div>
 
-      <!-- Hidden CSV import input -->
       <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCSVImport(event)"/>
     </div>
 
-    <!-- PIPELINE -->
     <div class="page" id="page-pipeline">
       <div class="pipeline-toolbar">
         <div class="pipeline-tabs" id="pipeline-tabs"></div>
@@ -1151,13 +1217,11 @@ tbody tr:hover td{background:var(--bg3)}
       </div>
     </div>
 
-    <!-- CALENDAR -->
     <div class="page" id="page-calendar">
       <div style="display:grid;grid-template-columns:1fr 280px;gap:16px;height:100%">
 
-        <!-- LEFT: main calendar -->
         <div style="display:flex;flex-direction:column;min-width:0">
-          <!-- Topbar -->
+          
           <div class="sec-head" style="margin-bottom:12px">
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
               <div style="display:flex;gap:4px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:3px">
@@ -1173,21 +1237,17 @@ tbody tr:hover td{background:var(--bg3)}
             <button class="btn btn-primary btn-sm" onclick="openEventModal()">+ New Event</button>
           </div>
 
-          <!-- Calendar sources row -->
           <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
             <span style="font-size:11px;color:var(--text3);font-weight:500">Calendars:</span>
             <div id="cal-sources" style="display:flex;gap:6px;flex-wrap:wrap"></div>
             <button class="btn btn-sm" style="font-size:11px" onclick="openCalSourceModal()">+ Add Calendar</button>
           </div>
 
-          <!-- Calendar grid -->
           <div class="cal-grid" id="cal-grid" style="flex:1"></div>
         </div>
 
-        <!-- RIGHT: sidebar -->
         <div style="display:flex;flex-direction:column;gap:12px;overflow-y:auto">
 
-          <!-- Contact filter -->
           <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px">
             <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Filter by Contact</div>
             <div style="position:relative">
@@ -1198,7 +1258,6 @@ tbody tr:hover td{background:var(--bg3)}
             <div id="cal-contact-filter-active" style="margin-top:6px"></div>
           </div>
 
-          <!-- Upcoming events -->
           <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;flex:1">
             <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
               Upcoming Events
@@ -1211,9 +1270,8 @@ tbody tr:hover td{background:var(--bg3)}
       </div>
     </div>
 
-    <!-- AUTOMATIONS -->
     <div class="page" id="page-automations">
-      <!-- List view -->
+      
       <div id="auto-list-view">
         <div class="sec-head">
           <div>
@@ -1224,7 +1282,7 @@ tbody tr:hover td{background:var(--bg3)}
         </div>
         <div id="auto-workflow-list"></div>
       </div>
-      <!-- Builder view (hidden until opened) -->
+      
       <div id="auto-builder-view" style="display:none">
         <div class="builder-topbar">
           <button class="btn btn-sm" onclick="closeAutoBuilder()">← Back</button>
@@ -1247,7 +1305,7 @@ tbody tr:hover td{background:var(--bg3)}
             <button class="btn btn-primary btn-sm" onclick="saveWorkflow()">Save Workflow</button>
           </div>
         </div>
-        <!-- Canvas -->
+        
         <div class="builder-canvas" id="builder-canvas">
           <div class="builder-start-node">
             <div class="bnode-icon">⚡</div>
@@ -1262,7 +1320,6 @@ tbody tr:hover td{background:var(--bg3)}
       </div>
     </div>
 
-    <!-- TAGS -->
     <div class="page" id="page-tags">
       <div class="sec-head">
         <div>
@@ -1271,14 +1328,14 @@ tbody tr:hover td{background:var(--bg3)}
         </div>
         <button class="btn btn-primary btn-sm" onclick="openCreateTagModal()">+ Create Tag</button>
       </div>
-      <!-- Stats row -->
+      
       <div id="tag-stats-row" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px"></div>
-      <!-- Tag search -->
+      
       <div style="position:relative;max-width:320px;margin-bottom:14px">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input class="form-input" id="tag-search" style="padding-left:32px" placeholder="Search tags…" oninput="renderTagsPage()"/>
       </div>
-      <!-- Master tag table -->
+      
       <div class="tbl-wrap">
         <table>
           <thead><tr><th>Tag</th><th>Color</th><th>Contacts</th><th>Deals</th><th>Actions</th></tr></thead>
@@ -1287,18 +1344,16 @@ tbody tr:hover td{background:var(--bg3)}
       </div>
     </div>
 
-    <!-- CONVERSATIONS -->
     <div class="page" id="page-conversations" style="padding:0;height:calc(100vh - 54px);overflow:hidden">
       <div class="conv-layout">
 
-        <!-- LEFT: contact list -->
         <div class="conv-sidebar">
           <div class="conv-sidebar-head">
             <div class="conv-search-wrap">
               <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <input id="conv-search" placeholder="Search conversations…" oninput="filterConvList(this.value)"/>
             </div>
-            <!-- Filter tabs -->
+            
             <div class="conv-filter-tabs">
               <div class="conv-filter-tab active" data-filter="all" onclick="setConvFilter('all',this)">All</div>
               <div class="conv-filter-tab" data-filter="sms" onclick="setConvFilter('sms',this)">SMS</div>
@@ -1309,7 +1364,6 @@ tbody tr:hover td{background:var(--bg3)}
           <div class="conv-list" id="conv-contact-list"></div>
         </div>
 
-        <!-- CENTER: conversation thread -->
         <div class="conv-thread-panel">
           <div id="conv-empty-state" class="conv-empty">
             <div style="font-size:36px;margin-bottom:14px">💬</div>
@@ -1317,18 +1371,18 @@ tbody tr:hover td{background:var(--bg3)}
             <div style="font-size:12px;color:var(--text3)">Pick a contact from the left to view their message history</div>
           </div>
           <div id="conv-thread-wrap" style="display:none;height:100%;flex-direction:column">
-            <!-- Thread header -->
+            
             <div class="conv-thread-head" id="conv-thread-head"></div>
-            <!-- Message bubbles -->
+            
             <div class="conv-bubbles" id="conv-bubbles"></div>
-            <!-- Compose area -->
+            
             <div class="conv-compose" id="conv-compose">
-              <!-- Channel tab switcher -->
+              
               <div class="conv-compose-tabs">
                 <div class="conv-compose-tab active" data-ch="sms" onclick="setComposeChannel('sms',this)">📱 SMS</div>
                 <div class="conv-compose-tab" data-ch="email" onclick="setComposeChannel('email',this)">📧 Email</div>
               </div>
-              <!-- SMS compose -->
+              
               <div id="compose-sms-panel">
                 <textarea id="compose-sms-body" class="conv-textarea" placeholder="Type an SMS message… (160 chars)" oninput="updateConvSmsCount()"></textarea>
                 <div class="conv-compose-footer">
@@ -1339,7 +1393,7 @@ tbody tr:hover td{background:var(--bg3)}
                   </div>
                 </div>
               </div>
-              <!-- Email compose -->
+              
               <div id="compose-email-panel" style="display:none">
                 <input class="form-input" id="compose-email-subject" placeholder="Subject…" style="margin-bottom:8px;font-size:13px"/>
                 <textarea id="compose-email-body" class="conv-textarea" style="min-height:90px" placeholder="Write your email…"></textarea>
@@ -1354,7 +1408,6 @@ tbody tr:hover td{background:var(--bg3)}
           </div>
         </div>
 
-        <!-- RIGHT: contact info panel -->
         <div class="conv-info-panel" id="conv-info-panel">
           <div class="conv-info-empty" id="conv-info-empty">
             <div style="font-size:12px;color:var(--text3);text-align:center;padding:20px">Select a conversation to see contact details</div>
@@ -1365,16 +1418,20 @@ tbody tr:hover td{background:var(--bg3)}
       </div>
     </div>
 
-    <!-- EMAIL -->
     <div class="page" id="page-email">
       <div class="email-layout">
 
-        <!-- LEFT: folder sidebar -->
         <div class="email-sidebar">
-          <button class="btn btn-primary" style="width:100%;margin-bottom:16px;justify-content:center" onclick="openComposeEmail()">
+          <button class="btn btn-primary" style="width:100%;margin-bottom:12px;justify-content:center" onclick="openComposeEmail()">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:6px"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
             Compose
           </button>
+
+          <div class="email-folder" data-folder="inbox" onclick="setEmailFolder('inbox',this)">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg>
+            Inbox
+            <span class="email-folder-count" id="efolder-inbox" style="background:var(--green-bg);color:var(--green)">0</span>
+          </div>
           <div class="email-folder active" data-folder="sent" onclick="setEmailFolder('sent',this)">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             Sent
@@ -1387,18 +1444,23 @@ tbody tr:hover td{background:var(--bg3)}
           </div>
           <div class="email-folder" data-folder="all" onclick="setEmailFolder('all',this)">
             <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            All Emails
+            All
             <span class="email-folder-count" id="efolder-all">0</span>
           </div>
-          <!-- Connected accounts -->
-          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
-            <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">From Account</div>
+
+          <button class="btn btn-sm" style="width:100%;margin-top:10px;font-size:11px;color:var(--green);border-color:rgba(0,229,160,.3)" onclick="checkEmailReplies()">
+            ↻ Check Replies
+          </button>
+
+          <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+            <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+              Accounts
+              <span onclick="openAddEmailAccountModal()" style="cursor:pointer;color:var(--accent2);font-size:10px;font-weight:600">+ Add</span>
+            </div>
             <div id="email-accounts-list"></div>
-            <div style="font-size:11px;color:var(--text3);margin-top:8px;line-height:1.5">Add accounts in <span onclick="navigate('integrations')" style="color:var(--accent2);cursor:pointer">Integrations → Email</span></div>
           </div>
         </div>
 
-        <!-- CENTER: email list -->
         <div class="email-list-panel">
           <div class="email-list-head">
             <div style="font-size:13px;font-weight:600;color:var(--text)" id="email-folder-title">Sent</div>
@@ -1410,22 +1472,20 @@ tbody tr:hover td{background:var(--bg3)}
           <div class="email-list" id="email-list"></div>
         </div>
 
-        <!-- RIGHT: email detail / compose preview -->
         <div class="email-detail-panel">
           <div id="email-detail-empty" class="conv-empty">
             <div style="font-size:32px;margin-bottom:12px">📧</div>
             <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Select an email</div>
-            <div style="font-size:12px;color:var(--text3)">Pick an email from the list to read it</div>
+            <div style="font-size:12px;color:var(--text3)">Pick an email to read it, or compose a new one</div>
           </div>
-          <div id="email-detail-content" style="display:none;padding:20px;overflow-y:auto;height:100%"></div>
+          <div id="email-detail-content" style="display:none;overflow-y:auto;height:100%;display:flex;flex-direction:column"></div>
         </div>
 
       </div>
     </div>
 
-    <!-- CAMPAIGNS -->
     <div class="page" id="page-campaigns">
-      <!-- List view -->
+      
       <div id="camp-list-view">
         <div class="sec-head">
           <div>
@@ -1434,13 +1494,12 @@ tbody tr:hover td{background:var(--bg3)}
           </div>
           <button class="btn btn-primary btn-sm" onclick="openCampBuilder()">+ New Campaign</button>
         </div>
-        <!-- Stats -->
+        
         <div class="camp-stats" id="camp-stats-row" style="margin-bottom:20px"></div>
-        <!-- Campaign list -->
+        
         <div id="camp-list-table"></div>
       </div>
 
-      <!-- Campaign builder view -->
       <div id="camp-builder-view" style="display:none">
         <div class="builder-topbar">
           <button class="btn btn-sm" onclick="closeCampBuilder()">← Back</button>
@@ -1452,7 +1511,7 @@ tbody tr:hover td{background:var(--bg3)}
         </div>
 
         <div style="display:grid;grid-template-columns:320px 1fr;gap:16px;margin-top:16px">
-          <!-- Left: settings panel -->
+          
           <div>
             <div class="settings-card" style="margin-bottom:12px">
               <div class="settings-card-title" style="margin-bottom:14px">Campaign Settings</div>
@@ -1497,11 +1556,10 @@ tbody tr:hover td{background:var(--bg3)}
             </div>
           </div>
 
-          <!-- Right: message composer -->
           <div>
             <div class="settings-card">
               <div class="settings-card-title" style="margin-bottom:14px" id="camp-composer-title">Email Body</div>
-              <!-- Email composer -->
+              
               <div id="camp-email-composer">
                 <div class="form-group">
                   <label class="form-label">From Name</label>
@@ -1510,7 +1568,7 @@ tbody tr:hover td{background:var(--bg3)}
                 <div class="form-group">
                   <label class="form-label">Message Body</label>
                   <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:4px">
-                    <!-- Mini toolbar -->
+                    
                     <div style="display:flex;gap:2px;padding:6px 8px;background:var(--bg3);border-bottom:1px solid var(--border);flex-wrap:wrap">
                       ${['bold','italic','underline'].map(c=>`<button type="button" onclick="execCmd('${c}')" class="btn btn-sm" style="padding:3px 8px;font-size:11px;min-width:28px">${c==='bold'?'<b>B</b>':c==='italic'?'<i>I</i>':'<u>U</u>'}</button>`).join('')}
                       <span style="width:1px;background:var(--border);margin:0 4px"></span>
@@ -1524,7 +1582,7 @@ tbody tr:hover td{background:var(--bg3)}
                   </div>
                 </div>
               </div>
-              <!-- SMS composer -->
+              
               <div id="camp-sms-composer" style="display:none">
                 <div class="form-group">
                   <label class="form-label">SMS Message <span style="color:var(--text3);font-weight:400">(160 chars per segment)</span></label>
@@ -1537,7 +1595,7 @@ tbody tr:hover td{background:var(--bg3)}
                   </div>
                 </div>
               </div>
-              <!-- Preview -->
+              
               <div style="margin-top:14px">
                 <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Preview (first contact)</div>
                 <div id="camp-preview" style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:14px;font-size:12px;color:var(--text2);line-height:1.7;min-height:60px">
@@ -1550,17 +1608,15 @@ tbody tr:hover td{background:var(--bg3)}
       </div>
     </div>
 
-    <!-- SOCIAL PLANNER -->
     <div class="page" id="page-social">
 
-      <!-- Topbar -->
       <div class="sec-head" style="margin-bottom:14px">
         <div>
           <div class="sec-title">Social Media Planner</div>
           <div style="font-size:12px;color:var(--text3);margin-top:2px">Schedule, track, and visualize your social content</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <!-- View switcher -->
+          
           <div style="display:flex;gap:2px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:3px">
             <button class="btn btn-sm soc-view-btn active" data-view="calendar" onclick="setSocView('calendar',this)">📅 Calendar</button>
             <button class="btn btn-sm soc-view-btn" data-view="list" onclick="setSocView('list',this)">📋 List</button>
@@ -1573,7 +1629,6 @@ tbody tr:hover td{background:var(--bg3)}
         </div>
       </div>
 
-      <!-- Platform filter chips -->
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;align-items:center">
         <span style="font-size:11px;color:var(--text3);font-weight:500">Platforms:</span>
         <div id="soc-platform-filters"></div>
@@ -1582,18 +1637,14 @@ tbody tr:hover td{background:var(--bg3)}
         <div id="soc-status-filters"></div>
       </div>
 
-      <!-- Stats row -->
       <div id="soc-stats" style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:18px"></div>
 
-      <!-- Month label -->
       <div id="soc-month-label" style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:12px"></div>
 
-      <!-- Calendar / List / Grid view -->
       <div id="soc-view-container"></div>
 
     </div>
 
-    <!-- INTEGRATIONS -->
     <div class="page" id="page-integrations">
       <div class="sec-head">
         <div>
@@ -1603,7 +1654,6 @@ tbody tr:hover td{background:var(--bg3)}
         <span id="int-connected-count" style="font-size:12px;color:var(--text3)">0 connected</span>
       </div>
 
-      <!-- TWILIO -->
       <div class="int-section-title">📱 SMS & Phone</div>
       <div class="int-full-card" id="int-card-twilio">
         <div class="int-full-head">
@@ -1628,7 +1678,7 @@ tbody tr:hover td{background:var(--bg3)}
             <button class="btn" onclick="toggleIntSection('twilio')">Cancel</button>
             <button class="btn btn-primary" onclick="saveIntegration('twilio')">Save & Connect</button>
           </div>
-          <!-- SMS Composer -->
+          
           <div id="twilio-composer" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
             <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Send SMS</div>
             <div class="int-form-grid">
@@ -1647,61 +1697,34 @@ tbody tr:hover td{background:var(--bg3)}
         </div>
       </div>
 
-      <!-- EMAIL -->
-      <div class="int-section-title">📧 Email</div>
+      <div class="int-section-title">📧 Email Accounts</div>
       <div class="int-full-card" id="int-card-email">
         <div class="int-full-head">
           <div class="int-full-icon" style="background:var(--accent-bg)">📧</div>
           <div style="flex:1">
-            <div class="int-full-name">Email — SMTP / Brevo / SendGrid</div>
-            <div class="int-full-desc">Send emails to contacts, run campaigns, and track opens from your CRM</div>
+            <div class="int-full-name">Email Accounts</div>
+            <div class="int-full-desc">Connect multiple email accounts — send, receive, and track replies inside the CRM</div>
           </div>
-          <div class="int-status-badge" id="email-status">Not connected</div>
-          <button class="btn btn-sm" id="email-toggle-btn" onclick="toggleIntSection('email')">Connect</button>
+          <div id="email-accounts-count" class="int-status-badge">0 connected</div>
+          <button class="btn btn-primary btn-sm" onclick="openAddEmailAccountModal()">+ Add Account</button>
         </div>
-        <div class="int-form" id="email-form" style="display:none">
-          <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:12px;color:var(--accent2);line-height:1.6">
-            <strong>Brevo (recommended — free 300/day):</strong> Go to brevo.com → Settings → SMTP & API → Generate API Key.<br>
-            <strong>Gmail:</strong> Enable 2FA → Google Account → Security → App Passwords → generate one for "Mail".<br>
-            <strong>SendGrid:</strong> app.sendgrid.com → Settings → API Keys.
+
+        <div id="int-email-accounts-list" style="margin-top:12px"></div>
+
+        <div style="margin-top:14px;background:var(--amber-bg);border:1px solid rgba(255,184,48,.25);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--amber);line-height:1.7">
+          <strong>📬 Receiving replies:</strong> Email replies land in your actual inbox. To pull them into the CRM, use the <strong>↻ Check Replies</strong> button in the Email section — it will import any Brevo inbound emails. For automatic syncing, set up Brevo's inbound parsing to forward replies to your webhook.
+        </div>
+
+        <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Inbound Email Webhook (Brevo)</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:8px">To receive replies automatically: In Brevo → Settings → Inbound Parsing → add this webhook URL:</div>
+          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent2);word-break:break-all">
+            https://oipkvwdjlwienkphsivr.supabase.co/functions/v1/email-inbound
           </div>
-          <div class="form-group"><label class="form-label">Provider</label>
-            <select class="form-select" id="email-provider" onchange="updateEmailPlaceholders()">
-              <option value="brevo">Brevo (recommended — free)</option>
-              <option value="sendgrid">SendGrid</option>
-              <option value="smtp">Custom SMTP</option>
-              <option value="gmail">Gmail App Password</option>
-            </select>
-          </div>
-          <div class="int-form-grid">
-            <div class="form-group"><label class="form-label">From Name</label><input class="form-input" id="email-from-name" placeholder="Next Level Marketing"/></div>
-            <div class="form-group"><label class="form-label">From Email</label><input class="form-input" id="email-from-addr" type="email" placeholder="hello@youragency.com"/></div>
-            <div class="form-group"><label class="form-label" id="email-key-label">API Key</label><input class="form-input" id="email-apikey" type="password" placeholder="Your API key"/></div>
-            <div class="form-group" id="smtp-host-wrap" style="display:none"><label class="form-label">SMTP Host</label><input class="form-input" id="email-host" placeholder="smtp.brevo.com"/></div>
-            <div class="form-group" id="smtp-port-wrap" style="display:none"><label class="form-label">SMTP Port</label><input class="form-input" id="email-port" placeholder="587"/></div>
-          </div>
-          <div class="int-form-actions">
-            <button class="btn" onclick="toggleIntSection('email')">Cancel</button>
-            <button class="btn btn-primary" onclick="saveIntegration('email')">Save & Connect</button>
-          </div>
-          <!-- Email Composer -->
-          <div id="email-composer" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
-            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Send Email</div>
-            <div class="form-group"><label class="form-label">To Contact</label>
-              <select class="form-select" id="email-to-contact" onchange="fillEmailAddress()"><option value="">— pick contact —</option></select>
-            </div>
-            <div class="form-group"><label class="form-label">To Email</label><input class="form-input" id="email-to-addr" placeholder="recipient@example.com"/></div>
-            <div class="form-group"><label class="form-label">Subject</label><input class="form-input" id="email-subject" placeholder="Following up…"/></div>
-            <div class="form-group"><label class="form-label">Message</label><textarea class="form-textarea" id="email-body" style="min-height:120px" placeholder="Write your email here…"></textarea></div>
-            <div style="display:flex;justify-content:flex-end;gap:8px">
-              <button class="btn btn-primary btn-sm" onclick="sendEmail()">Send Email</button>
-            </div>
-            <div id="email-log" style="margin-top:12px"></div>
-          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:6px">Replies will then appear automatically in Conversations and Email → Inbox.</div>
         </div>
       </div>
 
-      <!-- FACEBOOK -->
       <div class="int-section-title">📘 Social Media</div>
       <div class="int-full-card" id="int-card-facebook">
         <div class="int-full-head">
@@ -1734,7 +1757,6 @@ tbody tr:hover td{background:var(--bg3)}
         </div>
       </div>
 
-      <!-- INSTAGRAM -->
       <div class="int-full-card" id="int-card-instagram">
         <div class="int-full-head">
           <div class="int-full-icon" style="background:var(--pink-bg)">📸</div>
@@ -1760,7 +1782,6 @@ tbody tr:hover td{background:var(--bg3)}
         </div>
       </div>
 
-      <!-- GOOGLE CALENDAR -->
       <div class="int-section-title">📅 Calendar</div>
       <div class="int-full-card" id="int-card-calendar">
         <div class="int-full-head">
@@ -1774,7 +1795,6 @@ tbody tr:hover td{background:var(--bg3)}
         </div>
         <div class="int-form" id="calendar-form" style="display:none">
 
-          <!-- Step 1: Client ID input -->
           <div id="gcal-setup-panel">
             <div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.2);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:12px;color:var(--green);line-height:1.8">
               <strong>Setup (one time):</strong><br>
@@ -1794,7 +1814,6 @@ tbody tr:hover td{background:var(--bg3)}
             </div>
           </div>
 
-          <!-- Step 2: Connected state -->
           <div id="gcal-connected-panel" style="display:none">
             <div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.25);border-radius:var(--radius);padding:12px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
               <span style="font-size:18px">✅</span>
@@ -1807,7 +1826,7 @@ tbody tr:hover td{background:var(--bg3)}
             <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--accent2);line-height:1.6">
               📅 To create events and invite clients, go to the <strong>Calendar</strong> section and click <strong>+ New Event</strong>. All events sync directly to your Google Calendar.
             </div>
-            <!-- Upcoming events preview -->
+            
             <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
               <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Upcoming Events from Google</div>
               <div id="gcal-events-list"><div style="font-size:12px;color:var(--text3)">Click "Load Events" to fetch from Google Calendar</div></div>
@@ -1818,7 +1837,6 @@ tbody tr:hover td{background:var(--bg3)}
         </div>
       </div>
 
-      <!-- ZAPIER -->
       <div class="int-section-title">🔗 Automation & Webhooks</div>
       <div class="int-full-card" id="int-card-zapier">
         <div class="int-full-head">
@@ -1852,7 +1870,6 @@ tbody tr:hover td{background:var(--bg3)}
 
     </div>
 
-    <!-- CUSTOM FIELDS -->
     <div class="page" id="page-custom-fields">
       <div class="sec-head"><div class="sec-title">Custom Fields</div></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
@@ -1873,10 +1890,9 @@ tbody tr:hover td{background:var(--bg3)}
       </div>
     </div>
 
-    <!-- SETTINGS -->
     <div class="page" id="page-settings">
       <div style="max-width:720px">
-        <!-- Team Members -->
+        
         <div class="settings-card">
           <div class="settings-card-head">
             <div>
@@ -1888,7 +1904,6 @@ tbody tr:hover td{background:var(--bg3)}
           <div id="users-list"></div>
         </div>
 
-        <!-- Account -->
         <div class="settings-card">
           <div class="settings-card-head">
             <div>
@@ -1907,7 +1922,6 @@ tbody tr:hover td{background:var(--bg3)}
           </div>
         </div>
 
-        <!-- Workspace -->
         <div class="settings-card">
           <div class="settings-card-head">
             <div>
@@ -1921,7 +1935,6 @@ tbody tr:hover td{background:var(--bg3)}
           </div>
         </div>
 
-        <!-- Pipeline -->
         <div class="settings-card">
           <div class="settings-card-head">
             <div>
@@ -1937,7 +1950,6 @@ tbody tr:hover td{background:var(--bg3)}
           </div>
         </div>
 
-        <!-- Danger Zone -->
         <div class="settings-card" style="border-color:rgba(242,107,107,.2)">
           <div class="settings-card-title" style="color:var(--red)">Danger Zone</div>
           <div style="font-size:12px;color:var(--text3);margin:8px 0 14px">Permanently delete your account and all data. This cannot be undone.</div>
@@ -1946,11 +1958,10 @@ tbody tr:hover td{background:var(--bg3)}
       </div>
     </div>
 
-  </div><!-- /content -->
-</div><!-- /main -->
-</div><!-- /app -->
+  </div>
+</div>
+</div>
 
-<!-- LOGIN SCREEN -->
 <div id="login-screen" style="display:flex">
   <div class="login-bg">
     <div class="login-card">
@@ -1972,18 +1983,15 @@ tbody tr:hover td{background:var(--bg3)}
   </div>
 </div>
 
-<!-- MODAL -->
 <div class="modal-overlay" id="modal-overlay">
   <div class="modal" id="modal-box"></div>
 </div>
 
-<!-- CONTACT DETAIL PANEL -->
 <div class="detail-panel" id="detail-panel">
   <div class="detail-backdrop" onclick="closeDetail()"></div>
   <div class="detail-drawer" id="detail-drawer"></div>
 </div>
 
-<!-- TOAST -->
 <div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg"></span></div>
 
 <script>
@@ -2471,80 +2479,208 @@ function toggleMute(){
   showToast(callMuted?'🔇 Muted':'🔊 Unmuted');
 }
 
-function renderContacts() {
-  const tbody = document.getElementById('contacts-tbody');
-  const q = (document.getElementById('contact-search')?.value||'').toLowerCase();
-  const activeTags = [...activeContactTagFilters];
+// ── SOURCE FILTER ──
+let activeSourceFilters = new Set();
+let activePipelineFilter = null;
 
-  let filtered = contacts.filter(c =>
-    (c.name||'').toLowerCase().includes(q) ||
-    (c.company||'').toLowerCase().includes(q) ||
-    (c.email||'').toLowerCase().includes(q)
-  );
+const CONTACT_SOURCES = ['Facebook','Instagram','LinkedIn','Google Ads','Website','Referral','Walk-in','Email','Phone','Import','Other'];
 
-  if(activeTags.length > 0){
-    filtered = filtered.filter(c=>
-      activeTags.every(tag=>(c.tags||[]).some(t=>t.label===tag))
-    );
-  }
-
-  document.getElementById('contact-count-label').textContent = `(${contacts.length})`;
-  document.getElementById('nb-contacts').textContent = contacts.length;
-
-  const summaryEl = document.getElementById('contact-filter-summary');
-  if(summaryEl){
-    const parts = [];
-    if(q) parts.push(`search: "${q}"`);
-    if(activeTags.length) parts.push(`tags: ${activeTags.join(', ')}`);
-    if(parts.length){ summaryEl.style.display='block'; summaryEl.innerHTML=`Showing <strong>${filtered.length}</strong> of ${contacts.length} contacts · ${parts.join(' · ')}`; }
-    else { summaryEl.style.display='none'; }
-  }
-
-  const statusLabels = {hot:'pill-hot',active:'pill-active',new:'pill-new',cold:'pill-cold',done:'pill-done'};
-  if(filtered.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text3);padding:24px">${(q||activeTags.length) ? 'No contacts match your filters' : 'No contacts yet — add your first one!'}</td></tr>`;
-    renderContactTagFilters();
-    return;
-  }
-
-  tbody.innerHTML = filtered.map(c => {
-    const deals = [];
-    pipelines.forEach(p=>{
-      p.deals.filter(d=>d.name===c.name||(c.email&&d.company===c.company)||d.contactId===c.id).forEach(d=>{
-        const stage = p.stages.find(s=>s.id===d.stage);
-        deals.push({pName:p.name,sLabel:stage?.label||'—',value:d.value});
-      });
+function toggleSourceDropdown(){
+  const dd=document.getElementById('source-filter-dropdown');
+  const btn=document.getElementById('source-filter-btn');
+  if(!dd) return;
+  const isOpen=dd.style.display!=='none';
+  closeAllContactDropdowns();
+  if(!isOpen){dd.style.display='block';btn.classList.add('active');renderSourceDropdown();}
+}
+function renderSourceDropdown(){
+  const dd=document.getElementById('source-filter-dropdown');if(!dd)return;
+  const usedSources=[...new Set(contacts.map(c=>c.source||'Other').filter(Boolean))].sort();
+  const allSources=[...new Set([...usedSources,...CONTACT_SOURCES])].sort();
+  dd.innerHTML=`<div class="cf-filter-opt" onclick="clearSourceFilters()" style="border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">All Sources</div>`+
+    allSources.map(s=>`<div class="cf-filter-opt ${activeSourceFilters.has(s)?"selected":""}" onclick="toggleSourceFilter('${s}')">
+      <div class="cf-filter-opt-check">${activeSourceFilters.has(s)?"✓":""}</div>
+      ${s}
+      <span style="margin-left:auto;font-size:10px;color:var(--text3)">${contacts.filter(c=>(c.source||"Other")===s).length}</span>
+    </div>`).join("");
+}
+function toggleSourceFilter(source){
+  if(activeSourceFilters.has(source))activeSourceFilters.delete(source);
+  else activeSourceFilters.add(source);
+  updateSourceLabel();renderSourceDropdown();renderContacts();
+}
+function clearSourceFilters(){activeSourceFilters.clear();updateSourceLabel();closeAllContactDropdowns();renderContacts();}
+function updateSourceLabel(){
+  const el=document.getElementById("source-filter-label");
+  const btn=document.getElementById("source-filter-btn");
+  if(!el)return;
+  if(activeSourceFilters.size===0){el.textContent="Source";el.style.color="var(--text3)";btn?.classList.remove("active");}
+  else{el.textContent=activeSourceFilters.size===1?[...activeSourceFilters][0]:`${activeSourceFilters.size} sources`;el.style.color="var(--accent2)";btn?.classList.add("active");}
+}
+function togglePipelineDropdown(){
+  const dd=document.getElementById("pipeline-filter-dropdown");
+  const btn=document.getElementById("pipeline-filter-btn");
+  if(!dd)return;
+  const isOpen=dd.style.display!=="none";
+  closeAllContactDropdowns();
+  if(!isOpen){dd.style.display="block";btn.classList.add("active");renderPipelineDropdown();}
+}
+function renderPipelineDropdown(){
+  const dd=document.getElementById("pipeline-filter-dropdown");if(!dd)return;
+  let html=`<div class="cf-filter-opt" onclick="clearPipelineFilter()" style="border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">All Pipelines</div>`;
+  pipelines.forEach(p=>{
+    html+=`<div style="padding:5px 12px 2px;font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">${p.name}</div>`;
+    p.stages.forEach(s=>{
+      const cnt=p.deals.filter(d=>d.stage===s.id).length;
+      const isSel=activePipelineFilter?.stageId===s.id;
+      html+=`<div class="cf-filter-opt ${isSel?"selected":""}" onclick="setPipelineFilter('${p.id}','${s.id}','${p.name} → ${s.label}')">
+        <div class="cf-filter-opt-check">${isSel?"✓":""}</div>
+        <span style="color:var(--accent2)">${s.label}</span>
+        <span style="margin-left:auto;font-size:10px;color:var(--text3)">${cnt} deals</span>
+      </div>`;
     });
-    const pipelineCell = deals.length
-      ? deals.slice(0,1).map(d=>`<div style="line-height:1.3"><div style="font-size:11px;font-weight:500;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px">${d.sLabel}</div><div style="font-size:10px;color:var(--text3)">${d.pName}</div></div>`).join('')
-      : `<span style="font-size:11px;color:var(--text3)">—</span>`;
+  });
+  if(!pipelines.length)html+=`<div class="cf-filter-opt" style="color:var(--text3)">No pipelines yet</div>`;
+  dd.innerHTML=html;
+}
+function setPipelineFilter(pipelineId,stageId,label){activePipelineFilter={pipelineId,stageId,label};updatePipelineLabel();closeAllContactDropdowns();renderContacts();}
+function clearPipelineFilter(){activePipelineFilter=null;updatePipelineLabel();closeAllContactDropdowns();renderContacts();}
+function updatePipelineLabel(){
+  const el=document.getElementById("pipeline-filter-label");
+  const btn=document.getElementById("pipeline-filter-btn");
+  if(!el)return;
+  if(!activePipelineFilter){el.textContent="Pipeline";el.style.color="var(--text3)";btn?.classList.remove("active");}
+  else{el.textContent=activePipelineFilter.label;el.style.color="var(--accent2)";btn?.classList.add("active");}
+}
+function closeAllContactDropdowns(){
+  ["source-filter-dropdown","pipeline-filter-dropdown"].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display="none";});
+  document.getElementById("source-filter-btn")?.classList.remove("active");
+  document.getElementById("pipeline-filter-btn")?.classList.remove("active");
+}
+document.addEventListener("click",e=>{
+  if(!e.target.closest("#source-filter-btn")&&!e.target.closest("#source-filter-dropdown")){const d=document.getElementById("source-filter-dropdown");if(d)d.style.display="none";}
+  if(!e.target.closest("#pipeline-filter-btn")&&!e.target.closest("#pipeline-filter-dropdown")){const d=document.getElementById("pipeline-filter-dropdown");if(d)d.style.display="none";}
+});
 
-    return `
-    <tr>
-      <td><div class="td-name"><div class="av-sm ${getAv(c.id)}">${initials(c.name)}</div>${c.name}</div></td>
-      <td style="color:var(--text2)">${c.company||'—'}</td>
-      <td>
-        <div style="display:flex;align-items:center;gap:5px">
-          <span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:12px">${c.email||'—'}</span>
-          ${c.email?`<button class="btn-email-inline" onclick="openComposeEmail('${c.id}')" title="Send email to ${c.name}"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>`:''}
-        </div>
-      </td>
-      <td>
-        <div style="display:flex;align-items:center;gap:5px">
-          <span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:12px">${c.phone||'—'}</span>
-          ${c.phone?`<button class="btn-call-inline" onclick="initiateCall('${c.id}','${c.phone.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')" title="Call ${c.name}"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>`:''}
-        </div>
-      </td>
-      <td><span class="tag tag-blue">${c.source||'Other'}</span></td>
-      <td><div class="tags-cell">${(c.tags||[]).map(t=>`<span class="tag ${t.cls}">${t.label}</span>`).join('')}<span class="tag-add-inline" onclick="openContactModal('${c.id}','tags')">+ tag</span></div></td>
-      <td><span class="pill ${statusLabels[c.status]||'pill-cold'}">${(c.status||'new').charAt(0).toUpperCase()+(c.status||'new').slice(1)}</span></td>
-      <td>${pipelineCell}</td>
-      <td><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">💬</button></td>
-    </tr>`;
-  }).join('');
+// ── COLUMN CUSTOMIZER ──
+const ALL_COLUMNS=[
+  {id:"name",label:"Name",required:true},
+  {id:"company",label:"Company",required:false},
+  {id:"email",label:"Email",required:false},
+  {id:"phone",label:"Phone",required:false},
+  {id:"source",label:"Source",required:false},
+  {id:"tags",label:"Tags",required:false},
+  {id:"status",label:"Status",required:false},
+  {id:"pipeline",label:"Pipeline/Stage",required:false},
+  {id:"created",label:"Date Added",required:false},
+];
+let visibleColumns=JSON.parse(localStorage.getItem("nlm_contact_cols")||"null")||["name","company","email","phone","source","tags","status","pipeline"];
+function saveVisibleColumns(){localStorage.setItem("nlm_contact_cols",JSON.stringify(visibleColumns));}
+function openColumnCustomizer(){
+  openModal(`<div class="modal-head"><div class="modal-title">Customize Columns</div><span class="modal-close" onclick="closeModal()">×</span></div>
+    <div class="modal-body" style="padding:0">
+    <div style="padding:10px 14px;font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">Toggle columns on/off. Name is always shown.</div>
+    <div id="col-customizer-list">${buildColList()}</div></div>
+    <div class="modal-foot">
+      <button class="btn btn-sm" onclick="resetColumns()">Reset</button>
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="closeModal();renderContacts()">Apply</button>
+    </div>`);
+}
+function buildColList(){
+  return ALL_COLUMNS.map(col=>{
+    const isOn=visibleColumns.includes(col.id)||col.required;
+    return `<div class="col-toggle-item" onclick="${col.required?"":"toggleColumn('"+col.id+"')"}">
+      <span class="col-drag-handle">⠿</span>
+      <span style="flex:1;font-size:13px;color:${col.required?"var(--text3)":"var(--text)"}">
+        ${col.label}${col.required?" <span style='font-size:10px;color:var(--text3)'>(required)</span>":""}
+      </span>
+      <div class="col-toggle-switch ${isOn?"on":"off"}"><div class="col-toggle-knob"></div></div>
+    </div>`;
+  }).join("");
+}
+function toggleColumn(id){
+  if(visibleColumns.includes(id))visibleColumns=visibleColumns.filter(c=>c!==id);
+  else visibleColumns.push(id);
+  saveVisibleColumns();
+  const list=document.getElementById("col-customizer-list");
+  if(list)list.innerHTML=buildColList();
+}
+function resetColumns(){visibleColumns=["name","company","email","phone","source","tags","status","pipeline"];saveVisibleColumns();const list=document.getElementById("col-customizer-list");if(list)list.innerHTML=buildColList();}
+function renderContactTableHeader(){
+  const tr=document.querySelector("#contacts-table thead tr");if(!tr)return;
+  const cols=ALL_COLUMNS.filter(c=>c.required||visibleColumns.includes(c.id));
+  tr.innerHTML=cols.map(c=>`<th>${c.label}</th>`).join("")+"<th></th>";
+}
+function clearAllContactFilters(){
+  activeSourceFilters.clear();activePipelineFilter=null;activeContactTagFilters.clear();
+  const si=document.getElementById("contact-search");if(si)si.value="";
+  updateSourceLabel();updatePipelineLabel();renderContactTagFilters();renderContacts();
+}
 
+// ── RENDER CONTACTS TABLE ──
+function renderContacts(){
+  renderContactTableHeader();
+  const tbody=document.getElementById("contacts-tbody");
+  const q=(document.getElementById("contact-search")?.value||"").toLowerCase();
+  const activeTags=[...activeContactTagFilters];
+  let pipelineContactIds=null;
+  if(activePipelineFilter){
+    pipelineContactIds=new Set();
+    const pl=pipelines.find(p=>p.id===activePipelineFilter.pipelineId);
+    if(pl){pl.deals.filter(d=>d.stage===activePipelineFilter.stageId).forEach(d=>{
+      if(d.contactId)pipelineContactIds.add(d.contactId);
+      contacts.filter(c=>c.name===d.name||(c.company&&c.company===d.company)).forEach(c=>pipelineContactIds.add(c.id));
+    });}
+  }
+  let filtered=contacts.filter(c=>{
+    const ms=!q||(c.name||"").toLowerCase().includes(q)||(c.company||"").toLowerCase().includes(q)||(c.email||"").toLowerCase().includes(q)||(c.phone||"").toLowerCase().includes(q);
+    const mt=activeTags.length===0||activeTags.every(tag=>(c.tags||[]).some(t=>t.label===tag));
+    const msrc=activeSourceFilters.size===0||activeSourceFilters.has(c.source||"Other");
+    const mp=!pipelineContactIds||pipelineContactIds.has(c.id);
+    return ms&&mt&&msrc&&mp;
+  });
+  document.getElementById("contact-count-label").textContent=`(${contacts.length})`;
+  document.getElementById("nb-contacts").textContent=contacts.length;
+  const summaryEl=document.getElementById("contact-filter-summary");
+  if(summaryEl){
+    const parts=[];
+    if(q)parts.push(`"${q}"`);
+    if(activeTags.length)parts.push("tags: "+activeTags.join(", "));
+    if(activeSourceFilters.size)parts.push("source: "+[...activeSourceFilters].join(", "));
+    if(activePipelineFilter)parts.push("pipeline: "+activePipelineFilter.label);
+    if(parts.length){summaryEl.style.display="block";summaryEl.innerHTML=`<strong>${filtered.length}</strong> of ${contacts.length} · ${parts.join(" · ")} <span onclick="clearAllContactFilters()" style="margin-left:8px;cursor:pointer;opacity:.7">✕ Clear all</span>`;}
+    else summaryEl.style.display="none";
+  }
+  const cols=ALL_COLUMNS.filter(c=>c.required||visibleColumns.includes(c.id)).map(c=>c.id);
+  const totalCols=cols.length+1;
+  const statusLabels={hot:"pill-hot",active:"pill-active",new:"pill-new",cold:"pill-cold",done:"pill-done"};
+  if(filtered.length===0){
+    tbody.innerHTML=`<tr><td colspan="${totalCols}" style="text-align:center;color:var(--text3);padding:32px">${(q||activeTags.length||activeSourceFilters.size||activePipelineFilter)?"No contacts match your filters":"No contacts yet — add your first one!"}</td></tr>`;
+    renderContactTagFilters();return;
+  }
+  tbody.innerHTML=filtered.map(c=>{
+    const deals=[];
+    pipelines.forEach(p=>{p.deals.filter(d=>d.name===c.name||(c.email&&d.company===c.company)||d.contactId===c.id).forEach(d=>{const stage=p.stages.find(s=>s.id===d.stage);deals.push({pName:p.name,sLabel:stage?.label||"—"});});});
+    const pipelineCell=deals.length?`<div style="line-height:1.3"><div style="font-size:11px;font-weight:500;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px">${deals[0].sLabel}</div><div style="font-size:10px;color:var(--text3)">${deals[0].pName}</div></div>`:`<span style="font-size:11px;color:var(--text3)">—</span>`;
+    const created=c.created_at?new Date(c.created_at).toLocaleDateString([],{month:"short",day:"numeric",year:"numeric"}):"-";
+    const cm={
+      name:`<td><div class="td-name"><div class="av-sm ${getAv(c.id)}">${initials(c.name)}</div>${c.name}</div></td>`,
+      company:`<td style="color:var(--text2)">${c.company||"-"}</td>`,
+      email:`<td><div style="display:flex;align-items:center;gap:5px"><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.email||'—'}</span>${c.email?`<button class="btn-email-inline" onclick="openComposeEmail('${c.id}')" title="Email ${c.name}"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>`:''}</div></td>`,
+      phone:`<td><div style="display:flex;align-items:center;gap:5px"><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.phone||'—'}</span>${c.phone?`<button class="btn-call-inline" onclick="initiateCall('${c.id}','${c.phone.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>`:''}</div></td>`,
+      source:`<td><span class="tag tag-blue" style="font-size:10px">${c.source||"Other"}</span></td>`,
+      tags:`<td><div class="tags-cell">${(c.tags||[]).map(t=>`<span class="tag ${t.cls}">${t.label}</span>`).join("")}<span class="tag-add-inline" onclick="openContactModal('${c.id}','tags')">+</span></div></td>`,
+      status:`<td><span class="pill ${statusLabels[c.status]||"pill-cold"}">${(c.status||"new").charAt(0).toUpperCase()+(c.status||"new").slice(1)}</span></td>`,
+      pipeline:`<td>${pipelineCell}</td>`,
+      created:`<td style="font-size:11px;color:var(--text3)">${created}</td>`,
+    };
+    return `<tr>${cols.map(id=>cm[id]||"<td>—</td>").join("")}<td style="white-space:nowrap"><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">💬</button></td></tr>`;
+  }).join("");
   renderContactTagFilters();
 }
+function renderContactTable(){renderContacts();}
+
 function getAv(id) {
   const colors = ['av-pink','av-blue','av-amber','av-green','av-purple'];
   // Stable color based on id string
@@ -3610,6 +3746,8 @@ function loadIntegrations(){
   });
   updateIntCount();
   populateContactDropdowns();
+  // Render multi-account email list
+  renderIntEmailAccounts();
 }
 
 function markIntConnected(key, data){
@@ -6607,7 +6745,7 @@ function openConvWithContact(contactId){
 }
 
 // ═══════════════════════════════════════════════
-// EMAIL PAGE
+// EMAIL PAGE — Multi-account + Inbox + Reply Threading
 // ═══════════════════════════════════════════════
 let emailStore = JSON.parse(localStorage.getItem('nlm_emails') || '[]');
 let emailFolder = 'sent';
@@ -6615,23 +6753,178 @@ let activeEmailId = null;
 
 function saveEmailStore(){ localStorage.setItem('nlm_emails', JSON.stringify(emailStore)); }
 
-// ── Get connected email accounts from integrations ──
+// ── MULTI-ACCOUNT MANAGEMENT ──
+// Accounts stored as array: [{id, name, email, provider, apiKey}]
 function getEmailAccounts(){
-  const accounts = [];
-  const emailData = localStorage.getItem('nlm_int_email');
-  if(emailData){
-    try {
-      const d = JSON.parse(emailData);
-      accounts.push({
-        id: 'main',
+  try {
+    const arr = JSON.parse(localStorage.getItem('nlm_email_accounts') || '[]');
+    if(arr.length) return arr;
+    // Migrate legacy single account
+    const legacy = localStorage.getItem('nlm_int_email');
+    if(legacy){
+      const d = JSON.parse(legacy);
+      const acct = {
+        id: 'acct_legacy',
         name: d['email-from-name'] || 'Main Account',
         email: d['email-from-addr'] || '',
         provider: d['email-provider'] || 'brevo',
         apiKey: localStorage.getItem('nlm_int_email_secret') || ''
-      });
-    } catch(e){}
+      };
+      if(acct.email){ saveEmailAccounts([acct]); return [acct]; }
+    }
+    return [];
+  } catch(e){ return []; }
+}
+
+function saveEmailAccounts(accounts){
+  localStorage.setItem('nlm_email_accounts', JSON.stringify(accounts));
+}
+
+function openAddEmailAccountModal(){
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">Add Email Account</div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body">
+      <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:12px;color:var(--accent2);line-height:1.7">
+        <strong>Brevo (free — 300 emails/day):</strong> brevo.com → Settings → SMTP & API → API Keys<br>
+        <strong>SendGrid:</strong> app.sendgrid.com → Settings → API Keys<br>
+        <strong>Gmail:</strong> Google Account → Security → App Passwords (requires 2FA)
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Account Name</label>
+          <input class="form-input" id="new-acct-name" placeholder="e.g. Main, Sales, Support"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">From Email</label>
+          <input class="form-input" id="new-acct-email" type="email" placeholder="hello@youragency.com"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Provider</label>
+          <select class="form-select" id="new-acct-provider">
+            <option value="brevo">Brevo</option>
+            <option value="sendgrid">SendGrid</option>
+            <option value="gmail">Gmail App Password</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">API Key / App Password</label>
+          <input class="form-input" id="new-acct-key" type="password" placeholder="Paste your API key…"/>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNewEmailAccount()">Add Account</button>
+    </div>`);
+}
+
+function saveNewEmailAccount(){
+  const name     = document.getElementById('new-acct-name')?.value.trim();
+  const email    = document.getElementById('new-acct-email')?.value.trim();
+  const provider = document.getElementById('new-acct-provider')?.value;
+  const apiKey   = document.getElementById('new-acct-key')?.value.trim();
+  if(!name||!email||!apiKey){ showToast('Fill in all fields','error'); return; }
+  if(!email.includes('@')){ showToast('Enter a valid email address','error'); return; }
+  const accounts = getEmailAccounts();
+  if(accounts.find(a=>a.email===email)){ showToast('This email is already connected','error'); return; }
+  accounts.push({ id:'acct_'+Date.now(), name, email, provider, apiKey });
+  saveEmailAccounts(accounts);
+  // Also save in legacy format so old code still works
+  localStorage.setItem('nlm_int_email', JSON.stringify({'email-from-name':name,'email-from-addr':email,'email-provider':provider}));
+  localStorage.setItem('nlm_int_email_secret', apiKey);
+  closeModal();
+  renderEmailAccountsList();
+  renderIntEmailAccounts();
+  showToast(`✅ ${name} <${email}> connected!`);
+}
+
+function removeEmailAccount(id){
+  if(!confirm('Remove this email account?')) return;
+  const accounts = getEmailAccounts().filter(a=>a.id!==id);
+  saveEmailAccounts(accounts);
+  renderEmailAccountsList();
+  renderIntEmailAccounts();
+  showToast('Account removed');
+}
+
+function renderIntEmailAccounts(){
+  const el = document.getElementById('int-email-accounts-list'); if(!el) return;
+  const accounts = getEmailAccounts();
+  const countEl = document.getElementById('email-accounts-count');
+  if(countEl) countEl.textContent = accounts.length+' connected';
+  if(!accounts.length){
+    el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 0">No email accounts connected yet. Click + Add Account above.</div>`;
+    return;
   }
-  return accounts;
+  el.innerHTML = accounts.map(a=>`
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px">
+      <div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:600;color:var(--text)">${a.name}</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">${a.email} · ${a.provider}</div>
+      </div>
+      <button class="btn btn-sm" style="color:var(--red);font-size:11px" onclick="removeEmailAccount('${a.id}')">Remove</button>
+    </div>`).join('');
+}
+
+// ── INBOX: Check for Replies ──
+// Since true IMAP polling needs a backend, we simulate via stored inbound emails
+// and provide a UI to manually paste/import a reply
+async function checkEmailReplies(){
+  const btn = document.querySelector('button[onclick="checkEmailReplies()"]');
+  if(btn){ const orig=btn.textContent; btn.textContent='Checking…'; btn.disabled=true;
+    setTimeout(()=>{btn.textContent=orig;btn.disabled=false;},2000); }
+
+  // Check if there are any inbound emails stored (from webhook)
+  const inbound = JSON.parse(localStorage.getItem('nlm_inbound_emails')||'[]');
+  if(inbound.length){
+    let added=0;
+    inbound.forEach(msg=>{
+      if(!emailStore.find(e=>e.id===msg.id)){
+        emailStore.unshift(msg);
+        syncEmailToConversation(msg);
+        added++;
+      }
+    });
+    localStorage.removeItem('nlm_inbound_emails');
+    saveEmailStore();
+    renderEmailPage();
+    if(added) showToast(`📬 ${added} new reply${added>1?'s':''} received!`);
+    else showToast('Inbox up to date');
+  } else {
+    showToast('No new replies. Set up Brevo inbound parsing to auto-receive replies.');
+  }
+}
+
+// Called by Supabase Edge Function / webhook to add an inbound email
+function receiveInboundEmail(from, fromName, subject, body, inReplyToId){
+  const contact = contacts.find(c=>c.email&&c.email.toLowerCase()===from.toLowerCase());
+  const email = {
+    id: 'email_'+Date.now(),
+    direction: 'inbound',
+    contactId: contact?.id||'',
+    contactName: fromName||from,
+    to: getEmailAccounts()[0]?.email||'',
+    from, fromName,
+    subject: subject||'(no subject)',
+    body, bodyHtml: body,
+    status: 'received',
+    folder: 'inbox',
+    inReplyToId: inReplyToId||null,
+    sentAt: new Date().toISOString(),
+    createdAt: new Date().toISOString(),
+    unread: true
+  };
+  emailStore.unshift(email);
+  saveEmailStore();
+  syncEmailToConversation(email);
+  renderEmailPage();
+  return email;
 }
 
 // ── RENDER EMAIL PAGE ──
@@ -6640,89 +6933,94 @@ function renderEmailPage(){
   renderEmailFolderCounts();
   renderEmailList();
   document.getElementById('email-detail-empty').style.display='flex';
-  document.getElementById('email-detail-content').style.display='none';
+  const dc = document.getElementById('email-detail-content');
+  if(dc){ dc.style.display='none'; }
 }
 
 function renderEmailAccountsList(){
   const el = document.getElementById('email-accounts-list'); if(!el) return;
   const accounts = getEmailAccounts();
   if(!accounts.length){
-    el.innerHTML=`<div style="font-size:11px;color:var(--text3);background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px">No accounts connected yet</div>`;
+    el.innerHTML=`<div style="font-size:11px;color:var(--text3);line-height:1.5">No accounts yet.<br><span onclick="openAddEmailAccountModal()" style="color:var(--accent2);cursor:pointer">+ Add account</span></div>`;
     return;
   }
   el.innerHTML = accounts.map(a=>`
-    <div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);margin-bottom:6px">
-      <div style="width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
+    <div style="display:flex;align-items:center;gap:6px;padding:5px 8px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);margin-bottom:5px">
+      <div style="width:6px;height:6px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:500;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.name}</div>
-        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.email}</div>
+        <div style="font-size:11px;font-weight:500;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.name}</div>
+        <div style="font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.email}</div>
       </div>
     </div>`).join('');
 }
 
 function renderEmailFolderCounts(){
-  const sent   = emailStore.filter(e=>e.status!=='draft').length;
+  const inbox  = emailStore.filter(e=>e.folder==='inbox'||e.direction==='inbound').length;
+  const unread = emailStore.filter(e=>(e.folder==='inbox'||e.direction==='inbound')&&e.unread).length;
+  const sent   = emailStore.filter(e=>e.status==='sent'||e.status==='delivered').length;
   const drafts = emailStore.filter(e=>e.status==='draft').length;
   const all    = emailStore.length;
-  const sentEl = document.getElementById('efolder-sent');
-  const draftEl= document.getElementById('efolder-drafts');
-  const allEl  = document.getElementById('efolder-all');
-  if(sentEl)  sentEl.textContent  = sent;
-  if(draftEl) draftEl.textContent = drafts;
-  if(allEl)   allEl.textContent   = all;
-  // Update sidebar badge
+  const set = (id,val)=>{ const el=document.getElementById(id); if(el) el.textContent=val; };
+  set('efolder-inbox', unread>0?unread:inbox);
+  set('efolder-sent', sent);
+  set('efolder-drafts', drafts);
+  set('efolder-all', all);
   const badge = document.getElementById('nb-email-drafts');
-  if(badge){ badge.textContent=drafts; badge.style.display=drafts>0?'inline':'none'; }
+  if(badge){ badge.textContent=unread||drafts; badge.style.display=(unread||drafts)>0?'inline':'none'; }
 }
 
 function setEmailFolder(folder, el){
   emailFolder = folder;
   document.querySelectorAll('.email-folder').forEach(f=>f.classList.remove('active'));
-  el.classList.add('active');
-  const titles = {sent:'Sent', drafts:'Drafts', all:'All Emails'};
-  const titleEl = document.getElementById('email-folder-title');
-  if(titleEl) titleEl.textContent = titles[folder]||folder;
-  activeEmailId = null;
+  if(el) el.classList.add('active');
+  const titles={inbox:'Inbox',sent:'Sent',drafts:'Drafts',all:'All Emails'};
+  const titleEl=document.getElementById('email-folder-title');
+  if(titleEl) titleEl.textContent=titles[folder]||folder;
+  activeEmailId=null;
   document.getElementById('email-detail-empty').style.display='flex';
-  document.getElementById('email-detail-content').style.display='none';
+  const dc=document.getElementById('email-detail-content');
+  if(dc){ dc.style.display='none'; }
   renderEmailList();
 }
 
 function renderEmailList(){
   const el = document.getElementById('email-list'); if(!el) return;
   const q = (document.getElementById('email-search')?.value||'').toLowerCase();
-  let items = emailStore;
-  if(emailFolder==='sent')   items = items.filter(e=>e.status!=='draft');
-  if(emailFolder==='drafts') items = items.filter(e=>e.status==='draft');
-  if(q) items = items.filter(e=>
+  let items = [...emailStore];
+  if(emailFolder==='inbox')  items=items.filter(e=>e.folder==='inbox'||e.direction==='inbound');
+  if(emailFolder==='sent')   items=items.filter(e=>e.status!=='draft'&&e.direction!=='inbound');
+  if(emailFolder==='drafts') items=items.filter(e=>e.status==='draft');
+  if(q) items=items.filter(e=>
     (e.to||'').toLowerCase().includes(q)||
+    (e.from||'').toLowerCase().includes(q)||
     (e.subject||'').toLowerCase().includes(q)||
     (e.body||'').toLowerCase().includes(q)||
     (e.contactName||'').toLowerCase().includes(q)
   );
-  items = [...items].sort((a,b)=>new Date(b.sentAt||b.createdAt)-new Date(a.sentAt||a.createdAt));
+  items=items.sort((a,b)=>new Date(b.sentAt||b.createdAt)-new Date(a.sentAt||a.createdAt));
 
   if(!items.length){
-    el.innerHTML=`<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">${q?'No emails match your search':emailFolder==='drafts'?'No drafts':'No emails yet'}</div>`;
+    el.innerHTML=`<div style="padding:32px;text-align:center;color:var(--text3);font-size:13px">${q?'No emails match':'Nothing here yet'}</div>`;
     return;
   }
-
   el.innerHTML = items.map(email=>{
-    const contact = email.contactId ? contacts.find(c=>c.id===email.contactId) : null;
-    const displayName = email.contactName || contact?.name || email.to;
+    const isInbound = email.direction==='inbound';
+    const displayName = isInbound ? (email.fromName||email.from||'Unknown') : (email.contactName||email.to||'—');
     const timeStr = email.sentAt||email.createdAt ? relativeTime(email.sentAt||email.createdAt) : '';
-    const statusColor = {sent:'var(--green)',delivered:'var(--accent2)',failed:'var(--red)',draft:'var(--amber)'}[email.status]||'var(--text3)';
+    const statusColor={sent:'var(--green)',delivered:'var(--accent2)',failed:'var(--red)',draft:'var(--amber)',received:'var(--purple)'}[email.status]||'var(--text3)';
     const isActive = email.id===activeEmailId;
-    return `<div class="email-item ${isActive?'active':''}" onclick="openEmailDetail('${email.id}')">
+    const isUnread = email.unread && isInbound;
+    return `<div class="email-item ${isActive?'active':''} ${isUnread?'unread':''}" onclick="openEmailDetail('${email.id}')">
       <div class="email-item-header">
-        <div class="email-item-to">${displayName}</div>
+        <div class="email-item-to" style="${isUnread?'font-weight:700;color:var(--text)':''}">${isInbound?'↙ ':'↗ '}${displayName}</div>
         <div class="email-item-time">${timeStr}</div>
       </div>
-      <div class="email-item-subject">${email.subject||'(no subject)'}</div>
+      <div class="email-item-subject" style="${isUnread?'font-weight:600;color:var(--text)':''}">${email.subject||'(no subject)'}</div>
       <div class="email-item-preview">${(email.body||'').replace(/\n/g,' ').slice(0,70)}</div>
       <div class="email-item-badges">
-        <span style="font-size:9px;padding:1px 7px;border-radius:20px;background:${statusColor}20;color:${statusColor};font-weight:600">${email.status||'sent'}</span>
-        ${email.fromEmail?`<span style="font-size:9px;color:var(--text3)">from: ${email.fromEmail}</span>`:''}
+        <span style="font-size:9px;padding:1px 7px;border-radius:20px;background:${statusColor}20;color:${statusColor};font-weight:600">${isInbound?'Received':email.status||'sent'}</span>
+        ${isInbound&&email.fromEmail?`<span style="font-size:9px;color:var(--text3)">from: ${email.from}</span>`:''}
+        ${email.inReplyToId?`<span style="font-size:9px;color:var(--purple)">↩ Reply</span>`:''}
       </div>
     </div>`;
   }).join('');
@@ -6731,66 +7029,112 @@ function renderEmailList(){
 function openEmailDetail(id){
   activeEmailId = id;
   const email = emailStore.find(e=>e.id===id); if(!email) return;
+  // Mark as read
+  if(email.unread){ email.unread=false; saveEmailStore(); renderEmailFolderCounts(); }
   renderEmailList();
   document.getElementById('email-detail-empty').style.display='none';
   const content = document.getElementById('email-detail-content');
-  content.style.display='block';
+  content.style.display='flex';
+  content.style.flexDirection='column';
+
+  const isInbound = email.direction==='inbound';
   const contact = email.contactId ? contacts.find(c=>c.id===email.contactId) : null;
   const sentDate = email.sentAt ? new Date(email.sentAt).toLocaleString([],{weekday:'long',month:'long',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '—';
-  const statusColor = {sent:'var(--green)',delivered:'var(--accent2)',failed:'var(--red)',draft:'var(--amber)'}[email.status]||'var(--text3)';
+  const statusColor={sent:'var(--green)',delivered:'var(--accent2)',failed:'var(--red)',draft:'var(--amber)',received:'var(--purple)'}[email.status]||'var(--text3)';
+
+  // Find thread (all emails with same subject or reply chain)
+  const subjectBase = (email.subject||'').replace(/^(Re:|Fwd:)\s*/gi,'').trim().toLowerCase();
+  const thread = emailStore.filter(e=>{
+    const s=(e.subject||'').replace(/^(Re:|Fwd:)\s*/gi,'').trim().toLowerCase();
+    return s===subjectBase && (e.id===id||e.inReplyToId===id||email.inReplyToId===e.id);
+  }).sort((a,b)=>new Date(a.sentAt||a.createdAt)-new Date(b.sentAt||b.createdAt));
+
+  const threadHtml = thread.length>1 ? `
+    <div style="padding:12px 20px;background:var(--bg2);border-bottom:1px solid var(--border);font-size:11px;color:var(--text3)">
+      Thread: ${thread.length} messages
+    </div>
+    ${thread.map((e,i)=>{
+      const isSelf = e.id===id;
+      const eDir = e.direction==='inbound';
+      return `<div style="padding:10px 20px;background:${isSelf?'var(--accent-bg)':'var(--bg)'};border-bottom:1px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <span style="font-size:11px;font-weight:600;color:${eDir?'var(--purple)':'var(--accent2)'}">
+            ${eDir?'↙ '+e.fromName||e.from:'↗ You'}
+          </span>
+          <span style="font-size:10px;color:var(--text3)">${e.sentAt?new Date(e.sentAt).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}</span>
+          ${isSelf?'<span style="font-size:9px;color:var(--accent2);background:var(--accent-bg);padding:1px 6px;border-radius:10px">current</span>':''}
+        </div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${(e.body||'').slice(0,200)}${e.body?.length>200?'…':''}</div>
+      </div>`;
+    }).join('')}` : '';
+
   content.innerHTML=`
-    <div class="email-detail-head">
+    <div class="email-detail-head" style="padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
       <div class="email-detail-subject">${email.subject||'(no subject)'}</div>
       <div class="email-detail-meta">
-        <div class="email-detail-meta-item"><strong>To:</strong> ${email.to} ${contact?`(${contact.name})`:''}${email.contactId&&!contact?'':''}</div>
-        <div class="email-detail-meta-item"><strong>From:</strong> ${email.fromName||'You'} &lt;${email.fromEmail||''}&gt;</div>
+        ${isInbound
+          ? `<div class="email-detail-meta-item"><strong>From:</strong> ${email.fromName||''} &lt;${email.from||''}&gt;</div>
+             <div class="email-detail-meta-item"><strong>To:</strong> ${email.to||''}</div>`
+          : `<div class="email-detail-meta-item"><strong>To:</strong> ${email.to} ${contact?`(${contact.name})`:''}</div>
+             <div class="email-detail-meta-item"><strong>From:</strong> ${email.fromName||'You'} &lt;${email.fromEmail||''}&gt;</div>`}
         <div class="email-detail-meta-item"><strong>Date:</strong> ${sentDate}</div>
-        <span style="font-size:10px;padding:2px 10px;border-radius:20px;background:${statusColor}20;color:${statusColor};font-weight:600">${email.status||'sent'}</span>
+        <span style="font-size:10px;padding:2px 10px;border-radius:20px;background:${statusColor}20;color:${statusColor};font-weight:600">${isInbound?'Received':email.status||'sent'}</span>
       </div>
     </div>
-    <div class="email-detail-body">${(email.body||'').replace(/\n/g,'<br>')}</div>
-    <div style="padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0">
+    ${threadHtml}
+    <div class="email-detail-body" style="padding:20px;flex:1;overflow-y:auto;line-height:1.8;white-space:pre-wrap;font-size:13px;color:var(--text2)">${(email.bodyHtml||email.body||'').replace(/\n/g,'<br>')}</div>
+    <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap">
+      ${isInbound
+        ? `<button class="btn btn-primary btn-sm" onclick="replyToEmail('${email.id}')">↩ Reply</button>`
+        : `<button class="btn btn-sm" onclick="replyToEmail('${email.id}')">↩ Reply</button>`}
+      <button class="btn btn-sm" onclick="openComposeEmail('${email.contactId||''}')">✉ New to Contact</button>
+      ${email.contactId?`<button class="btn btn-sm" onclick="openConvWithContact('${email.contactId}')">💬 View Conversation</button>`:''}
       ${email.status==='draft'?`<button class="btn btn-primary btn-sm" onclick="sendDraftEmail('${email.id}')">Send Now</button>`:''}
-      <button class="btn btn-sm" onclick="replyToEmail('${email.id}')">↩ Reply</button>
-      <button class="btn btn-sm" onclick="openComposeEmail('${email.contactId||''}')">Forward / New</button>
-      <button class="btn btn-sm btn-danger" style="margin-left:auto" onclick="deleteEmail('${email.id}')">Delete</button>
+      <button class="btn btn-sm" style="color:var(--red);margin-left:auto" onclick="deleteEmail('${email.id}')">Delete</button>
     </div>`;
 }
 
 function deleteEmail(id){
   if(!confirm('Delete this email?')) return;
-  emailStore = emailStore.filter(e=>e.id!==id);
+  emailStore=emailStore.filter(e=>e.id!==id);
   saveEmailStore();
   activeEmailId=null;
   document.getElementById('email-detail-empty').style.display='flex';
-  document.getElementById('email-detail-content').style.display='none';
-  renderEmailList();
-  renderEmailFolderCounts();
+  const dc=document.getElementById('email-detail-content');
+  if(dc) dc.style.display='none';
+  renderEmailList(); renderEmailFolderCounts();
   showToast('Email deleted');
 }
 
 function replyToEmail(id){
-  const email = emailStore.find(e=>e.id===id); if(!email) return;
-  openComposeEmail(email.contactId||'', {
-    to: email.to,
+  const email=emailStore.find(e=>e.id===id); if(!email) return;
+  const replyTo = email.direction==='inbound' ? email.from : email.to;
+  const replyName = email.direction==='inbound' ? email.fromName||email.from : email.contactName||'';
+  const contactId = email.contactId||
+    contacts.find(c=>c.email&&c.email.toLowerCase()===replyTo?.toLowerCase())?.id||'';
+  openComposeEmail(contactId, {
+    to: replyTo,
     subject: 'Re: '+(email.subject||''),
-    body: '\n\n---\nOn '+new Date(email.sentAt||email.createdAt).toLocaleDateString()+', '+email.fromName+' wrote:\n'+(email.body||'')
+    body: '\n\n---\nOn '+new Date(email.sentAt||email.createdAt).toLocaleDateString()+
+      ', '+(email.direction==='inbound'?email.fromName||email.from:'You')+' wrote:\n'+(email.body||''),
+    inReplyToId: id
   });
 }
 
 async function sendDraftEmail(id){
-  const email = emailStore.find(e=>e.id===id); if(!email) return;
+  const email=emailStore.find(e=>e.id===id); if(!email) return;
+  window._modalLocked=false;
   await dispatchEmail(email);
 }
 
-// ── COMPOSE EMAIL MODAL ──
+// ── COMPOSE EMAIL MODAL (multi-account from selector) ──
 function openComposeEmail(contactId='', prefill={}){
   const contact = contactId ? contacts.find(c=>c.id===contactId) : null;
   const accounts = getEmailAccounts();
-  const hasAccount = accounts.length > 0;
+  const hasAccount = accounts.length>0;
 
-  const fromOptions = accounts.map(a=>
-    `<option value="${a.id}">${a.name} &lt;${a.email}&gt;</option>`
+  const fromOptions = accounts.map((a,i)=>
+    `<option value="${a.id}" ${i===0?'selected':''}>${a.name} &lt;${a.email}&gt;</option>`
   ).join('');
 
   openModal(`
@@ -6798,22 +7142,18 @@ function openComposeEmail(contactId='', prefill={}){
       <div>
         <div class="modal-title">Compose Email</div>
         ${hasAccount
-          ? `<div style="font-size:11px;color:var(--green);margin-top:2px">✓ Will send via connected email</div>`
-          : `<div style="font-size:11px;color:var(--amber);margin-top:2px">⚠ No email connected — will save as draft. Connect in <span onclick="closeModal();navigate('integrations')" style="cursor:pointer;text-decoration:underline">Integrations</span></div>`}
+          ? `<div style="font-size:11px;color:var(--green);margin-top:2px">✓ ${accounts.length} account${accounts.length>1?'s':''} connected</div>`
+          : `<div style="font-size:11px;color:var(--amber);margin-top:2px">⚠ No email account — will save as draft. <span onclick="closeModalForce();openAddEmailAccountModal()" style="cursor:pointer;text-decoration:underline">Add one</span></div>`}
       </div>
-      <span class="modal-close" onclick="closeModal()">×</span>
+      <span class="modal-close" onclick="closeModalForce()">×</span>
     </div>
     <div class="modal-body" style="padding:0 20px">
-
-      <!-- From -->
       <div class="compose-header-row">
         <span class="compose-label">From</span>
         ${hasAccount
           ? `<select class="compose-from-select" id="compose-from">${fromOptions}</select>`
-          : `<span style="font-size:12px;color:var(--text3);font-style:italic">No email account connected</span>`}
+          : `<span style="font-size:12px;color:var(--text3);font-style:italic">No account connected</span>`}
       </div>
-
-      <!-- To -->
       <div class="compose-header-row">
         <span class="compose-label">To</span>
         <input class="compose-field" id="compose-to" type="email"
@@ -6821,214 +7161,170 @@ function openComposeEmail(contactId='', prefill={}){
           placeholder="recipient@email.com"/>
         ${contact?`<span style="font-size:11px;color:var(--text3);flex-shrink:0">${contact.name}</span>`:''}
       </div>
-
-      <!-- CC -->
       <div class="compose-header-row">
         <span class="compose-label">CC</span>
-        <input class="compose-field" id="compose-cc" type="email" placeholder="cc@email.com"/>
+        <input class="compose-field" id="compose-cc" placeholder="cc@email.com"/>
       </div>
-
-      <!-- Subject -->
       <div class="compose-header-row">
         <span class="compose-label">Subject</span>
         <input class="compose-field" id="compose-subject" placeholder="Email subject…" value="${prefill.subject||''}"/>
       </div>
-
-      <!-- Toolbar -->
       <div class="compose-toolbar">
-        <button class="compose-tool-btn" onclick="composeExec('bold')" title="Bold"><b>B</b></button>
-        <button class="compose-tool-btn" onclick="composeExec('italic')" title="Italic"><i>I</i></button>
-        <button class="compose-tool-btn" onclick="composeExec('underline')" title="Underline"><u>U</u></button>
+        <button class="compose-tool-btn" onclick="composeExec('bold')"><b>B</b></button>
+        <button class="compose-tool-btn" onclick="composeExec('italic')"><i>I</i></button>
+        <button class="compose-tool-btn" onclick="composeExec('underline')"><u>U</u></button>
         <div style="width:1px;background:var(--border);margin:2px 4px"></div>
-        <button class="compose-tool-btn" onclick="insertComposeTag('name')" title="Insert name" style="font-size:10px;width:auto;padding:0 8px">{{name}}</button>
-        <button class="compose-tool-btn" onclick="insertComposeTag('company')" title="Insert company" style="font-size:10px;width:auto;padding:0 8px">{{company}}</button>
+        <button class="compose-tool-btn" onclick="insertComposeTag('name')" style="font-size:10px;width:auto;padding:0 8px">{{name}}</button>
+        <button class="compose-tool-btn" onclick="insertComposeTag('company')" style="font-size:10px;width:auto;padding:0 8px">{{company}}</button>
       </div>
-
-      <!-- Body -->
       <div id="compose-body-editor" contenteditable="true" class="compose-body-area"
         style="min-height:200px;outline:none;line-height:1.7"
         placeholder="Write your email…">${prefill.body?prefill.body.replace(/\n/g,'<br>'):''}</div>
-
     </div>
     <div class="modal-foot">
-      <button class="btn" onclick="saveEmailDraft('${contactId}')">Save Draft</button>
+      <button class="btn" onclick="saveEmailDraft('${contactId}','${prefill.inReplyToId||''}')">Save Draft</button>
       <button class="btn" onclick="closeModalForce()" style="color:var(--red)">Discard</button>
-      <button class="btn btn-primary" onclick="sendEmailFromCompose('${contactId}')">
+      <button class="btn btn-primary" onclick="sendEmailFromCompose('${contactId}','${prefill.inReplyToId||''}')">
         ${hasAccount?'Send Email':'Save Draft'}
       </button>
     </div>`, true);
 
-  // Lock modal — won't close on outside click
   window._modalLocked = true;
-
-  // Focus body
   setTimeout(()=>document.getElementById('compose-body-editor')?.focus(), 100);
 }
 
 function composeExec(cmd){ document.execCommand(cmd,false,null); }
 function insertComposeTag(field){
-  const editor = document.getElementById('compose-body-editor'); if(!editor) return;
+  const editor=document.getElementById('compose-body-editor'); if(!editor) return;
   editor.focus();
   document.execCommand('insertText',false,field==='name'?'{{name}}':'{{company}}');
 }
 
 function getComposeData(contactId){
-  const accounts = getEmailAccounts();
-  const fromSel  = document.getElementById('compose-from')?.value;
-  const account  = fromSel ? accounts.find(a=>a.id===fromSel)||accounts[0] : accounts[0];
-  const to       = document.getElementById('compose-to')?.value.trim();
-  const cc       = document.getElementById('compose-cc')?.value.trim();
-  const subject  = document.getElementById('compose-subject')?.value.trim();
-  const bodyEl   = document.getElementById('compose-body-editor');
-  const bodyHtml = bodyEl?.innerHTML||'';
-  const bodyText = bodyEl?.innerText||'';
-  const contact  = contactId ? contacts.find(c=>c.id===contactId) : null;
-
-  // Apply merge tags
-  const applyMerge = str => str
-    .replace(/\{\{name\}\}/gi, contact?.name?.split(' ')[0]||'there')
-    .replace(/\{\{company\}\}/gi, contact?.company||'');
-
-  return { account, to, cc, subject, bodyHtml, bodyText:applyMerge(bodyText), bodyHtmlMerged:applyMerge(bodyHtml), contact, contactId };
+  const accounts=getEmailAccounts();
+  const fromSel=document.getElementById('compose-from')?.value;
+  const account=fromSel?accounts.find(a=>a.id===fromSel)||accounts[0]:accounts[0];
+  const to=document.getElementById('compose-to')?.value.trim();
+  const cc=document.getElementById('compose-cc')?.value.trim();
+  const subject=document.getElementById('compose-subject')?.value.trim();
+  const bodyEl=document.getElementById('compose-body-editor');
+  const bodyHtml=bodyEl?.innerHTML||'';
+  const bodyText=bodyEl?.innerText||'';
+  const contact=contactId?contacts.find(c=>c.id===contactId):
+    to?contacts.find(c=>c.email&&c.email.toLowerCase()===to.toLowerCase()):null;
+  const applyMerge=str=>str
+    .replace(/\{\{name\}\}/gi,contact?.name?.split(' ')[0]||'there')
+    .replace(/\{\{company\}\}/gi,contact?.company||'');
+  return {account,to,cc,subject,bodyHtml,bodyText:applyMerge(bodyText),bodyHtmlMerged:applyMerge(bodyHtml),contact,contactId:contact?.id||contactId};
 }
 
-async function sendEmailFromCompose(contactId){
-  window._modalLocked = false;
-  const d = getComposeData(contactId);
-  if(!d.to){ showToast('Enter a recipient email','error'); return; }
-  if(!d.subject){ showToast('Enter a subject line','error'); return; }
-
-  const email = {
-    id: 'email_'+Date.now(),
-    contactId: contactId||'',
-    contactName: d.contact?.name||'',
-    to: d.to, cc: d.cc,
-    fromName:  d.account?.name||'Next Level Marketing',
-    fromEmail: d.account?.email||'',
-    subject: d.subject,
-    body: d.bodyText,
-    bodyHtml: d.bodyHtmlMerged,
-    status: 'sending',
-    createdAt: new Date().toISOString(),
-    sentAt: new Date().toISOString()
+async function sendEmailFromCompose(contactId, inReplyToId=''){
+  window._modalLocked=false;
+  const d=getComposeData(contactId);
+  if(!d.to){ showToast('Enter a recipient email','error'); window._modalLocked=true; return; }
+  if(!d.subject){ showToast('Enter a subject line','error'); window._modalLocked=true; return; }
+  const email={
+    id:'email_'+Date.now(),
+    contactId:d.contactId||'',
+    contactName:d.contact?.name||'',
+    to:d.to, cc:d.cc||'',
+    fromName:d.account?.name||'Next Level Marketing',
+    fromEmail:d.account?.email||'',
+    subject:d.subject,
+    body:d.bodyText,
+    bodyHtml:d.bodyHtmlMerged,
+    status:'sending',
+    folder:'sent',
+    inReplyToId:inReplyToId||null,
+    createdAt:new Date().toISOString(),
+    sentAt:new Date().toISOString()
   };
-
   emailStore.unshift(email);
   saveEmailStore();
-  closeModal();
-
-  // Try to actually send
+  closeModalForce();
   await dispatchEmail(email);
 }
 
-async function saveEmailDraft(contactId){
-  window._modalLocked = false;
-  const d = getComposeData(contactId);
-  const email = {
-    id: 'email_'+Date.now(),
-    contactId: contactId||'',
-    contactName: d.contact?.name||'',
-    to: d.to, cc: d.cc,
-    fromName:  d.account?.name||'Next Level Marketing',
-    fromEmail: d.account?.email||'',
-    subject: d.subject,
-    body: d.bodyText,
-    bodyHtml: d.bodyHtml,
-    status: 'draft',
-    createdAt: new Date().toISOString()
+async function saveEmailDraft(contactId, inReplyToId=''){
+  window._modalLocked=false;
+  const d=getComposeData(contactId);
+  const email={
+    id:'email_'+Date.now(),
+    contactId:d.contactId||'',
+    contactName:d.contact?.name||'',
+    to:d.to||'', cc:d.cc||'',
+    fromName:d.account?.name||'Next Level Marketing',
+    fromEmail:d.account?.email||'',
+    subject:d.subject||'',
+    body:d.bodyText,
+    bodyHtml:d.bodyHtml,
+    status:'draft',
+    folder:'drafts',
+    inReplyToId:inReplyToId||null,
+    createdAt:new Date().toISOString()
   };
   emailStore.unshift(email);
   saveEmailStore();
   renderEmailFolderCounts();
-  closeModal();
+  closeModalForce();
   showToast('Draft saved!');
 }
 
 async function dispatchEmail(email){
-  const accounts = getEmailAccounts();
-  const account  = accounts[0]; // use first connected account
-
-  if(!account || !account.apiKey){
-    email.status='draft';
-    saveEmailStore();
-    renderEmailPage();
-    showToast('Saved as draft — connect email in Integrations to send');
+  const accounts=getEmailAccounts();
+  const account=accounts.find(a=>a.email===email.fromEmail)||accounts[0];
+  if(!account||!account.apiKey){
+    email.status='draft'; email.folder='drafts';
+    saveEmailStore(); renderEmailPage();
+    showToast('Saved as draft — add an email account in Integrations → Email','error');
     return;
   }
-
   try {
     let res;
-    if(account.provider==='brevo' || account.provider==='brevo'){
-      const body = {
-        sender: { name:email.fromName, email:email.fromEmail },
-        to: [{ email:email.to }],
-        subject: email.subject,
-        textContent: email.body,
-        htmlContent: email.bodyHtml||email.body
-      };
-      if(email.cc) body.cc = [{email:email.cc}];
-      res = await fetch('https://api.brevo.com/v3/smtp/email',{
-        method:'POST',
-        headers:{'api-key':account.apiKey,'Content-Type':'application/json'},
-        body: JSON.stringify(body)
-      });
+    const body={sender:{name:email.fromName,email:email.fromEmail},to:[{email:email.to}],subject:email.subject,textContent:email.body,htmlContent:email.bodyHtml||email.body};
+    if(email.cc) body.cc=[{email:email.cc}];
+    if(account.provider==='brevo'||!account.provider){
+      res=await fetch('https://api.brevo.com/v3/smtp/email',{method:'POST',headers:{'api-key':account.apiKey,'Content-Type':'application/json'},body:JSON.stringify(body)});
     } else if(account.provider==='sendgrid'){
-      res = await fetch('https://api.sendgrid.com/v3/mail/send',{
-        method:'POST',
-        headers:{'Authorization':'Bearer '+account.apiKey,'Content-Type':'application/json'},
-        body: JSON.stringify({
-          personalizations:[{to:[{email:email.to}]}],
-          from:{email:email.fromEmail,name:email.fromName},
-          subject:email.subject,
-          content:[{type:'text/plain',value:email.body}]
-        })
-      });
+      res=await fetch('https://api.sendgrid.com/v3/mail/send',{method:'POST',headers:{'Authorization':'Bearer '+account.apiKey,'Content-Type':'application/json'},body:JSON.stringify({personalizations:[{to:[{email:email.to}]}],from:{email:email.fromEmail,name:email.fromName},subject:email.subject,content:[{type:'text/plain',value:email.body}]})});
     }
-
-    if(res && (res.ok||res.status===202||res.status===201)){
-      email.status = 'sent';
-      email.sentAt = new Date().toISOString();
+    if(res&&(res.ok||res.status===202||res.status===201)){
+      email.status='sent'; email.folder='sent';
+      email.sentAt=new Date().toISOString();
       saveEmailStore();
-      // Sync to Conversations
       syncEmailToConversation(email);
-      renderEmailPage();
-      renderEmailFolderCounts();
+      renderEmailPage(); renderEmailFolderCounts();
       showToast(`✅ Email sent to ${email.to}`);
     } else {
-      const err = res ? await res.json().catch(()=>({})) : {};
+      const err=res?await res.json().catch(()=>({})):{};
       email.status='failed';
-      saveEmailStore();
-      renderEmailPage();
-      showToast('Failed: '+(err.message||err.errors?.[0]?.message||'Check your API key'),'error');
+      saveEmailStore(); renderEmailPage();
+      showToast('Send failed: '+(err.message||err.errors?.[0]?.message||'Check your API key'),'error');
     }
   } catch(e){
-    email.status='failed';
-    saveEmailStore();
-    renderEmailPage();
-    showToast('Network error — saved as failed','error');
+    email.status='failed'; saveEmailStore(); renderEmailPage();
+    showToast('Network error — check your connection','error');
   }
 }
 
-// ── SYNC EMAIL TO CONVERSATIONS ──
+// ── SYNC TO CONVERSATIONS ──
 function syncEmailToConversation(email){
   if(!email.contactId) return;
-  let conv = conversations.find(c=>c.contactId===email.contactId);
-  if(!conv){
-    conv = { id:'conv_'+Date.now(), contactId:email.contactId, messages:[] };
-    conversations.push(conv);
-  }
+  let conv=conversations.find(c=>c.contactId===email.contactId);
+  if(!conv){ conv={id:'conv_'+Date.now(),contactId:email.contactId,messages:[]}; conversations.push(conv); }
+  const isDuplicate=conv.messages.some(m=>m.emailId===email.id);
+  if(isDuplicate) return;
   conv.messages.push({
-    id: 'msg_'+Date.now(),
-    ch: 'email',
-    dir: 'outbound',
-    body: email.body,
-    subject: email.subject,
-    ts: email.sentAt||new Date().toISOString(),
-    status: email.status==='sent'?'delivered':'failed'
+    id:'msg_'+Date.now(), emailId:email.id, ch:'email',
+    dir:email.direction==='inbound'?'inbound':'outbound',
+    body:email.body||'',
+    subject:email.subject||'',
+    ts:email.sentAt||email.createdAt||new Date().toISOString(),
+    status:email.direction==='inbound'?'received':email.status||'sent'
   });
   saveConversations();
-  // Update conversation badge
-  document.getElementById('nb-conversations').textContent = conversations.length;
+  const badge=document.getElementById('nb-conversations');
+  if(badge) badge.textContent=conversations.length;
 }
 
 // ═══════════════════════════════════════════════
