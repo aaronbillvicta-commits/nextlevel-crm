@@ -22,6 +22,39 @@
   --sidebar:230px;--radius:8px;--radius-lg:12px;
   font-family:'DM Sans',system-ui,sans-serif;
 }
+/* ── THEME: CYBER (purple/pink/cyan) ── */
+body.theme-cyber{
+  --accent:#8B5CF6;--accent2:#1EC8FF;
+  --accent-bg:rgba(139,92,246,0.1);--accent-border:rgba(139,92,246,0.3);
+  --border:rgba(139,92,246,0.1);--border2:rgba(139,92,246,0.25);
+}
+body.theme-cyber .sidebar{background:linear-gradient(180deg,#0e0c1e,#0d1225);}
+body.theme-cyber .btn-primary{background:linear-gradient(90deg,#1EC8FF,#8B5CF6,#FF2E88);border-color:transparent;}
+body.theme-cyber .btn-primary:hover{background:linear-gradient(90deg,#FF2E88,#8B5CF6,#1EC8FF);border-color:transparent;}
+body.theme-cyber .nav-item.active::before{background:linear-gradient(180deg,#1EC8FF,#8B5CF6,#FF2E88);}
+body.theme-cyber .main::after{content:'';position:fixed;top:0;right:0;width:100%;height:100%;background:radial-gradient(circle at right,#FF2E8818,transparent 45%);pointer-events:none;z-index:0;}
+body.theme-cyber .topbar{background:linear-gradient(90deg,#0d1225,#120c20);}
+
+/* ── THEME: OCEAN (bright cyan/teal) ── */
+body.theme-ocean{
+  --accent:#1EC8FF;--accent2:#22D3EE;
+  --accent-bg:rgba(30,200,255,0.1);--accent-border:rgba(30,200,255,0.3);
+  --border:rgba(30,200,255,0.08);--border2:rgba(30,200,255,0.2);
+}
+body.theme-ocean .sidebar{background:linear-gradient(180deg,#071520,#0d1225);}
+body.theme-ocean .btn-primary{background:linear-gradient(135deg,#1EC8FF,#22D3EE);border-color:transparent;}
+body.theme-ocean .btn-primary:hover{background:linear-gradient(135deg,#22D3EE,#1EC8FF);border-color:transparent;}
+body.theme-ocean .topbar{background:linear-gradient(90deg,#0d1225,#071e2a);}
+
+/* ── THEME SWITCHER UI ── */
+.theme-switcher{display:flex;align-items:center;gap:6px;padding:8px 10px 2px}
+.theme-dot{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .2s;flex-shrink:0}
+.theme-dot:hover{transform:scale(1.2)}
+.theme-dot.active{border-color:#fff;transform:scale(1.15)}
+.theme-dot-default{background:#00d2ff}
+.theme-dot-cyber{background:linear-gradient(135deg,#1EC8FF,#8B5CF6,#FF2E88)}
+.theme-dot-ocean{background:linear-gradient(135deg,#1EC8FF,#22D3EE)}
+
 html,body{height:100%;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -1103,6 +1136,12 @@ table th[onclick]{transition:background .15s,color .15s}
       Settings
     </div>
   </nav>
+  <div class="theme-switcher" style="padding:8px 10px 4px;border-top:1px solid var(--border)">
+    <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;flex:1">Theme</span>
+    <div class="theme-dot theme-dot-default active" id="td-default" title="Default" onclick="setTheme('default')"></div>
+    <div class="theme-dot theme-dot-cyber" id="td-cyber" title="Cyber" onclick="setTheme('cyber')"></div>
+    <div class="theme-dot theme-dot-ocean" id="td-ocean" title="Ocean" onclick="setTheme('ocean')"></div>
+  </div>
   <div class="sidebar-footer">
     <div class="user-chip" onclick="navigate('settings')">
       <div class="avatar" id="sidebar-avatar">NL</div>
@@ -8503,7 +8542,20 @@ document.querySelectorAll('.nav-item').forEach(item=>{
   const restored = await restoreSession();
   if(restored){ await enterApp(); }
   else { showLoading(false); document.getElementById('login-screen').style.display='flex'; }
+  // Apply saved theme on load
+  const savedTheme = localStorage.getItem('crm-theme') || 'default';
+  setTheme(savedTheme);
 })();
+
+function setTheme(name){
+  document.body.classList.remove('theme-cyber','theme-ocean');
+  if(name !== 'default') document.body.classList.add('theme-'+name);
+  localStorage.setItem('crm-theme', name);
+  ['default','cyber','ocean'].forEach(t => {
+    const el = document.getElementById('td-'+t);
+    if(el) el.classList.toggle('active', t === name);
+  });
+}
 </script>
 </body>
 </html>
