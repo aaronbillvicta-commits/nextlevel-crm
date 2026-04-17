@@ -334,6 +334,12 @@ tbody tr:hover td{background:var(--bg3)}
 .form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--accent)}
 .form-select option{background:var(--bg3)}
 .form-textarea{resize:vertical;min-height:70px}
+.ac-wrap{position:relative}
+.ac-list{position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);z-index:9999;max-height:180px;overflow-y:auto;display:none}
+.ac-list.open{display:block}
+.ac-item{padding:8px 12px;font-size:13px;cursor:pointer;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.ac-item:hover,.ac-item.focused{background:var(--accent-bg);color:var(--accent2)}
+.ac-item small{color:var(--text3);font-size:11px;white-space:nowrap}
 .danger-zone{margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
 .danger-label{font-size:11px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em}
 
@@ -2377,12 +2383,19 @@ function handleLogoUpload(e) {
   const file = e.target.files[0]; if(!file) return;
   const reader = new FileReader();
   reader.onload = ev => {
-    const img = document.getElementById('logo-img');
-    const ini = document.getElementById('logo-initials');
-    img.src = ev.target.result; img.style.display='block'; ini.style.display='none';
+    applyLogo(ev.target.result);
+    localStorage.setItem('crm-logo', ev.target.result);
     showToast('Logo uploaded!');
   };
   reader.readAsDataURL(file);
+}
+
+function applyLogo(src) {
+  const img = document.getElementById('logo-img');
+  const ini = document.getElementById('logo-initials');
+  if(!img) return;
+  img.src = src; img.style.display='block';
+  if(ini) ini.style.display='none';
 }
 
 // ═══════════════════════════════════════════════
@@ -3858,7 +3871,16 @@ function openPipelineModal(type){
       <div class="modal-head"><div class="modal-title">Add New Deal</div><span class="modal-close" onclick="closeModal()">×</span></div>
       <div class="modal-body">
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Contact Name</label><input class="form-input" id="nd-name" placeholder="e.g. Maria Santos"/></div>
+          <div class="form-group"><label class="form-label">Contact Name</label>
+            <div class="ac-wrap">
+              <input class="form-input" id="nd-name" placeholder="e.g. Maria Santos" autocomplete="off"
+                oninput="dealContactInput(this.value)"
+                onkeydown="dealContactKey(event)"
+                onblur="setTimeout(()=>closeDealAC(),200)"/>
+              <div class="ac-list" id="nd-name-ac"></div>
+            </div>
+            <input type="hidden" id="nd-contact-id"/>
+          </div>
           <div class="form-group"><label class="form-label">Company</label><input class="form-input" id="nd-company" placeholder="e.g. Santos Bakery"/></div>
         </div>
         <div class="form-row">
@@ -3998,9 +4020,48 @@ async function deletePipelineConfirm(pipelineId){
   } catch(e){ showToast('Error deleting pipeline','error'); console.error(e); }
 }
 
+let _dealACIndex = -1;
+function dealContactInput(val){
+  _dealACIndex = -1;
+  document.getElementById('nd-contact-id').value = '';
+  const ac = document.getElementById('nd-name-ac'); if(!ac) return;
+  const q = val.trim().toLowerCase();
+  if(!q){ ac.innerHTML=''; ac.classList.remove('open'); return; }
+  const matches = contacts.filter(c => c.name.toLowerCase().includes(q)).slice(0,8);
+  if(!matches.length){ ac.innerHTML=''; ac.classList.remove('open'); return; }
+  ac.innerHTML = matches.map((c,i)=>
+    `<div class="ac-item" data-id="${c.id}" data-name="${c.name}" data-company="${c.company||''}"
+      onmousedown="pickDealContact('${c.id}','${c.name.replace(/'/g,"\\'")}','${(c.company||'').replace(/'/g,"\\'")}')">
+      <span>${c.name}</span><small>${c.company||''}</small>
+    </div>`).join('');
+  ac.classList.add('open');
+}
+function dealContactKey(e){
+  const ac = document.getElementById('nd-name-ac');
+  const items = ac?.querySelectorAll('.ac-item');
+  if(!items?.length) return;
+  if(e.key==='ArrowDown'){ e.preventDefault(); _dealACIndex=Math.min(_dealACIndex+1,items.length-1); }
+  else if(e.key==='ArrowUp'){ e.preventDefault(); _dealACIndex=Math.max(_dealACIndex-1,0); }
+  else if(e.key==='Enter' && _dealACIndex>=0){ e.preventDefault(); items[_dealACIndex].dispatchEvent(new MouseEvent('mousedown')); return; }
+  else if(e.key==='Escape'){ closeDealAC(); return; }
+  items.forEach((el,i)=>el.classList.toggle('focused',i===_dealACIndex));
+  if(_dealACIndex>=0) items[_dealACIndex].scrollIntoView({block:'nearest'});
+}
+function pickDealContact(id, name, company){
+  document.getElementById('nd-name').value = name;
+  document.getElementById('nd-company').value = company;
+  document.getElementById('nd-contact-id').value = id;
+  closeDealAC();
+}
+function closeDealAC(){
+  const ac = document.getElementById('nd-name-ac');
+  if(ac){ ac.innerHTML=''; ac.classList.remove('open'); }
+}
+
 async function addDeal(){
   const name=document.getElementById('nd-name').value.trim();
   if(!name){showToast('Enter a contact name','error');return;}
+  const contactId=document.getElementById('nd-contact-id').value||null;
   const tagSel=document.getElementById('nd-tag');
   const tagLabel=tagSel.options[tagSel.selectedIndex].text;
   const tagCls=tagSel.value;
@@ -4013,9 +4074,10 @@ async function addDeal(){
     const res=await sb.post('deals',{
       pipeline_id:pipeline.id, stage_id:stage,
       name, company:document.getElementById('nd-company').value.trim()||'—',
-      value, tags:[{label:tagLabel,cls:tagCls}], custom_fields:cf
+      value, tags:[{label:tagLabel,cls:tagCls}], custom_fields:cf,
+      ...(contactId ? {contact_id:contactId} : {})
     });
-    const newDeal={id:res[0].id,pipeline_id:pipeline.id,stage,name,company:res[0].company,value,tags:[{label:tagLabel,cls:tagCls}],customFields:cf};
+    const newDeal={id:res[0].id,pipeline_id:pipeline.id,stage,name,company:res[0].company,value,tags:[{label:tagLabel,cls:tagCls}],customFields:cf,contactId};
     pipeline.deals.push(newDeal);
     closeModal(); renderBoard(); refreshPipelineHeader(); showToast(`Deal "${name}" added!`);
   } catch(e){showToast('Error adding deal','error');console.error(e);}
@@ -8545,6 +8607,9 @@ document.querySelectorAll('.nav-item').forEach(item=>{
   // Apply saved theme on load
   const savedTheme = localStorage.getItem('crm-theme') || 'default';
   setTheme(savedTheme);
+  // Restore saved logo
+  const savedLogo = localStorage.getItem('crm-logo');
+  if(savedLogo) applyLogo(savedLogo);
 })();
 
 function setTheme(name){
