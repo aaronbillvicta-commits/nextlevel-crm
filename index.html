@@ -1476,6 +1476,7 @@ table th[onclick]{transition:background .15s,color .15s}
                   <span id="conv-sms-count" style="font-size:11px;color:var(--text3)">0/160</span>
                   <div style="display:flex;gap:6px">
                     <button class="btn btn-sm" onclick="insertConvMerge('sms')">{{name}}</button>
+                    <button class="btn btn-sm" id="ai-draft-btn-sms" onclick="aiDraftReply('sms')" style="color:var(--accent2)">✨ AI Draft</button>
                     <button class="btn btn-primary btn-sm" onclick="sendConvMessage('sms')">Send SMS</button>
                   </div>
                 </div>
@@ -1487,6 +1488,7 @@ table th[onclick]{transition:background .15s,color .15s}
                 <div class="conv-compose-footer">
                   <div style="display:flex;gap:6px">
                     <button class="btn btn-sm" onclick="insertConvMerge('email')">{{name}}</button>
+                    <button class="btn btn-sm" id="ai-draft-btn-email" onclick="aiDraftReply('email')" style="color:var(--accent2)">✨ AI Draft</button>
                   </div>
                   <button class="btn btn-primary btn-sm" onclick="sendConvMessage('email')">Send Email</button>
                 </div>
@@ -2195,12 +2197,19 @@ let currentUser = null;
 async function loadAllData() {
   showLoading(true);
   try {
-    const [dbContacts, dbPipelines, dbDeals, dbFields, dbUsers] = await Promise.all([
+    const [dbContacts, dbPipelines, dbDeals, dbFields, dbUsers,
+           dbConvs, dbEmails, dbWorkflows, dbPosts, dbCalEvents, dbCampaigns] = await Promise.all([
       sb.get('contacts', '?order=created_at.desc'),
       sb.get('pipelines', '?order=created_at.asc'),
       sb.get('deals', '?order=created_at.asc'),
       sb.get('custom_field_definitions', '?order=sort_order.asc'),
       sb.get('users', '?order=created_at.asc'),
+      sb.get('conversations', '').catch(()=>[]),
+      sb.get('emails', '?order=created_at.desc').catch(()=>[]),
+      sb.get('workflows', '?order=created_at.asc').catch(()=>[]),
+      sb.get('social_posts', '?order=created_at.desc').catch(()=>[]),
+      sb.get('calendar_events', '?order=start_time.asc').catch(()=>[]),
+      sb.get('campaigns', '?order=created_at.desc').catch(()=>[]),
     ]);
 
     // Map contacts — Supabase uses snake_case, our UI uses camelCase
@@ -2247,6 +2256,50 @@ async function loadAllData() {
     users = dbUsers.map(u => ({
       id: u.id, name: u.name, email: u.email, role: u.role
     }));
+
+    conversations = dbConvs.map(r => ({
+      id: r.id, contactId: r.contact_id, messages: r.messages || []
+    }));
+
+    emailStore = dbEmails.map(r => ({
+      id: r.id, direction: r.direction, contactId: r.contact_id,
+      contactName: r.contact_name, to: r.to_addr, from: r.from_addr,
+      fromName: r.from_name, subject: r.subject, body: r.body,
+      bodyHtml: r.body_html, status: r.status, folder: r.folder || 'sent',
+      inReplyToId: r.in_reply_to_id, sentAt: r.sent_at,
+      createdAt: r.created_at, unread: r.unread || false
+    }));
+
+    workflows = dbWorkflows.map(r => ({
+      id: r.id, name: r.name, trigger: r.trigger_type,
+      steps: r.steps || [], active: r.active || false,
+      enrolled: r.enrolled || 0, executed: r.executed || 0,
+      createdAt: r.created_at, logs: r.logs || []
+    }));
+
+    socPosts = dbPosts.map(r => ({
+      id: r.id, caption: r.caption, platforms: r.platforms || [],
+      scheduledAt: r.scheduled_at, status: r.status,
+      likes: r.likes || 0, comments: r.comments || 0, shares: r.shares || 0,
+      images: r.images || [], createdAt: r.created_at
+    }));
+    if(socPosts.length === 0) _seedSocPosts();
+
+    calEvents = dbCalEvents.map(r => ({
+      id: r.id, title: r.title, start: r.start_time, end: r.end_time,
+      sourceId: r.source_id || 'crm', notes: r.notes || '',
+      contactId: r.contact_id, gcalId: r.gcal_id,
+      gcalLink: r.gcal_link, meetLink: r.meet_link
+    }));
+
+    campaigns = dbCampaigns.map(r => ({
+      id: r.id, name: r.name, type: r.type, status: r.status,
+      audience: r.audience, subject: r.subject, body: r.body,
+      fromName: r.from_name, scheduledAt: r.scheduled_at, sentAt: r.sent_at,
+      sentCount: r.sent_count || 0, openCount: r.open_count || 0,
+      clickCount: r.click_count || 0, createdAt: r.created_at
+    }));
+    if(campaigns.length === 0) _seedCampaigns();
 
   } catch(err) {
     console.error('Load error:', err);
@@ -3358,12 +3411,18 @@ function openContactDetail(contactId, tab='info') {
       <div class="form-group"><label class="form-label">Notes</label>
         <textarea class="form-textarea" id="cd-notes" style="min-height:80px" placeholder="Add notes about this contact…">${(c.customFields||{})['__notes__']||''}</textarea>
       </div>
-      <div style="display:flex;gap:8px;margin-top:4px">
+      <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="saveContactDetail('${contactId}')">💾 Save Changes</button>
         <button class="btn btn-sm" style="color:var(--green)" onclick="openComposeEmail('${contactId}')">📧 Email</button>
         <button class="btn btn-sm" style="color:var(--accent2)" onclick="openConvWithContact('${contactId}');closeDetail()">💬 Message</button>
         ${c.phone?`<button class="btn btn-sm" style="color:var(--green)" onclick="initiateCall('${contactId}','${c.phone.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')">📞 Call</button>`:''}
-      </div>`;
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <button class="btn btn-sm" id="ai-score-btn" onclick="aiScoreLead('${contactId}')" style="color:var(--accent2)">🎯 AI Score</button>
+        <button class="btn btn-sm" id="ai-next-btn" onclick="aiNextAction('${contactId}')" style="color:var(--accent2)">💡 Next Action</button>
+      </div>
+      <div id="ai-score-result" style="display:none;margin-top:8px;padding:8px 10px;background:var(--bg3);border-radius:var(--radius);font-size:13px"></div>
+      <div id="ai-next-result" style="display:none;margin-top:6px;padding:8px 10px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);font-size:13px;color:var(--accent2)"></div>`;
 
   } else if(tab==='pipeline'){
     // Find existing deals for this contact
@@ -5062,14 +5121,24 @@ function addIntLog(containerId, message, type='info'){
 // ═══════════════════════════════════════════════
 let calView = 'month';
 let calDate = new Date();
-let calEvents = JSON.parse(localStorage.getItem('nlm_cal_events')||'[]');
+let calEvents = [];
 let calSources = JSON.parse(localStorage.getItem('nlm_cal_sources')||'[{"id":"crm","name":"CRM Events","color":"#4f7ef8","active":true}]');
 
 const CAL_COLORS = ['#4f7ef8','#3ecf8e','#f59e3f','#d97bba','#f26b6b','#2dd4bf','#a78bfa'];
 const CAL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const CAL_DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-function saveCalEvents(){ localStorage.setItem('nlm_cal_events', JSON.stringify(calEvents)); }
+async function saveCalEvents(){
+  if(!calEvents.length) return;
+  try {
+    await sb.upsert('calendar_events', calEvents.map(e=>({
+      id: e.id, title: e.title, start_time: e.start, end_time: e.end,
+      source_id: e.sourceId||'crm', notes: e.notes||'',
+      contact_id: e.contactId||null, gcal_id: e.gcalId||null,
+      gcal_link: e.gcalLink||null, meet_link: e.meetLink||null
+    })), 'id');
+  } catch(e){ console.error('saveCalEvents:', e); }
+}
 function saveCalSources(){ localStorage.setItem('nlm_cal_sources', JSON.stringify(calSources)); }
 
 function renderCalendar(){
@@ -5665,10 +5734,11 @@ function updateCalEvent(id){
   saveCalEvents(); closeModal(); renderCalendar(); renderUpcomingEvents(); showToast('Event updated!');
 }
 
-function deleteCalEvent(id){
+async function deleteCalEvent(id){
   if(!confirm('Delete this event?')) return;
   calEvents = calEvents.filter(e=>e.id!==id);
-  saveCalEvents(); closeModal(); renderCalendar(); renderUpcomingEvents(); showToast('Event deleted');
+  try { await sb.del('calendar_events', id); } catch(e){}
+  closeModal(); renderCalendar(); renderUpcomingEvents(); showToast('Event deleted');
 }
 
 // ── CALENDAR SOURCES — with remove option ──
@@ -5739,7 +5809,7 @@ function addCalSource(){
 // ═══════════════════════════════════════════════
 // AUTOMATION BUILDER
 // ═══════════════════════════════════════════════
-let workflows = JSON.parse(localStorage.getItem('nlm_workflows')||'[]');
+let workflows = [];
 let currentWorkflow = null; // workflow being edited
 
 const STEP_TYPES = {
@@ -5753,7 +5823,17 @@ const STEP_TYPES = {
   webhook:     { icon:'🔗', label:'Send Webhook',     color:'var(--amber-bg)',   iconColor:'var(--amber)' },
 };
 
-function saveWorkflows(){ localStorage.setItem('nlm_workflows', JSON.stringify(workflows)); }
+async function saveWorkflows(){
+  if(!workflows.length) return;
+  try {
+    await sb.upsert('workflows', workflows.map(w=>({
+      id: w.id, name: w.name, trigger_type: w.trigger,
+      steps: w.steps||[], active: w.active||false,
+      enrolled: w.enrolled||0, executed: w.executed||0,
+      logs: w.logs||[], created_at: w.createdAt||new Date().toISOString()
+    })), 'id');
+  } catch(e){ console.error('saveWorkflows:', e); }
+}
 
 function renderAutoList(){
   const el = document.getElementById('auto-workflow-list'); if(!el) return;
@@ -6155,29 +6235,36 @@ const SOC_PLATFORMS = [
 const SOC_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const SOC_DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-// Load posts from localStorage
-let socPosts = JSON.parse(localStorage.getItem('nlm_social_posts')||'[]');
+let socPosts = [];
 let socView  = 'calendar';
 let socDate  = new Date();
 let socActivePlatforms = SOC_PLATFORMS.map(p=>p.id);  // all on by default
 let socActiveStatuses  = ['published','scheduled','draft','failed'];
 
-// Seed some demo posts if empty
-if(socPosts.length===0){
+function _seedSocPosts(){
   const now = new Date();
-  const seed = [
-    {id:'sp1', caption:'🚀 Excited to announce our new Social Media Management package! Get more leads, more engagement, and more sales. DM us to learn more! #NextLevelMarketing #SocialMedia', platforms:['facebook','instagram'], scheduledAt: new Date(now.getFullYear(),now.getMonth(),now.getDate()-5,10,0).toISOString(), status:'published', likes:124, comments:18, shares:32, images:[]},
-    {id:'sp2', caption:'💡 Did you know? Businesses that post consistently on social media get 3x more leads. Let us handle your content so you can focus on growing your business. #DigitalMarketing', platforms:['facebook','linkedin'], scheduledAt: new Date(now.getFullYear(),now.getMonth(),now.getDate()-2,14,30).toISOString(), status:'published', likes:87, comments:12, shares:15, images:[]},
-    {id:'sp3', caption:'📊 Free Social Media Audit! We\'ll review your current profiles and give you a 10-point action plan — completely free. Comment AUDIT below or DM us now! 👇', platforms:['instagram','facebook'], scheduledAt: new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,9,0).toISOString(), status:'scheduled', likes:0, comments:0, shares:0, images:[]},
-    {id:'sp4', caption:'🎯 5 reasons why your Facebook Ads aren\'t converting (and how to fix them). Thread below 👇 #FacebookAds #MarketingTips #NextLevel', platforms:['twitter','linkedin'], scheduledAt: new Date(now.getFullYear(),now.getMonth(),now.getDate()+3,11,0).toISOString(), status:'scheduled', likes:0, comments:0, shares:0, images:[]},
-    {id:'sp5', caption:'Behind the scenes of our team working on your campaigns! We\'re always hustling to get you the best results. 💪 #AgencyLife', platforms:['instagram','tiktok'], scheduledAt: new Date(now.getFullYear(),now.getMonth(),now.getDate()+5,16,0).toISOString(), status:'draft', likes:0, comments:0, shares:0, images:[]},
-    {id:'sp6', caption:'⚡ Flash Sale: 20% off our Social Media Management package this week only! Limited spots available. Message us NOW before it\'s gone! 🔥 #Sale #SocialMediaManagement', platforms:['facebook','instagram','twitter'], scheduledAt: new Date(now.getFullYear(),now.getMonth(),now.getDate()+7,8,0).toISOString(), status:'scheduled', likes:0, comments:0, shares:0, images:[]},
+  socPosts = [
+    {id:'sp1', caption:'🚀 Excited to announce our new Social Media Management package! Get more leads, more engagement, and more sales. DM us to learn more! #NextLevelMarketing #SocialMedia', platforms:['facebook','instagram'], scheduledAt: new Date(now.getFullYear(),now.getMonth(),now.getDate()-5,10,0).toISOString(), status:'published', likes:124, comments:18, shares:32, images:[], createdAt:new Date().toISOString()},
+    {id:'sp2', caption:'💡 Did you know? Businesses that post consistently on social media get 3x more leads. Let us handle your content so you can focus on growing your business. #DigitalMarketing', platforms:['facebook','linkedin'], scheduledAt: new Date(now.getFullYear(),now.getMonth(),now.getDate()-2,14,30).toISOString(), status:'published', likes:87, comments:12, shares:15, images:[], createdAt:new Date().toISOString()},
+    {id:'sp3', caption:'📊 Free Social Media Audit! We\'ll review your current profiles and give you a 10-point action plan — completely free. Comment AUDIT below or DM us now! 👇', platforms:['instagram','facebook'], scheduledAt: new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,9,0).toISOString(), status:'scheduled', likes:0, comments:0, shares:0, images:[], createdAt:new Date().toISOString()},
+    {id:'sp4', caption:'🎯 5 reasons why your Facebook Ads aren\'t converting (and how to fix them). Thread below 👇 #FacebookAds #MarketingTips #NextLevel', platforms:['twitter','linkedin'], scheduledAt: new Date(now.getFullYear(),now.getMonth(),now.getDate()+3,11,0).toISOString(), status:'scheduled', likes:0, comments:0, shares:0, images:[], createdAt:new Date().toISOString()},
+    {id:'sp5', caption:'Behind the scenes of our team working on your campaigns! We\'re always hustling to get you the best results. 💪 #AgencyLife', platforms:['instagram','tiktok'], scheduledAt: new Date(now.getFullYear(),now.getMonth(),now.getDate()+5,16,0).toISOString(), status:'draft', likes:0, comments:0, shares:0, images:[], createdAt:new Date().toISOString()},
+    {id:'sp6', caption:'⚡ Flash Sale: 20% off our Social Media Management package this week only! Limited spots available. Message us NOW before it\'s gone! 🔥 #Sale #SocialMediaManagement', platforms:['facebook','instagram','twitter'], scheduledAt: new Date(now.getFullYear(),now.getMonth(),now.getDate()+7,8,0).toISOString(), status:'scheduled', likes:0, comments:0, shares:0, images:[], createdAt:new Date().toISOString()},
   ];
-  socPosts = seed;
-  saveSocPosts();
+  saveSocPosts().catch(()=>{});
 }
 
-function saveSocPosts(){ localStorage.setItem('nlm_social_posts', JSON.stringify(socPosts)); }
+async function saveSocPosts(){
+  if(!socPosts.length) return;
+  try {
+    await sb.upsert('social_posts', socPosts.map(p=>({
+      id: p.id, caption: p.caption, platforms: p.platforms||[],
+      scheduled_at: p.scheduledAt||null, status: p.status||'draft',
+      likes: p.likes||0, comments: p.comments||0, shares: p.shares||0,
+      images: p.images||[], created_at: p.createdAt||new Date().toISOString()
+    })), 'id');
+  } catch(e){ console.error('saveSocPosts:', e); }
+}
 
 // ── MAIN RENDER ──
 function renderSocialPlanner(){
@@ -6633,10 +6720,11 @@ function updateSocEngagement(id){
   saveSocPosts(); closeModal(); renderSocialPlanner(); showToast('Stats updated!');
 }
 
-function deleteSocPost(id){
+async function deleteSocPost(id){
   if(!confirm('Delete this post?')) return;
   socPosts=socPosts.filter(x=>x.id!==id);
-  saveSocPosts(); closeModal(); renderSocialPlanner(); showToast('Post deleted');
+  try { await sb.del('social_posts', id); } catch(e){}
+  closeModal(); renderSocialPlanner(); showToast('Post deleted');
 }
 
 // Alias functions for compatibility
@@ -6858,20 +6946,30 @@ function deleteMasterTagOnly(label){
 // ═══════════════════════════════════════════════
 // CAMPAIGNS
 // ═══════════════════════════════════════════════
-let campaigns = JSON.parse(localStorage.getItem('nlm_campaigns') || '[]');
+let campaigns = [];
 
-// Seed demo campaigns
-(function seedCampaigns(){
-  if(campaigns.length > 0) return;
+function _seedCampaigns(){
   campaigns = [
     { id:'camp1', name:'Free Audit Offer', type:'email', status:'completed', audience:'all', subject:'Get a free social media audit this week', body:'Hi {{name}},\n\nWe\'re offering a free social media audit for a limited time…', sentAt:'2026-04-10T10:00:00Z', sentCount:89, openCount:34, clickCount:12, createdAt:'2026-04-09T08:00:00Z' },
     { id:'camp2', name:'April Promo — SMM Package', type:'sms', status:'active', audience:'hot', body:'Hi {{name}}! This April, get 20% off our SMM package. Reply YES to claim. -Next Level Marketing', sentAt:'2026-04-12T09:00:00Z', sentCount:56, openCount:0, clickCount:0, createdAt:'2026-04-11T14:00:00Z' },
     { id:'camp3', name:'Re-engagement Blast', type:'email', status:'completed', audience:'cold', subject:'We miss you — let\'s reconnect', body:'Hi {{name}},\n\nIt\'s been a while! We wanted to check in and see how your business is going…', sentAt:'2026-04-08T14:00:00Z', sentCount:142, openCount:51, clickCount:18, createdAt:'2026-04-07T10:00:00Z' },
   ];
-  localStorage.setItem('nlm_campaigns', JSON.stringify(campaigns));
-})();
+  saveCampaigns().catch(()=>{});
+}
 
-function saveCampaigns(){ localStorage.setItem('nlm_campaigns', JSON.stringify(campaigns)); }
+async function saveCampaigns(){
+  if(!campaigns.length) return;
+  try {
+    await sb.upsert('campaigns', campaigns.map(c=>({
+      id: c.id, name: c.name, type: c.type||'email', status: c.status||'draft',
+      audience: c.audience||'all', subject: c.subject||null, body: c.body||'',
+      from_name: c.fromName||null, scheduled_at: c.scheduledAt||null,
+      sent_at: c.sentAt||null, sent_count: c.sentCount||0,
+      open_count: c.openCount||0, click_count: c.clickCount||0,
+      created_at: c.createdAt||new Date().toISOString()
+    })), 'id');
+  } catch(e){ console.error('saveCampaigns:', e); }
+}
 
 function renderCampaignsPage(){
   renderCampStats();
@@ -7096,54 +7194,33 @@ function updateCampStats(id){
   saveCampaigns(); closeModal(); renderCampaignsPage(); showToast('Stats updated!');
 }
 
-function deleteCampaign(id){
+async function deleteCampaign(id){
   if(!confirm('Delete this campaign?')) return;
   campaigns = campaigns.filter(c=>c.id!==id);
-  saveCampaigns(); closeModal(); renderCampaignsPage(); showToast('Campaign deleted');
+  try { await sb.del('campaigns', id); } catch(e){}
+  closeModal(); renderCampaignsPage(); showToast('Campaign deleted');
 }
 
 // ═══════════════════════════════════════════════
 // CONVERSATIONS
 // ═══════════════════════════════════════════════
-let conversations = JSON.parse(localStorage.getItem('nlm_conversations') || '[]');
+let conversations = [];
 let activeConvContactId = null;
 let convFilter = 'all';
 let convSearchQ = '';
 let composeChannel = 'sms';
 
-function saveConversations(){ localStorage.setItem('nlm_conversations', JSON.stringify(conversations)); }
+async function saveConversations(){
+  if(!conversations.length) return;
+  try {
+    await sb.upsert('conversations', conversations.map(c=>({
+      id: c.id, contact_id: c.contactId||null, messages: c.messages||[]
+    })), 'id');
+  } catch(e){ console.error('saveConversations:', e); }
+}
 
 // Seed demo conversations
-(function seedConversations(){
-  if(conversations.length > 0) return;
-  const now = new Date();
-  const ago = (mins) => new Date(now - mins*60000).toISOString();
-  conversations = [
-    { id:'conv1', contactId:'c1', messages:[
-      { id:'m1', ch:'sms', dir:'outbound', body:'Hi Maria! This is Next Level Marketing. We wanted to follow up on your interest in our SMM package. Are you available for a quick call this week?', ts:ago(1440), status:'delivered' },
-      { id:'m2', ch:'sms', dir:'inbound',  body:'Hi! Yes I\'m interested. Can we do Thursday at 2pm?', ts:ago(1420), status:'received' },
-      { id:'m3', ch:'sms', dir:'outbound', body:'Thursday 2pm works perfectly! I\'ll send a calendar invite. Looking forward to it! 🎯', ts:ago(1415), status:'read' },
-      { id:'m4', ch:'email', dir:'outbound', subject:'Confirmed: Call Thursday 2PM', body:'Hi Maria,\n\nJust confirming our call this Thursday at 2:00 PM. I\'ll be sharing our SMM package details and how we can grow Santos Bakery\'s social presence.\n\nBest,\nNext Level Marketing', ts:ago(1400), status:'read' },
-      { id:'m5', ch:'email', dir:'inbound', subject:'Re: Confirmed: Call Thursday 2PM', body:'Perfect! Looking forward to it. I\'ve been struggling with Instagram lately so really hoping you can help.', ts:ago(1380), status:'received' },
-    ]},
-    { id:'conv2', contactId:'c2', messages:[
-      { id:'m6', ch:'sms', dir:'outbound', body:'Hey Juan! Checking in on your social media strategy. Would you be open to a free audit this week?', ts:ago(720), status:'delivered' },
-      { id:'m7', ch:'sms', dir:'inbound',  body:'Sure what does the audit include?', ts:ago(700), status:'received' },
-      { id:'m8', ch:'sms', dir:'outbound', body:'We review your current profiles, posting frequency, engagement rate, and competitor analysis. Takes about 30 mins and it\'s completely free!', ts:ago(695), status:'read' },
-    ]},
-    { id:'conv3', contactId:'c4', messages:[
-      { id:'m9', ch:'email', dir:'outbound', subject:'Proposal: Full-Service Digital Marketing Package', body:'Hi BizPro PH team,\n\nFollowing our discussion, I\'ve attached our proposal for the full-service package including SEO, Social Media Management, and Paid Ads management.\n\nLooking forward to your feedback.\n\nBest regards,\nNext Level Marketing', ts:ago(2880), status:'delivered' },
-      { id:'m10', ch:'email', dir:'inbound', subject:'Re: Proposal', body:'Thank you for sending this over. We\'ll review it internally and get back to you by Friday.', ts:ago(2400), status:'received' },
-    ]},
-    { id:'conv4', contactId:'c3', messages:[
-      { id:'m11', ch:'sms', dir:'outbound', body:'Hi Ana! We saw you were interested in our Facebook Ads service. We currently have a special April promotion — 20% off the first month! 🎉', ts:ago(60), status:'sent' },
-    ]},
-    { id:'conv5', contactId:'c5', messages:[
-      { id:'m12', ch:'sms', dir:'outbound', body:'Hi! Following up on our previous conversation about social media management. Are you still interested?', ts:ago(4320), status:'failed' },
-    ]},
-  ];
-  saveConversations();
-})();
+// Conversations start empty — they are created when you message real contacts.
 
 // ── RENDER CONVERSATION LIST ──
 function renderConversations(){
@@ -7564,11 +7641,25 @@ function openConvWithContact(contactId){
 // ═══════════════════════════════════════════════
 // EMAIL PAGE — Multi-account + Inbox + Reply Threading
 // ═══════════════════════════════════════════════
-let emailStore = JSON.parse(localStorage.getItem('nlm_emails') || '[]');
+let emailStore = [];
 let emailFolder = 'sent';
 let activeEmailId = null;
 
-function saveEmailStore(){ localStorage.setItem('nlm_emails', JSON.stringify(emailStore)); }
+async function saveEmailStore(){
+  if(!emailStore.length) return;
+  try {
+    await sb.upsert('emails', emailStore.map(e=>({
+      id: e.id, direction: e.direction, contact_id: e.contactId||null,
+      contact_name: e.contactName||null, to_addr: e.to||null,
+      from_addr: e.from||null, from_name: e.fromName||null,
+      subject: e.subject||null, body: e.body||'', body_html: e.bodyHtml||null,
+      status: e.status||'sent', folder: e.folder||'sent',
+      in_reply_to_id: e.inReplyToId||null,
+      sent_at: e.sentAt||null, created_at: e.createdAt||new Date().toISOString(),
+      unread: e.unread||false
+    })), 'id');
+  } catch(e){ console.error('saveEmailStore:', e); }
+}
 
 // ── MULTI-ACCOUNT MANAGEMENT ──
 // Accounts stored as array: [{id, name, email, provider, apiKey}]
@@ -7913,9 +8004,10 @@ function openEmailDetail(id){
     </div>`;
 }
 
-function deleteEmail(id){
+async function deleteEmail(id){
   if(!confirm('Delete this email?')) return;
   emailStore=emailStore.filter(e=>e.id!==id);
+  try { await sb.del('emails', id); } catch(e){}
   saveEmailStore();
   activeEmailId=null;
   document.getElementById('email-detail-empty').style.display='flex';
@@ -8179,6 +8271,92 @@ function openImportContacts(){
 }
 
 let _csvImportRows = [];
+
+// ── AI ASSISTANT (Gemini 1.5 Flash via /api/ai) ──
+async function callAI(feature, context) {
+  try {
+    const r = await fetch('/api/ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feature, context })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'AI request failed');
+    return data.result;
+  } catch(e) {
+    showToast('AI: ' + e.message, 'error');
+    return null;
+  }
+}
+
+async function aiDraftReply(channel) {
+  const bodyEl = channel === 'sms'
+    ? document.getElementById('compose-sms-body')
+    : document.getElementById('compose-email-body');
+  const subjectEl = document.getElementById('compose-email-subject');
+  if (!bodyEl) return;
+  const contact = contacts.find(c => c.id === activeConvContactId);
+  const conv = conversations.find(c => c.contactId === activeConvContactId);
+  const btn = document.getElementById('ai-draft-btn-' + channel);
+  if (btn) { btn.textContent = '✨ Drafting…'; btn.disabled = true; }
+  const result = await callAI('draft_reply', {
+    channel,
+    contactName: contact?.name || '',
+    messages: conv?.messages || []
+  });
+  if (btn) { btn.textContent = '✨ AI Draft'; btn.disabled = false; }
+  if (!result) return;
+  bodyEl.value = result;
+  if (channel === 'sms') updateConvSmsCount();
+}
+
+async function aiScoreLead(contactId) {
+  const c = contacts.find(x => x.id === contactId); if (!c) return;
+  const btn = document.getElementById('ai-score-btn');
+  if (btn) { btn.textContent = '⏳ Scoring…'; btn.disabled = true; }
+  const conv = conversations.find(cv => cv.contactId === contactId);
+  const result = await callAI('score_lead', {
+    name: c.name, company: c.company, email: c.email, phone: c.phone,
+    source: c.source, status: c.status,
+    tags: (c.tags||[]).map(t=>t.label),
+    notes: (c.customFields||{})['__notes__'] || '',
+    messageCount: conv?.messages?.length || 0
+  });
+  if (btn) { btn.textContent = '🎯 AI Score'; btn.disabled = false; }
+  if (!result) return;
+  try {
+    const clean = result.replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(clean);
+    const scoreEl = document.getElementById('ai-score-result');
+    if (scoreEl) {
+      const color = parsed.score >= 7 ? 'var(--green)' : parsed.score >= 4 ? 'var(--amber)' : 'var(--red)';
+      scoreEl.innerHTML = `<span style="font-weight:700;color:${color};font-size:16px">${parsed.score}/10</span> <span style="font-size:12px;color:var(--text3)">${parsed.reason}</span>`;
+      scoreEl.style.display = 'block';
+    }
+  } catch(e) {
+    const scoreEl = document.getElementById('ai-score-result');
+    if (scoreEl) { scoreEl.textContent = result; scoreEl.style.display = 'block'; }
+  }
+}
+
+async function aiNextAction(contactId) {
+  const c = contacts.find(x => x.id === contactId); if (!c) return;
+  const btn = document.getElementById('ai-next-btn');
+  if (btn) { btn.textContent = '⏳ Thinking…'; btn.disabled = true; }
+  const conv = conversations.find(cv => cv.contactId === contactId);
+  const lastMsg = conv?.messages?.slice(-1)[0];
+  const result = await callAI('next_action', {
+    name: c.name, company: c.company, status: c.status, source: c.source,
+    tags: (c.tags||[]).map(t=>t.label),
+    notes: (c.customFields||{})['__notes__'] || '',
+    lastMessage: lastMsg?.body || null,
+    lastMessageDir: lastMsg?.dir || null
+  });
+  if (btn) { btn.textContent = '💡 Next Action'; btn.disabled = false; }
+  if (!result) return;
+  const el = document.getElementById('ai-next-result');
+  if (el) { el.textContent = result; el.style.display = 'block'; }
+}
 
 function sanitizeText(str){
   if(!str) return '';
