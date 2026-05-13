@@ -6,7 +6,7 @@
 <title>Next Level Marketing — CRM</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://accounts.google.com/gsi/client" async></script>
-<script src="https://cdn.jsdelivr.net/npm/jssip@3/dist/jssip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@signalwire/js@^3/dist/index.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -2586,10 +2586,8 @@ let callSeconds = 0;
 let callMuted = false;
 let activeCallContact = null;
 let dialpadOpen = false;
-let sipUA       = null;
-let sipCall     = null;
-let sipConfig   = null;
-let activeCallSid = null;
+let swClient = null;
+let swCall   = null;
 let preferredInputDevice = '';
 let preferredOutputDevice = '';
 
@@ -2789,73 +2787,15 @@ function initiateCall(contactId, phone, name){
   if(matchEl) matchEl.textContent = `📋 ${name}`;
 }
 
-function attachSIPCallEvents(session, isIncoming){
-  sipCall = session;
-  session.on('peerconnection', data => {
-    data.peerconnection.addEventListener('track', e => {
-      const audio = document.getElementById('remote-audio');
-      if(audio && e.streams[0]){
-        audio.srcObject = e.streams[0];
-        if(preferredOutputDevice && audio.setSinkId) audio.setSinkId(preferredOutputDevice).catch(()=>{});
-        audio.play().catch(()=>{});
-      }
-    });
-  });
-  session.on('progress', () => showToast('📞 Ringing…'));
-  session.on('confirmed', () => showToast('📞 Connected'));
-  session.on('failed', e => {
-    logError('sip_call_failed', e.cause||'unknown', null, isIncoming?{incoming:true}:{});
-    showToast('Call failed: '+(e.cause||'Unknown'),'error');
-    sipCall=null;
-    if(callTimer) endCall();
-  });
-  session.on('ended', () => { sipCall=null; if(callTimer) endCall(); });
-}
+async function initSWClient(){
+  if(swClient) return swClient;
+  const r = await fetch('/api/call-token');
+  const data = await r.json();
+  if(!data.token) throw new Error(data.error || 'Failed to get call token');
 
-async function initSIP(){
-  if(!sipConfig){
-    const r = await fetch('/api/sip-config');
-    sipConfig = await r.json();
-    if(!sipConfig.username) throw new Error(sipConfig.error || 'SIP config missing');
-  }
-  if(sipUA && sipUA.isRegistered()) return;
-  if(sipUA){ sipUA.stop(); sipUA=null; }
-
-  const socket = new JsSIP.WebSocketInterface(`wss://${sipConfig.domain}`);
-  sipUA = new JsSIP.UA({
-    sockets: [socket],
-    uri: `sip:${sipConfig.username}@${sipConfig.domain}`,
-    password: sipConfig.password,
-    register: true,
-    session_timers: false,
-  });
-  sipUA.on('registrationFailed', e => logError('sip_reg_failed', e.cause, null, {}));
-
-  // Auto-answer incoming calls — these are the bridge calls from /api/make-call
-  sipUA.on('newRTCSession', e => {
-    logError('sip_newRTCSession', e.originator, null, { remote_id: e.session.remote_identity?.uri?.toString() });
-    if(e.originator !== 'remote') return;
-    const session = e.session;
-    const audioConstraints = preferredInputDevice
-      ? {deviceId:{exact:preferredInputDevice}} : true;
-    attachSIPCallEvents(session, true);
-    try {
-      session.answer({
-        mediaConstraints: { audio: audioConstraints, video: false },
-        rtcAnswerConstraints: { offerToReceiveAudio: true, offerToReceiveVideo: false },
-      });
-      logError('sip_answered', 'ok', null, {});
-    } catch(err){
-      logError('sip_answer_error', err.message, err.stack, {});
-    }
-  });
-
-  await new Promise((resolve, reject) => {
-    const t = setTimeout(() => { sipUA=null; reject(new Error('SIP connection timeout')); }, 12000);
-    sipUA.on('registered', () => { clearTimeout(t); resolve(); });
-    sipUA.on('registrationFailed', e => { clearTimeout(t); sipUA=null; reject(new Error('SIP reg failed: '+e.cause)); });
-    sipUA.start();
-  });
+  const SW = (window.SignalWire && window.SignalWire.SignalWire) || window.SignalWire;
+  swClient = await SW({ token: data.token, logLevel: 'debug' });
+  return swClient;
 }
 
 async function startCall(){
@@ -2891,20 +2831,24 @@ async function startCall(){
 
   try {
     showToast('📞 Connecting…');
-    logError('startCall_step', '1_init_sip_begin', null, { to: dialTo });
-    // Browser must be registered to receive the bridge call SignalWire will make to it
-    await initSIP();
-    logError('startCall_step', '2_sip_registered', null, { registered: sipUA?.isRegistered() });
+    logError('startCall_step', '1_init_client', null, { to: dialTo });
+    await initSWClient();
+    logError('startCall_step', '2_dialing', null, {});
 
-    const r = await fetch('/api/make-call', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ to: dialTo }),
+    swCall = await swClient.dial({
+      to: dialTo,
+      rootElement: document.getElementById('sw-root-element'),
+      audio: true,
+      video: false,
     });
-    const data = await r.json();
-    logError('startCall_step', '3_make_call_response', null, data);
-    if(!data.success) throw new Error(data.error || 'Call failed');
-    activeCallSid = data.sid;
+    logError('startCall_step', '3_call_object_created', null, {});
+
+    swCall.on('call.state', ev => logError('sw_call_state', ev.call_state || JSON.stringify(ev), null, {}));
+    swCall.on('destroy', () => { logError('sw_call_destroy','',null,{}); swCall=null; if(callTimer) endCall(); });
+    swCall.on('room.left', () => { logError('sw_room_left','',null,{}); swCall=null; if(callTimer) endCall(); });
+
+    await swCall.start();
+    logError('startCall_step', '4_call_started', null, {});
 
     closeDialpad();
     setCallActive(contactName, number);
@@ -2916,7 +2860,7 @@ async function startCall(){
       saveConversations();
     }
   } catch(e){
-    if(sipCall){ try{ sipCall.terminate(); }catch(_){} sipCall=null; }
+    if(swCall){ try{ await swCall.leave(); }catch(_){} swCall=null; }
     logCall('outbound', dialTo, activeCallContact?.name||'', 0, 'failed');
     showToast('Call failed: '+(e.message||'Unknown error'),'error');
     logError('startCall', e.message, e.stack, { to: dialTo, contact: activeCallContact?.name });
@@ -2949,11 +2893,7 @@ function setCallActive(name, number){
 }
 
 function endCall(){
-  if(sipCall){ try{ sipCall.terminate(); }catch(e){} sipCall=null; }
-  if(activeCallSid){
-    fetch('/api/end-call',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:activeCallSid})}).catch(()=>{});
-    activeCallSid=null;
-  }
+  if(swCall){ try{ swCall.leave(); }catch(e){} swCall=null; }
   clearInterval(callTimer); callTimer=null;
   const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
   const s=String(callSeconds%60).padStart(2,'0');
@@ -2986,9 +2926,9 @@ function endCall(){
 
 function toggleMute(){
   callMuted=!callMuted;
-  if(sipCall){
-    if(callMuted) sipCall.mute({audio:true});
-    else sipCall.unmute({audio:true});
+  if(swCall){
+    if(callMuted) swCall.audioMute().catch(()=>{});
+    else swCall.audioUnmute().catch(()=>{});
   }
   document.getElementById('call-mute-btn')?.classList.toggle('muted',callMuted);
   document.getElementById('dp-mute-btn')?.classList.toggle('muted',callMuted);
@@ -5088,7 +5028,7 @@ async function saveIntegration(key){
     if(!project||!token||!phone){ showToast('Fill in all SignalWire fields','error'); return; }
     data = {'sw-project':project,'sw-phone':phone};
     secret = token;
-    sipUA = null; sipConfig = null;
+    swClient = null;
   } else if(key==='email'){
     closeModal();
     openAddEmailAccountModal();
@@ -8956,5 +8896,6 @@ function setTheme(name){
 }
 </script>
 <audio id="remote-audio" autoplay style="display:none"></audio>
+<div id="sw-root-element" style="position:absolute;width:1px;height:1px;overflow:hidden"></div>
 </body>
 </html>

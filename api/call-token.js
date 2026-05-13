@@ -13,17 +13,18 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    // RELAY Browser SDK v2 requires a JWT from /api/relay/rest/jwt
-    const r = await fetch(`${SPACE}/api/relay/rest/jwt`, {
+    // Call Fabric subscriber token — required by @signalwire/js v3+ for browser calling
+    const r = await fetch(`${SPACE}/api/fabric/subscribers/tokens`, {
       method: 'POST',
       headers: {
         Authorization: 'Basic ' + Buffer.from(`${PROJECT}:${TOKEN}`).toString('base64'),
         'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ reference: 'crm-user' }),
     });
     const data = await r.json();
-    if (!data.jwt_token) throw new Error(data.message || 'No JWT: ' + JSON.stringify(data));
-    res.json({ token: data.jwt_token, project: PROJECT });
+    if (!data.token) throw new Error(data.message || 'No token: ' + JSON.stringify(data));
+    res.json({ token: data.token });
   } catch (e) {
     console.error('call-token error:', e);
     res.status(500).json({ error: e.message });
