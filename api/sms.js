@@ -27,7 +27,11 @@ module.exports = async function handler(req, res) {
           'Content-Type': 'application/x-www-form-urlencoded',
           Accept: 'application/json',
         },
-        body: new URLSearchParams({ To: to, From: from, Body: body }).toString(),
+        body: new URLSearchParams({
+          To: to, From: from, Body: body,
+          StatusCallback: `https://${req.headers.host}/api/sms-status`,
+          StatusCallbackMethod: 'POST',
+        }).toString(),
       }
     );
     const data = await r.json();
