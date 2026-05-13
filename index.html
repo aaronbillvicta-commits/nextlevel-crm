@@ -1814,21 +1814,7 @@ table th[onclick]{transition:background .15s,color .15s}
             <button class="btn btn-primary" onclick="saveIntegration('signalwire')">Save & Connect</button>
           </div>
           
-          <div id="signalwire-composer" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
-            <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Send SMS</div>
-            <div class="int-form-grid">
-              <div class="form-group"><label class="form-label">To Number</label><input class="form-input" id="sms-to" placeholder="+1 555 000 0000"/></div>
-              <div class="form-group"><label class="form-label">Select Contact</label>
-                <select class="form-select" id="sms-contact" onchange="fillSmsNumber()"><option value="">— pick contact —</option></select>
-              </div>
-            </div>
-            <div class="form-group"><label class="form-label">Message</label><textarea class="form-textarea" id="sms-body" placeholder="Type your message…" style="min-height:80px"></textarea></div>
-            <div style="display:flex;justify-content:flex-end;gap:8px">
-              <span id="sms-char-count" style="font-size:11px;color:var(--text3);align-self:center">0 / 160</span>
-              <button class="btn btn-primary btn-sm" onclick="sendSMS()">Send SMS</button>
-            </div>
-            <div id="sms-log" style="margin-top:12px"></div>
-          </div>
+          <div id="signalwire-composer" style="display:none"></div>
         </div>
       </div>
 
