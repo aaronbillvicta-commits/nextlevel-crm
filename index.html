@@ -6,7 +6,7 @@
 <title>Next Level Marketing — CRM</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://accounts.google.com/gsi/client" async></script>
-<script src="https://sdk.twilio.com/js/client/v1.14/twilio.js"></script>
+<script src="https://unpkg.com/@signalwire/js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -2824,25 +2824,16 @@ async function startCall(){
   const dialTo = number.startsWith('+') ? number : '+1'+number.replace(/\D/g,'');
 
   try {
-    // Initialize Twilio Voice Device with SignalWire Compatibility token if needed
-    if(!swDevice || swDevice.status()==='offline'){
+    // Initialize SignalWire browser client
+    if(!swDevice){
       const tokenRes = await fetch('/api/call-token',{method:'POST',headers:{'Content-Type':'application/json'}});
       const {token, error} = await tokenRes.json();
       if(error||!token) throw new Error(error||'Could not get call token');
-      swDevice = new Twilio.Device(token, {debug:false});
-      await new Promise((resolve,reject)=>{
-        swDevice.on('ready', resolve);
-        swDevice.on('error', reject);
-        setTimeout(()=>reject(new Error('Device setup timeout')), 8000);
-      });
-      // Apply saved device preferences
-      if(preferredInputDevice) swDevice.audio?.setInputDevice(preferredInputDevice).catch(()=>{});
-      if(preferredOutputDevice) swDevice.audio?.speakerDevices.set([preferredOutputDevice]).catch(()=>{});
+      swDevice = await SignalWire.SignalWire({ token });
     }
 
-    swCall = swDevice.connect({ To: dialTo });
-    swCall.on('disconnect', ()=>{ swCall=null; endCall(); });
-    swCall.on('cancel', ()=>{ swCall=null; endCall(); });
+    swCall = await swDevice.dial({ to: dialTo });
+    swCall.on('call.ended', ()=>{ swCall=null; endCall(); });
 
     closeDialpad();
     setCallActive(contactName, number);
@@ -2888,7 +2879,7 @@ function setCallActive(name, number){
 }
 
 function endCall(){
-  if(swCall){ try{ swCall.disconnect(); }catch(e){} swCall=null; }
+  if(swCall){ try{ swCall.hangup(); }catch(e){} swCall=null; }
   clearInterval(callTimer); callTimer=null;
   const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
   const s=String(callSeconds%60).padStart(2,'0');
@@ -2916,12 +2907,16 @@ function endCall(){
   const input=document.getElementById('call-dial-number');
   if(input) input.value='';
   activeCallContact=null;
+  swDevice=null;
   showToast(`Call ended — ${m}:${s}`);
 }
 
 function toggleMute(){
   callMuted=!callMuted;
-  if(swCall) swCall.mute(callMuted);
+  if(swCall){
+    if(callMuted) swCall.audioMute().catch(()=>{});
+    else swCall.audioUnmute().catch(()=>{});
+  }
   document.getElementById('call-mute-btn')?.classList.toggle('muted',callMuted);
   document.getElementById('dp-mute-btn')?.classList.toggle('muted',callMuted);
   document.getElementById('dp-mute-label').textContent=callMuted?'Unmute':'Mute';
