@@ -6,6 +6,7 @@
 <title>Next Level Marketing — CRM</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://accounts.google.com/gsi/client" async></script>
+<script src="https://sdk.twilio.com/js/client/v1.14/twilio.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1789,31 +1790,31 @@ table th[onclick]{transition:background .15s,color .15s}
       </div>
 
       <div class="int-section-title">📱 SMS & Phone</div>
-      <div class="int-full-card" id="int-card-twilio">
+      <div class="int-full-card" id="int-card-signalwire">
         <div class="int-full-head">
           <div class="int-full-icon" style="background:var(--red-bg)">📱</div>
           <div style="flex:1">
-            <div class="int-full-name">Twilio — SMS & Voice Calls</div>
-            <div class="int-full-desc">Send SMS, make calls, and track replies from your contacts directly in the CRM</div>
+            <div class="int-full-name">SignalWire — SMS & Voice Calls</div>
+            <div class="int-full-desc">Send SMS, make browser-based calls, and track replies from your contacts directly in the CRM</div>
           </div>
-          <div class="int-status-badge" id="twilio-status">Not connected</div>
-          <button class="btn btn-sm" id="twilio-toggle-btn" onclick="toggleIntSection('twilio')">Connect</button>
+          <div class="int-status-badge" id="signalwire-status">Not connected</div>
+          <button class="btn btn-sm" id="signalwire-toggle-btn" onclick="toggleIntSection('signalwire')">Connect</button>
         </div>
-        <div class="int-form" id="twilio-form" style="display:none">
+        <div class="int-form" id="signalwire-form" style="display:none">
           <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:12px;color:var(--accent2);line-height:1.6">
-            Get your credentials at <strong>console.twilio.com</strong> → Account Info. Your Account SID starts with "AC". Buy a phone number under Phone Numbers → Manage.
+            Get your credentials at <strong>quick-help-va.signalwire.com</strong> → API → Project ID & API Token. Your phone number is under Phone Numbers.
           </div>
           <div class="int-form-grid">
-            <div class="form-group"><label class="form-label">Account SID</label><input class="form-input" id="twilio-sid" placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/></div>
-            <div class="form-group"><label class="form-label">Auth Token</label><input class="form-input" id="twilio-token" type="password" placeholder="Your auth token"/></div>
-            <div class="form-group"><label class="form-label">From Phone Number</label><input class="form-input" id="twilio-phone" placeholder="+1 555 000 0000"/></div>
+            <div class="form-group"><label class="form-label">Project ID</label><input class="form-input" id="sw-project" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"/></div>
+            <div class="form-group"><label class="form-label">API Token</label><input class="form-input" id="sw-token" type="password" placeholder="PTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/></div>
+            <div class="form-group"><label class="form-label">From Phone Number</label><input class="form-input" id="sw-phone" placeholder="+1 305 845 8883"/></div>
           </div>
           <div class="int-form-actions">
-            <button class="btn" onclick="toggleIntSection('twilio')">Cancel</button>
-            <button class="btn btn-primary" onclick="saveIntegration('twilio')">Save & Connect</button>
+            <button class="btn" onclick="toggleIntSection('signalwire')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveIntegration('signalwire')">Save & Connect</button>
           </div>
           
-          <div id="twilio-composer" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
+          <div id="signalwire-composer" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:16px">
             <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:10px">Send SMS</div>
             <div class="int-form-grid">
               <div class="form-group"><label class="form-label">To Number</label><input class="form-input" id="sms-to" placeholder="+1 555 000 0000"/></div>
@@ -2548,6 +2549,8 @@ let callSeconds = 0;
 let callMuted = false;
 let activeCallContact = null;
 let dialpadOpen = false;
+let swDevice = null;
+let swCall = null;
 
 function updateCallWidgetVisibility(page){
   const w = document.getElementById('topbar-call-widget'); if(!w) return;
@@ -2610,27 +2613,20 @@ async function startCall(){
   const number = input?.value.trim()||'';
   if(!number){ showToast('Enter a phone number to call','error'); return; }
 
-  // Match contact if not already set
   if(!activeCallContact){
     const match = contacts.find(c=>c.phone&&c.phone.replace(/\D/g,'')===number.replace(/\D/g,''));
     if(match) activeCallContact={id:match.id,name:match.name,phone:number};
   }
 
-  const twilioSid  = getIntData('twilio')['twilio-sid']||'';
-  const twilioToken= getIntSecret('twilio');
-
-  if(!twilioSid||!twilioToken){
+  const swPhone = getIntData('signalwire')['sw-phone']||'';
+  if(!swPhone){
     openModal(`
-      <div class="modal-head"><div class="modal-title">Connect Twilio to Make Calls</div><span class="modal-close" onclick="closeModal()">×</span></div>
+      <div class="modal-head"><div class="modal-title">Connect SignalWire to Make Calls</div><span class="modal-close" onclick="closeModal()">×</span></div>
       <div class="modal-body">
         <div style="text-align:center;padding:16px 0">
           <div style="font-size:40px;margin-bottom:12px">📞</div>
-          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">Twilio not connected</div>
-          <div style="font-size:13px;color:var(--text3);line-height:1.7">Connect your Twilio account in Integrations to make real phone calls.</div>
-        </div>
-        <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--accent2);line-height:1.7;margin-top:8px">
-          <strong>Twilio pricing:</strong> ~$1.15/month per number + $0.013/min for calls<br>
-          Sign up at <strong>twilio.com</strong> — free trial includes $15 credit
+          <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">SignalWire not connected</div>
+          <div style="font-size:13px;color:var(--text3);line-height:1.7">Connect your SignalWire account in Integrations to make real phone calls.</div>
         </div>
       </div>
       <div class="modal-foot">
@@ -2641,15 +2637,41 @@ async function startCall(){
   }
 
   const contactName = activeCallContact?.name||number;
-  closeDialpad();
-  setCallActive(contactName, number);
-  if(activeCallContact?.id){
-    let conv=conversations.find(c=>c.contactId===activeCallContact.id);
-    if(!conv){conv={id:'conv_'+Date.now(),contactId:activeCallContact.id,messages:[]};conversations.push(conv);}
-    conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'outbound',body:`📞 Outbound call to ${number}`,ts:new Date().toISOString(),status:'sent'});
-    saveConversations();
+  const dialTo = number.startsWith('+') ? number : '+1'+number.replace(/\D/g,'');
+
+  try {
+    // Initialize Twilio Voice Device with SignalWire Compatibility token if needed
+    if(!swDevice || swDevice.status()==='offline'){
+      const tokenRes = await fetch('/api/call-token',{method:'POST',headers:{'Content-Type':'application/json'}});
+      const {token, error} = await tokenRes.json();
+      if(error||!token) throw new Error(error||'Could not get call token');
+      swDevice = new Twilio.Device(token, {debug:false});
+      await new Promise((resolve,reject)=>{
+        swDevice.on('ready', resolve);
+        swDevice.on('error', reject);
+        setTimeout(()=>reject(new Error('Device setup timeout')), 8000);
+      });
+    }
+
+    swCall = swDevice.connect({ To: dialTo });
+    swCall.on('disconnect', ()=>{ swCall=null; endCall(); });
+    swCall.on('cancel', ()=>{ swCall=null; endCall(); });
+
+    closeDialpad();
+    setCallActive(contactName, number);
+
+    // Log to conversation
+    if(activeCallContact?.id){
+      let conv=conversations.find(c=>c.contactId===activeCallContact.id);
+      if(!conv){conv={id:'conv_'+Date.now(),contactId:activeCallContact.id,messages:[]};conversations.push(conv);}
+      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'outbound',body:`📞 Outbound call to ${number}`,ts:new Date().toISOString(),status:'sent'});
+      saveConversations();
+    }
+    showToast(`📞 Calling ${contactName}…`);
+  } catch(e){
+    showToast('Call failed: '+(e.message||'Unknown error'),'error');
+    console.error('[SW] startCall error:', e);
   }
-  showToast(`📞 Calling ${contactName}…`);
 }
 
 function setCallActive(name, number){
@@ -2669,6 +2691,7 @@ function setCallActive(name, number){
 }
 
 function endCall(){
+  if(swCall){ try{ swCall.disconnect(); }catch(e){} swCall=null; }
   clearInterval(callTimer); callTimer=null;
   const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
   const s=String(callSeconds%60).padStart(2,'0');
@@ -2694,6 +2717,7 @@ function endCall(){
 
 function toggleMute(){
   callMuted=!callMuted;
+  if(swCall) swCall.mute(callMuted);
   document.getElementById('call-mute-btn')?.classList.toggle('muted',callMuted);
   showToast(callMuted?'🔇 Muted':'🔊 Unmuted');
 }
@@ -4676,7 +4700,7 @@ function updateSidebarUser(){
 // ═══════════════════════════════════════════════
 // INTEGRATIONS
 // ═══════════════════════════════════════════════
-const INT_KEYS = ['twilio','email','facebook','instagram','calendar','zapier'];
+const INT_KEYS = ['signalwire','email','facebook','instagram','calendar','zapier'];
 
 // Load integration credentials from Supabase into _intCache.
 // Falls back to localStorage on error and migrates existing data to Supabase.
@@ -4761,14 +4785,14 @@ function toggleIntSection(key){
 
 async function saveIntegration(key){
   let data = {}, secret = '';
-  if(key==='twilio'){
-    const sid   = document.getElementById('twilio-sid').value.trim();
-    const token = document.getElementById('twilio-token').value.trim();
-    const phone = document.getElementById('twilio-phone').value.trim();
-    if(!sid||!token||!phone){ showToast('Fill in all Twilio fields','error'); return; }
-    if(!sid.startsWith('AC')){ showToast('Account SID should start with AC','error'); return; }
-    data = {'twilio-sid':sid,'twilio-phone':phone};
+  if(key==='signalwire'){
+    const project = document.getElementById('sw-project').value.trim();
+    const token   = document.getElementById('sw-token').value.trim();
+    const phone   = document.getElementById('sw-phone').value.trim();
+    if(!project||!token||!phone){ showToast('Fill in all SignalWire fields','error'); return; }
+    data = {'sw-project':project,'sw-phone':phone};
     secret = token;
+    swDevice = null; // reset device so next call re-initializes with new credentials
   } else if(key==='email'){
     closeModal();
     openAddEmailAccountModal();
@@ -4862,29 +4886,29 @@ document.addEventListener('input', e=>{
   }
 });
 
-// ── TWILIO SMS ──
+// ── SIGNALWIRE SMS ──
 async function sendSMS(){
   const to   = document.getElementById('sms-to').value.trim();
   const body = document.getElementById('sms-body').value.trim();
-  const from = getIntData('twilio')['twilio-phone']||'';
-  const sid  = getIntData('twilio')['twilio-sid']||'';
-  const token= getIntSecret('twilio');
+  const phone= getIntData('signalwire')['sw-phone']||'';
   if(!to||!body){ showToast('Enter a phone number and message','error'); return; }
-  if(!sid||!token){ showToast('Twilio not connected','error'); return; }
+  if(!phone){ showToast('SignalWire not connected','error'); return; }
   addIntLog('sms-log','Sending SMS…','info');
   try {
-    // Twilio REST API — requires a backend proxy in production (CORS restriction)
-    // For now we show the payload and guide user to use Supabase Edge Function
-    const payload = { To:to, From:from, Body:body };
-    addIntLog('sms-log',`✅ SMS queued to ${to} — "${body.slice(0,40)}${body.length>40?'…':''}"`, 'ok');
+    const r = await fetch('/api/sms',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({to, body})
+    });
+    const data = await r.json();
+    if(!r.ok||data.error) throw new Error(data.error||'Send failed');
+    addIntLog('sms-log',`✅ SMS sent to ${to} — "${body.slice(0,40)}${body.length>40?'…':''}"`, 'ok');
     document.getElementById('sms-body').value='';
     document.getElementById('sms-char-count').textContent='0 / 160';
     showToast('SMS sent! ✅');
-    // Log activity
     logActivity('sms', `SMS sent to ${to}: "${body.slice(0,60)}"`);
-    // Fire Zapier webhook if connected
-    fireZapierEvent('sms_sent', {to, body, from});
-  } catch(e){ addIntLog('sms-log','❌ Failed: '+e.message,'err'); }
+    fireZapierEvent('sms_sent', {to, body, from:phone});
+  } catch(e){ addIntLog('sms-log','❌ Failed: '+e.message,'err'); showToast('SMS failed: '+e.message,'error'); }
 }
 
 // ── EMAIL SEND ──
@@ -7692,10 +7716,11 @@ async function sendConvMessage(ch){
 
   // Actually send via integration if connected
   if(ch==='sms'){
-    if(getIntData('twilio')['twilio-sid'] && contact?.phone){
+    if(getIntData('signalwire')['sw-phone'] && contact?.phone){
+      fetch('/api/sms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:contact.phone,body:mergedBody})}).catch(()=>{});
       showToast(`SMS sent to ${contact.phone} ✅`);
     } else {
-      showToast('SMS logged (connect Twilio in Integrations to send for real)');
+      showToast('SMS logged (connect SignalWire in Integrations to send for real)');
     }
     if(typeof fireZapierEvent==='function') fireZapierEvent('sms_sent',{to:contact?.phone,body:mergedBody});
   } else {
