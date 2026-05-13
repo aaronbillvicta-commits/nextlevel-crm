@@ -1,5 +1,7 @@
 module.exports = function handler(req, res) {
-  const to   = (req.body && req.body.To)   || req.query.To   || '';
+  // contactTo = set by make-call.js for click-to-call agent leg
+  // falls back to body.To for other inbound uses
+  const to   = req.query.contactTo || (req.body && req.body.To) || req.query.To || '';
   const from = process.env.SW_PHONE_NUMBER || '';
 
   res.setHeader('Content-Type', 'text/xml');
