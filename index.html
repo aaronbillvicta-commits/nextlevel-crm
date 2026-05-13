@@ -2833,15 +2833,21 @@ async function initSIP(){
 
   // Auto-answer incoming calls — these are the bridge calls from /api/make-call
   sipUA.on('newRTCSession', e => {
+    logError('sip_newRTCSession', e.originator, null, { remote_id: e.session.remote_identity?.uri?.toString() });
     if(e.originator !== 'remote') return;
     const session = e.session;
     const audioConstraints = preferredInputDevice
       ? {deviceId:{exact:preferredInputDevice}} : true;
     attachSIPCallEvents(session, true);
-    session.answer({
-      mediaConstraints: { audio: audioConstraints, video: false },
-      rtcAnswerConstraints: { offerToReceiveAudio: true, offerToReceiveVideo: false },
-    });
+    try {
+      session.answer({
+        mediaConstraints: { audio: audioConstraints, video: false },
+        rtcAnswerConstraints: { offerToReceiveAudio: true, offerToReceiveVideo: false },
+      });
+      logError('sip_answered', 'ok', null, {});
+    } catch(err){
+      logError('sip_answer_error', err.message, err.stack, {});
+    }
   });
 
   await new Promise((resolve, reject) => {
@@ -2885,8 +2891,10 @@ async function startCall(){
 
   try {
     showToast('📞 Connecting…');
+    logError('startCall_step', '1_init_sip_begin', null, { to: dialTo });
     // Browser must be registered to receive the bridge call SignalWire will make to it
     await initSIP();
+    logError('startCall_step', '2_sip_registered', null, { registered: sipUA?.isRegistered() });
 
     const r = await fetch('/api/make-call', {
       method:'POST',
@@ -2894,6 +2902,7 @@ async function startCall(){
       body: JSON.stringify({ to: dialTo }),
     });
     const data = await r.json();
+    logError('startCall_step', '3_make_call_response', null, data);
     if(!data.success) throw new Error(data.error || 'Call failed');
     activeCallSid = data.sid;
 
