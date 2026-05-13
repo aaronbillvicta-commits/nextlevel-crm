@@ -6,7 +6,7 @@
 <title>Next Level Marketing — CRM</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://accounts.google.com/gsi/client" async></script>
-<script src="https://cdn.signalwire.com/@signalwire/js@1"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jssip/3.10.0/jssip.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -2586,8 +2586,9 @@ let callSeconds = 0;
 let callMuted = false;
 let activeCallContact = null;
 let dialpadOpen = false;
-let swDevice = null;
-let swCall = null;
+let sipUA     = null;
+let sipCall   = null;
+let sipConfig = null;
 let preferredInputDevice = '';
 let preferredOutputDevice = '';
 
@@ -2658,11 +2659,11 @@ async function applyAudioDevice(type){
   const deviceId = sel.value;
   if(type === 'input'){
     preferredInputDevice = deviceId;
-    if(swCall && deviceId) swCall.setAudioInDevice(deviceId).catch(()=>{});
-    showToast('🎙 Microphone updated');
+    showToast('🎙 Microphone updated — takes effect on next call');
   } else {
     preferredOutputDevice = deviceId;
-    if(swCall && deviceId) swCall.setAudioOutDevice(deviceId).catch(()=>{});
+    const audio = document.getElementById('remote-audio');
+    if(audio && deviceId && audio.setSinkId) audio.setSinkId(deviceId).catch(()=>{});
     showToast('🔊 Speaker updated');
   }
 }
@@ -2787,21 +2788,32 @@ function initiateCall(contactId, phone, name){
   if(matchEl) matchEl.textContent = `📋 ${name}`;
 }
 
-function handleSWNotification(notification){
-  if(notification.type === 'callUpdate'){
-    const call = notification.params.call;
-    logError('sw_call_state', call.state, null, { type: notification.type });
-    if(call.state === 'ringing') showToast(`📞 Ringing…`);
-    if(call.state === 'active') showToast(`📞 Call connected`);
-    if(call.state === 'hangup'){
-      swCall = null;
-      if(callTimer) endCall();
-    }
+async function initSIP(){
+  if(!sipConfig){
+    const r = await fetch('/api/sip-config');
+    sipConfig = await r.json();
+    if(!sipConfig.username) throw new Error(sipConfig.error || 'SIP config missing');
   }
-  if(notification.type === 'userMediaError'){
-    showToast('Microphone access denied — allow it in browser settings', 'error');
-    logError('sw_userMediaError', notification.type, null, notification.params||{});
-  }
+  if(sipUA && sipUA.isRegistered()) return;
+  if(sipUA){ sipUA.stop(); sipUA=null; }
+
+  const socket = new JsSIP.WebSocketInterface(`wss://${sipConfig.domain}`);
+  sipUA = new JsSIP.UA({
+    sockets: [socket],
+    uri: `sip:${sipConfig.username}@${sipConfig.domain}`,
+    password: sipConfig.password,
+    register: true,
+    session_timers: false,
+  });
+  sipUA.on('registrationFailed', e => logError('sip_reg_failed', e.cause, null, {}));
+  sipUA.on('newRTCSession', e => { if(e.originator==='remote') e.session.terminate(); });
+
+  await new Promise((resolve, reject) => {
+    const t = setTimeout(() => { sipUA=null; reject(new Error('SIP connection timeout')); }, 12000);
+    sipUA.on('registered', () => { clearTimeout(t); resolve(); });
+    sipUA.on('registrationFailed', e => { clearTimeout(t); sipUA=null; reject(new Error('SIP reg failed: '+e.cause)); });
+    sipUA.start();
+  });
 }
 
 async function startCall(){
@@ -2837,30 +2849,35 @@ async function startCall(){
 
   try {
     showToast('📞 Connecting…');
+    await initSIP();
 
-    // Fetch RELAY JWT (expires in 15 min — always get a fresh one)
-    const tokenRes = await fetch('/api/call-token');
-    const tokenData = await tokenRes.json();
-    if(!tokenData.token) throw new Error(tokenData.error || 'Failed to get call token');
+    const target = `sip:${dialTo}@${sipConfig.domain}`;
+    const callOptions = {
+      mediaConstraints: { audio: preferredInputDevice ? {deviceId:{exact:preferredInputDevice}} : true, video: false },
+      rtcOfferConstraints: { offerToReceiveAudio: true, offerToReceiveVideo: false },
+    };
 
-    // Init RELAY client if not ready
-    if(!swDevice){
-      swDevice = new Relay({ project: tokenData.project, token: tokenData.token });
-      swDevice.on('signalwire.notification', handleSWNotification);
-      await new Promise((resolve, reject) => {
-        swDevice.on('signalwire.ready', resolve);
-        swDevice.on('signalwire.error', err => reject(new Error(String(err))));
-        swDevice.connect();
+    sipCall = sipUA.call(target, callOptions);
+
+    sipCall.on('peerconnection', data => {
+      data.peerconnection.addEventListener('track', e => {
+        const audio = document.getElementById('remote-audio');
+        if(audio && e.streams[0]){
+          audio.srcObject = e.streams[0];
+          if(preferredOutputDevice && audio.setSinkId) audio.setSinkId(preferredOutputDevice).catch(()=>{});
+          audio.play().catch(()=>{});
+        }
       });
-    }
-
-    // Make browser WebRTC → PSTN call
-    swCall = swDevice.newCall({
-      destinationNumber: dialTo,
-      callerNumber: swPhone,
-      audio: true,
-      video: false,
     });
+    sipCall.on('progress', () => showToast('📞 Ringing…'));
+    sipCall.on('confirmed', () => showToast('📞 Connected'));
+    sipCall.on('failed', e => {
+      logError('sip_call_failed', e.cause||'unknown', null, { to: dialTo });
+      showToast('Call failed: '+(e.cause||'Unknown'),'error');
+      sipCall=null;
+      if(callTimer) endCall();
+    });
+    sipCall.on('ended', () => { sipCall=null; if(callTimer) endCall(); });
 
     closeDialpad();
     setCallActive(contactName, number);
@@ -2872,8 +2889,8 @@ async function startCall(){
       saveConversations();
     }
   } catch(e){
-    if(swCall){ try{ swCall.hangup(); }catch(_){} swCall=null; }
-    swDevice = null;
+    if(sipCall){ try{ sipCall.terminate(); }catch(_){} sipCall=null; }
+    sipUA=null;
     logCall('outbound', dialTo, activeCallContact?.name||'', 0, 'failed');
     showToast('Call failed: '+(e.message||'Unknown error'),'error');
     logError('startCall', e.message, e.stack, { to: dialTo, contact: activeCallContact?.name });
@@ -2906,7 +2923,7 @@ function setCallActive(name, number){
 }
 
 function endCall(){
-  if(swCall){ try{ swCall.hangup(); }catch(e){} swCall=null; }
+  if(sipCall){ try{ sipCall.terminate(); }catch(e){} sipCall=null; }
   clearInterval(callTimer); callTimer=null;
   const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
   const s=String(callSeconds%60).padStart(2,'0');
@@ -2934,15 +2951,14 @@ function endCall(){
   const input=document.getElementById('call-dial-number');
   if(input) input.value='';
   activeCallContact=null;
-  swDevice=null;
   showToast(`Call ended — ${m}:${s}`);
 }
 
 function toggleMute(){
   callMuted=!callMuted;
-  if(swCall){
-    if(callMuted) swCall.muteAudio();
-    else swCall.unmuteAudio();
+  if(sipCall){
+    if(callMuted) sipCall.mute({audio:true});
+    else sipCall.unmute({audio:true});
   }
   document.getElementById('call-mute-btn')?.classList.toggle('muted',callMuted);
   document.getElementById('dp-mute-btn')?.classList.toggle('muted',callMuted);
@@ -5042,7 +5058,7 @@ async function saveIntegration(key){
     if(!project||!token||!phone){ showToast('Fill in all SignalWire fields','error'); return; }
     data = {'sw-project':project,'sw-phone':phone};
     secret = token;
-    swDevice = null;
+    sipUA = null; sipConfig = null;
   } else if(key==='email'){
     closeModal();
     openAddEmailAccountModal();
@@ -8909,5 +8925,6 @@ function setTheme(name){
   });
 }
 </script>
+<audio id="remote-audio" autoplay style="display:none"></audio>
 </body>
 </html>
