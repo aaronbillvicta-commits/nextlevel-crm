@@ -2790,6 +2790,7 @@ function initiateCall(contactId, phone, name){
 function handleSWNotification(notification){
   if(notification.type === 'callUpdate'){
     const call = notification.params.call;
+    logError('sw_call_state', call.state, null, { type: notification.type });
     if(call.state === 'ringing') showToast(`📞 Ringing…`);
     if(call.state === 'active') showToast(`📞 Call connected`);
     if(call.state === 'hangup'){
@@ -2799,6 +2800,7 @@ function handleSWNotification(notification){
   }
   if(notification.type === 'userMediaError'){
     showToast('Microphone access denied — allow it in browser settings', 'error');
+    logError('sw_userMediaError', notification.type, null, notification.params||{});
   }
 }
 
@@ -2860,9 +2862,6 @@ async function startCall(){
       video: false,
     });
 
-    // Apply preferred mic if set
-    if(preferredInputDevice) swCall.setAudioInDevice(preferredInputDevice).catch(()=>{});
-
     closeDialpad();
     setCallActive(contactName, number);
 
@@ -2873,6 +2872,7 @@ async function startCall(){
       saveConversations();
     }
   } catch(e){
+    if(swCall){ try{ swCall.hangup(); }catch(_){} swCall=null; }
     swDevice = null;
     logCall('outbound', dialTo, activeCallContact?.name||'', 0, 'failed');
     showToast('Call failed: '+(e.message||'Unknown error'),'error');
