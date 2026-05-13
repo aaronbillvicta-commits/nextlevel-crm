@@ -6,7 +6,7 @@
 <title>Next Level Marketing — CRM</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://accounts.google.com/gsi/client" async></script>
-<script src="https://unpkg.com/@signalwire/js"></script>
+<script src="https://cdn.signalwire.com/@signalwire/js@1"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1853,13 +1853,12 @@ table th[onclick]{transition:background .15s,color .15s}
         </div>
         <div class="int-form" id="signalwire-form" style="display:none">
           <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:12px;color:var(--accent2);line-height:1.6">
-            Get your credentials at <strong>quick-help-va.signalwire.com</strong> → API → Project ID & API Token. Your phone number is under Phone Numbers.
+            Get your credentials at <strong>quick-help-va.signalwire.com</strong> → API → Project ID & API Token. Your phone number is under Phone Numbers.<br/>Calls go directly through your browser — no physical phone needed.
           </div>
           <div class="int-form-grid">
             <div class="form-group"><label class="form-label">Project ID</label><input class="form-input" id="sw-project" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"/></div>
             <div class="form-group"><label class="form-label">API Token</label><input class="form-input" id="sw-token" type="password" placeholder="PTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/></div>
             <div class="form-group"><label class="form-label">SignalWire Phone Number</label><input class="form-input" id="sw-phone" placeholder="+13058458883"/></div>
-            <div class="form-group"><label class="form-label">Your Phone Number</label><input class="form-input" id="sw-agent-phone" placeholder="+18325832601" /><div style="font-size:11px;color:var(--text3);margin-top:4px">SignalWire will call this number first, then bridge you to the contact.</div></div>
           </div>
           <div class="int-form-actions">
             <button class="btn" onclick="toggleIntSection('signalwire')">Cancel</button>
@@ -2589,7 +2588,6 @@ let activeCallContact = null;
 let dialpadOpen = false;
 let swDevice = null;
 let swCall = null;
-let activeCallSid = null;
 let preferredInputDevice = '';
 let preferredOutputDevice = '';
 
@@ -2660,16 +2658,11 @@ async function applyAudioDevice(type){
   const deviceId = sel.value;
   if(type === 'input'){
     preferredInputDevice = deviceId;
-    if(swDevice?.audio){
-      if(deviceId) await swDevice.audio.setInputDevice(deviceId);
-      else swDevice.audio.unsetInputDevice();
-    }
+    if(swCall && deviceId) swCall.setAudioInDevice(deviceId).catch(()=>{});
     showToast('🎙 Microphone updated');
   } else {
     preferredOutputDevice = deviceId;
-    if(swDevice?.audio){
-      if(deviceId) await swDevice.audio.speakerDevices.set([deviceId]);
-    }
+    if(swCall && deviceId) swCall.setAudioOutDevice(deviceId).catch(()=>{});
     showToast('🔊 Speaker updated');
   }
 }
@@ -2794,6 +2787,21 @@ function initiateCall(contactId, phone, name){
   if(matchEl) matchEl.textContent = `📋 ${name}`;
 }
 
+function handleSWNotification(notification){
+  if(notification.type === 'callUpdate'){
+    const call = notification.params.call;
+    if(call.state === 'ringing') showToast(`📞 Ringing…`);
+    if(call.state === 'active') showToast(`📞 Call connected`);
+    if(call.state === 'hangup'){
+      swCall = null;
+      if(callTimer) endCall();
+    }
+  }
+  if(notification.type === 'userMediaError'){
+    showToast('Microphone access denied — allow it in browser settings', 'error');
+  }
+}
+
 async function startCall(){
   const input = document.getElementById('call-dial-number');
   const number = input?.value.trim()||'';
@@ -2825,33 +2833,47 @@ async function startCall(){
   const contactName = activeCallContact?.name||number;
   const dialTo = number.startsWith('+') ? number : '+1'+number.replace(/\D/g,'');
 
-  const agentPhone = getIntData('signalwire')['sw-agent-phone']||'';
-  if(!agentPhone){
-    showToast('Set Your Phone Number in SignalWire integration settings','error');
-    return;
-  }
-
   try {
-    showToast(`📞 Calling your phone…`);
-    const r = await fetch('/api/make-call',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ to: dialTo, agentPhone }),
+    showToast('📞 Connecting…');
+
+    // Fetch RELAY JWT (expires in 15 min — always get a fresh one)
+    const tokenRes = await fetch('/api/call-token');
+    const tokenData = await tokenRes.json();
+    if(!tokenData.token) throw new Error(tokenData.error || 'Failed to get call token');
+
+    // Init RELAY client if not ready
+    if(!swDevice){
+      swDevice = new Relay({ project: tokenData.project, token: tokenData.token });
+      swDevice.on('signalwire.notification', handleSWNotification);
+      await new Promise((resolve, reject) => {
+        swDevice.on('signalwire.ready', resolve);
+        swDevice.on('signalwire.error', err => reject(new Error(String(err))));
+        swDevice.connect();
+      });
+    }
+
+    // Make browser WebRTC → PSTN call
+    swCall = swDevice.newCall({
+      destinationNumber: dialTo,
+      callerNumber: swPhone,
+      audio: true,
+      video: false,
     });
-    const data = await r.json();
-    if(!data.success) throw new Error(data.error||'Call failed');
-    activeCallSid = data.sid;
+
+    // Apply preferred mic if set
+    if(preferredInputDevice) swCall.setAudioInDevice(preferredInputDevice).catch(()=>{});
+
     closeDialpad();
     setCallActive(contactName, number);
-    // Log to conversation
+
     if(activeCallContact?.id){
       let conv=conversations.find(c=>c.contactId===activeCallContact.id);
       if(!conv){conv={id:'conv_'+Date.now(),contactId:activeCallContact.id,messages:[]};conversations.push(conv);}
       conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'outbound',body:`📞 Outbound call to ${number}`,ts:new Date().toISOString(),status:'sent'});
       saveConversations();
     }
-    showToast(`📞 Answer your phone — connecting you to ${contactName}`);
   } catch(e){
+    swDevice = null;
     logCall('outbound', dialTo, activeCallContact?.name||'', 0, 'failed');
     showToast('Call failed: '+(e.message||'Unknown error'),'error');
     logError('startCall', e.message, e.stack, { to: dialTo, contact: activeCallContact?.name });
@@ -2885,10 +2907,6 @@ function setCallActive(name, number){
 
 function endCall(){
   if(swCall){ try{ swCall.hangup(); }catch(e){} swCall=null; }
-  if(activeCallSid){
-    fetch('/api/end-call',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({sid:activeCallSid})}).catch(()=>{});
-    activeCallSid=null;
-  }
   clearInterval(callTimer); callTimer=null;
   const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
   const s=String(callSeconds%60).padStart(2,'0');
@@ -2923,8 +2941,8 @@ function endCall(){
 function toggleMute(){
   callMuted=!callMuted;
   if(swCall){
-    if(callMuted) swCall.audioMute().catch(()=>{});
-    else swCall.audioUnmute().catch(()=>{});
+    if(callMuted) swCall.muteAudio();
+    else swCall.unmuteAudio();
   }
   document.getElementById('call-mute-btn')?.classList.toggle('muted',callMuted);
   document.getElementById('dp-mute-btn')?.classList.toggle('muted',callMuted);
@@ -5018,12 +5036,11 @@ function toggleIntSection(key){
 async function saveIntegration(key){
   let data = {}, secret = '';
   if(key==='signalwire'){
-    const project    = document.getElementById('sw-project').value.trim();
-    const token      = document.getElementById('sw-token').value.trim();
-    const phone      = document.getElementById('sw-phone').value.trim();
-    const agentPhone = document.getElementById('sw-agent-phone').value.trim();
-    if(!project||!token||!phone||!agentPhone){ showToast('Fill in all SignalWire fields including Your Phone Number','error'); return; }
-    data = {'sw-project':project,'sw-phone':phone,'sw-agent-phone':agentPhone};
+    const project = document.getElementById('sw-project').value.trim();
+    const token   = document.getElementById('sw-token').value.trim();
+    const phone   = document.getElementById('sw-phone').value.trim();
+    if(!project||!token||!phone){ showToast('Fill in all SignalWire fields','error'); return; }
+    data = {'sw-project':project,'sw-phone':phone};
     secret = token;
     swDevice = null;
   } else if(key==='email'){
