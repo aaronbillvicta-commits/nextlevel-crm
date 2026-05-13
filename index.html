@@ -882,9 +882,12 @@ tbody tr:hover td{background:var(--bg3)}
 .dialpad-number-input{
   flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);
   padding:6px 8px;font-size:14px;font-family:'DM Mono',monospace;color:var(--text);
-  outline:none;letter-spacing:.05em;text-align:center;pointer-events:none;
+  outline:none;letter-spacing:.05em;text-align:center;
   min-width:0
 }
+.call-hist-item{display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;border-bottom:1px solid var(--border)}
+.call-hist-item:last-child{border-bottom:none}
+.call-hist-item:hover{background:var(--bg3);border-radius:var(--radius);padding-left:4px}
 .dialpad-backspace{
   font-size:16px;color:var(--text2);cursor:pointer;flex-shrink:0;
   width:28px;height:28px;border-radius:var(--radius);transition:all .15s;
@@ -1196,7 +1199,9 @@ table th[onclick]{transition:background .15s,color .15s}
     </div>
     
     <div class="dialpad-display">
-      <input class="dialpad-number-input" id="call-dial-number" placeholder="Enter number…" readonly/>
+      <input class="dialpad-number-input" id="call-dial-number" placeholder="Enter or paste number…"
+        oninput="matchDialpadContact(this.value)"
+        onkeydown="if(event.key==='Enter')startCall();if(event.key==='Backspace'){event.preventDefault();dialpadBackspace();}"/>
       <span class="dialpad-backspace" onclick="dialpadBackspace()" title="Backspace">⌫</span>
     </div>
     
@@ -1221,6 +1226,10 @@ table th[onclick]{transition:background .15s,color .15s}
       <button class="btn-call-action call-btn-start" onclick="startCall()" title="Call" style="width:44px;height:44px">
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
       </button>
+    </div>
+    <div style="border-top:1px solid var(--border);padding:8px 10px;max-height:200px;overflow-y:auto">
+      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Recent Calls</div>
+      <div id="call-history-list"><div style="font-size:11px;color:var(--text3);text-align:center;padding:8px 0">No calls yet</div></div>
     </div>
   </div>
 
@@ -2538,6 +2547,69 @@ let dialpadOpen = false;
 let swDevice = null;
 let swCall = null;
 
+// ── CALL HISTORY ──
+let callHistory = JSON.parse(localStorage.getItem('nlm_call_history')||'[]');
+
+function saveCallHistory(){
+  localStorage.setItem('nlm_call_history', JSON.stringify(callHistory.slice(0,100)));
+}
+
+function logCall(direction, number, contactName, durationSecs, status){
+  callHistory.unshift({
+    id:'ch_'+Date.now(), direction, number,
+    contactName: contactName||number,
+    duration: durationSecs,
+    status, // 'completed'|'missed'|'failed'
+    ts: new Date().toISOString()
+  });
+  saveCallHistory();
+  renderCallHistory();
+}
+
+function fmtDuration(secs){
+  if(!secs) return '—';
+  const m=Math.floor(secs/60), s=secs%60;
+  return m>0?`${m}m ${s}s`:`${s}s`;
+}
+
+function fmtCallTime(ts){
+  const d=new Date(ts), now=new Date();
+  const diff=Math.floor((now-d)/60000);
+  if(diff<1) return 'just now';
+  if(diff<60) return `${diff}m ago`;
+  if(diff<1440) return `${Math.floor(diff/60)}h ago`;
+  return d.toLocaleDateString([],{month:'short',day:'numeric'});
+}
+
+function renderCallHistory(){
+  const el=document.getElementById('call-history-list'); if(!el) return;
+  if(!callHistory.length){
+    el.innerHTML='<div style="font-size:11px;color:var(--text3);text-align:center;padding:8px 0">No calls yet</div>';
+    return;
+  }
+  el.innerHTML=callHistory.slice(0,20).map(c=>{
+    const icon = c.direction==='inbound'
+      ? (c.status==='missed'?'<span style="color:var(--red)">↙</span>':'<span style="color:var(--green)">↙</span>')
+      : (c.status==='failed'?'<span style="color:var(--red)">↗</span>':'<span style="color:var(--accent2)">↗</span>');
+    const statusColor = c.status==='missed'||c.status==='failed' ? 'var(--red)' : 'var(--text3)';
+    const detail = c.status==='missed'?'Missed':c.status==='failed'?'Failed':fmtDuration(c.duration);
+    return `<div class="call-hist-item" onclick="dialpadSetNumber('${c.number}')" title="Click to redial">
+      <span style="font-size:14px;width:16px;text-align:center;flex-shrink:0">${icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.contactName}</div>
+        <div style="font-size:10px;color:var(--text3)">${fmtCallTime(c.ts)}</div>
+      </div>
+      <div style="font-size:10px;color:${statusColor};flex-shrink:0">${detail}</div>
+    </div>`;
+  }).join('');
+}
+
+function dialpadSetNumber(number){
+  const input=document.getElementById('call-dial-number'); if(!input) return;
+  input.value=number;
+  matchDialpadContact(number);
+}
+
 function updateCallWidgetVisibility(page){
   const w = document.getElementById('topbar-call-widget'); if(!w) return;
   w.style.display = page==='settings' ? 'none' : 'flex';
@@ -2556,6 +2628,7 @@ function openDialpad(){
   const btn = document.getElementById('call-toggle-btn');
   if(pad) pad.style.display='block';
   if(btn) btn.classList.add('active');
+  renderCallHistory();
 }
 
 function closeDialpad(){
@@ -2655,6 +2728,7 @@ async function startCall(){
     }
     showToast(`📞 Calling ${contactName}…`);
   } catch(e){
+    logCall('outbound', dialTo, activeCallContact?.name||'', 0, 'failed');
     showToast('Call failed: '+(e.message||'Unknown error'),'error');
     console.error('[SW] startCall error:', e);
   }
@@ -2681,6 +2755,9 @@ function endCall(){
   clearInterval(callTimer); callTimer=null;
   const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
   const s=String(callSeconds%60).padStart(2,'0');
+  // Log to call history
+  const calledNumber = activeCallContact?.phone || document.getElementById('call-dial-number')?.value || '';
+  logCall('outbound', calledNumber, activeCallContact?.name||'', callSeconds, callSeconds>0?'completed':'missed');
   if(activeCallContact?.id){
     let conv=conversations.find(c=>c.contactId===activeCallContact.id);
     if(conv){
