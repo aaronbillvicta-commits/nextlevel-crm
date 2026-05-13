@@ -2591,6 +2591,31 @@ let swCall = null;
 let preferredInputDevice = '';
 let preferredOutputDevice = '';
 
+// ── ERROR LOGGING ──
+function logError(source, message, stack, context) {
+  // Write to localStorage for offline/instant access
+  try {
+    const logs = JSON.parse(localStorage.getItem('crm_errors') || '[]');
+    logs.unshift({ ts: new Date().toISOString(), source, message, stack, context });
+    if (logs.length > 100) logs.length = 100;
+    localStorage.setItem('crm_errors', JSON.stringify(logs));
+  } catch (_) {}
+  // Ship to Supabase via API (fire-and-forget)
+  fetch('/api/log-error', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source, message, stack, context }),
+  }).catch(() => {});
+}
+
+// Catch all uncaught JS errors
+window.onerror = function(msg, src, line, col, err) {
+  logError('window.onerror', msg, err?.stack, { src, line, col });
+};
+window.onunhandledrejection = function(e) {
+  logError('unhandledrejection', e.reason?.message || String(e.reason), e.reason?.stack, {});
+};
+
 // ── AUDIO DEVICE SELECTION ──
 async function toggleAudioSettings(){
   const panel = document.getElementById('dialpad-audio-settings');
@@ -2624,6 +2649,7 @@ async function enumerateAudioDevices(){
     });
   } catch(e){
     showToast('Mic permission denied — grant access in browser settings', 'error');
+    logError('enumerateAudioDevices', e.message, e.stack, {});
   }
 }
 
@@ -2832,7 +2858,7 @@ async function startCall(){
   } catch(e){
     logCall('outbound', dialTo, activeCallContact?.name||'', 0, 'failed');
     showToast('Call failed: '+(e.message||'Unknown error'),'error');
-    console.error('[SW] startCall error:', e);
+    logError('startCall', e.message, e.stack, { to: dialTo, contact: activeCallContact?.name });
   }
 }
 
@@ -5110,7 +5136,11 @@ async function sendSMS(){
     showToast('SMS sent! ✅');
     logActivity('sms', `SMS sent to ${to}: "${body.slice(0,60)}"`);
     fireZapierEvent('sms_sent', {to, body, from:phone});
-  } catch(e){ addIntLog('sms-log','❌ Failed: '+e.message,'err'); showToast('SMS failed: '+e.message,'error'); }
+  } catch(e){
+    addIntLog('sms-log','❌ Failed: '+e.message,'err');
+    showToast('SMS failed: '+e.message,'error');
+    logError('sendSMS', e.message, e.stack, { to });
+  }
 }
 
 // ── EMAIL SEND ──

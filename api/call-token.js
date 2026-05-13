@@ -41,19 +41,15 @@ async function getOrCreateApp(baseUrl) {
 
 function makeCapabilityToken(appSid) {
   const now = Math.floor(Date.now() / 1000);
+  const clientName = `crm-user`;
+  // Twilio Voice JS v1.14 requires Capability Token format (scope-based), not Access Token (grants-based)
+  const outScope = `scope:client:outgoing?appSid=${appSid}&clientName=${encodeURIComponent(clientName)}`;
+  const inScope  = `scope:client:incoming?clientName=${encodeURIComponent(clientName)}`;
   const header  = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const payload = Buffer.from(JSON.stringify({
-    jti: `${PROJECT}-${now}`,
     iss: PROJECT,
-    sub: PROJECT,
     exp: now + 3600,
-    grants: {
-      identity: `crm-agent-${now}`,
-      voice: {
-        incoming: { allow: true },
-        outgoing: { application_sid: appSid },
-      },
-    },
+    scope: `${outScope} ${inScope}`,
   })).toString('base64url');
   const sig = crypto.createHmac('sha256', TOKEN)
     .update(`${header}.${payload}`)
