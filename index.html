@@ -4605,6 +4605,28 @@ async function enterApp(){
   renderCustomFieldsPage();
   renderSettingsPage();
   renderDashboard();
+
+  // Poll for inbound SMS every 30 seconds
+  setInterval(async()=>{
+    if(!currentUser) return;
+    try {
+      const rows = await sb.get('conversations','');
+      if(!rows?.length) return;
+      const prevLengths = Object.fromEntries(conversations.map(c=>[c.id,c.messages.length]));
+      conversations = rows.map(r=>({id:r.id,contactId:r.contact_id,messages:r.messages||[]}));
+      const hasNew = conversations.some(c=>c.messages.length>(prevLengths[c.id]||0));
+      renderConversations();
+      if(hasNew && activeConvContactId){
+        const conv=conversations.find(c=>c.contactId===activeConvContactId);
+        if(conv){
+          const avCls=getAv(activeConvContactId);
+          const avBg={'av-pink':'var(--pink-bg)','av-blue':'var(--accent-bg)','av-amber':'var(--amber-bg)','av-green':'var(--green-bg)','av-purple':'var(--purple-bg)'}[avCls]||'var(--accent-bg)';
+          const avClr={'av-pink':'var(--pink)','av-blue':'var(--accent2)','av-amber':'var(--amber)','av-green':'var(--green)','av-purple':'var(--purple)'}[avCls]||'var(--accent2)';
+          renderConvBubbles(conv,avBg,avClr);
+        }
+      }
+    } catch(e){}
+  }, 10000);
 }
 
 async function refreshSession(refreshToken){
@@ -7494,7 +7516,7 @@ function renderConvBubbles(conv, avBg, avClr){
     // Status indicator for outbound
     let statusHtml='';
     if(isOut){
-      const statusIcons={sent:'✓ Sent',delivered:'✓✓ Delivered',read:'✓✓ Read',failed:'✗ Failed',received:''};
+      const statusIcons={sending:'⌛ Sending',sent:'✓ Sent',delivered:'✓✓ Delivered',read:'✓✓ Read',failed:'✗ Failed',received:''};
       const statusClass={sent:'conv-status-sent',delivered:'conv-status-delivered',read:'conv-status-read',failed:'conv-status-failed'};
       if(statusIcons[msg.status]) statusHtml=`<div class="conv-bubble-status ${statusClass[msg.status]||''}">${statusIcons[msg.status]}</div>`;
     }
@@ -7693,18 +7715,26 @@ async function sendConvMessage(ch){
   renderConvBubbles(conv, avBg, avClr);
   renderConvList();
 
-  // Simulate delivery status update after 1.5s
-  setTimeout(()=>{
-    newMsg.status='delivered';
-    saveConversations();
-    renderConvBubbles(conv, avBg, avClr);
-  }, 1500);
-
-  // Actually send via integration if connected
+  // Send via integration
   if(ch==='sms'){
     if(getIntData('signalwire')['sw-phone'] && contact?.phone){
-      fetch('/api/sms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:contact.phone,body:mergedBody})}).catch(()=>{});
-      showToast(`SMS sent to ${contact.phone} ✅`);
+      newMsg.status='sending';
+      renderConvBubbles(conv, avBg, avClr);
+      try {
+        const r = await fetch('/api/sms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:contact.phone,body:mergedBody})});
+        const data = await r.json();
+        if(data.error) throw new Error(data.error);
+        newMsg.status='sent';
+        if(data.sid) newMsg.sid=data.sid;
+        saveConversations();
+        renderConvBubbles(conv, avBg, avClr);
+        showToast(`SMS sent to ${contact.phone} ✅`);
+      } catch(e){
+        newMsg.status='failed';
+        saveConversations();
+        renderConvBubbles(conv, avBg, avClr);
+        showToast('SMS failed: '+e.message,'error');
+      }
     } else {
       showToast('SMS logged (connect SignalWire in Integrations to send for real)');
     }
