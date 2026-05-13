@@ -1194,42 +1194,63 @@ table th[onclick]{transition:background .15s,color .15s}
 
   <div class="dialpad-float" id="dialpad-float" style="display:none">
     <div class="dialpad-head">
-      <span style="font-size:12px;font-weight:600;color:var(--text)">Dialer</span>
+      <span style="font-size:12px;font-weight:600;color:var(--text)" id="dialpad-head-label">Dialer</span>
       <span style="cursor:pointer;color:var(--text3);font-size:18px;line-height:1" onclick="toggleDialpad()">×</span>
     </div>
-    
-    <div class="dialpad-display">
-      <input class="dialpad-number-input" id="call-dial-number" placeholder="Enter or paste number…"
-        oninput="matchDialpadContact(this.value)"
-        onkeydown="if(event.key==='Enter')startCall();if(event.key==='Backspace'){event.preventDefault();dialpadBackspace();}"/>
-      <span class="dialpad-backspace" onclick="dialpadBackspace()" title="Backspace">⌫</span>
+
+    <!-- ── IN-CALL PANEL ── -->
+    <div id="dialpad-incall" style="display:none;padding:20px 16px;text-align:center">
+      <div style="font-size:10px;color:var(--green);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">● On Call</div>
+      <div id="dp-call-name" style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Calling…</div>
+      <div id="dp-call-timer" style="font-size:26px;font-family:'DM Mono',monospace;color:var(--green);font-weight:500;margin-bottom:24px">00:00</div>
+      <div style="display:flex;justify-content:center;gap:20px;align-items:center">
+        <div style="text-align:center">
+          <button class="btn-call-action call-btn-mute" id="dp-mute-btn" onclick="toggleMute()" style="width:52px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
+          <div id="dp-mute-label" style="font-size:10px;color:var(--text3);margin-top:4px">Mute</div>
+        </div>
+        <div style="text-align:center">
+          <button class="btn-call-action call-btn-end" onclick="endCall()" style="width:52px;height:52px">
+            <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </button>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">Drop</div>
+        </div>
+      </div>
     </div>
-    
-    <div id="dialpad-contact-match" style="font-size:11px;color:var(--accent2);text-align:center;min-height:16px;margin-bottom:6px"></div>
-    
-    <div class="dialpad-grid">
-      <button class="dialpad-key" onclick="dialpadPress('1')">1</button>
-      <button class="dialpad-key" onclick="dialpadPress('2')">2</button>
-      <button class="dialpad-key" onclick="dialpadPress('3')">3</button>
-      <button class="dialpad-key" onclick="dialpadPress('4')">4</button>
-      <button class="dialpad-key" onclick="dialpadPress('5')">5</button>
-      <button class="dialpad-key" onclick="dialpadPress('6')">6</button>
-      <button class="dialpad-key" onclick="dialpadPress('7')">7</button>
-      <button class="dialpad-key" onclick="dialpadPress('8')">8</button>
-      <button class="dialpad-key" onclick="dialpadPress('9')">9</button>
-      <button class="dialpad-key" onclick="dialpadPress('*')" style="font-size:22px;line-height:1">*</button>
-      <button class="dialpad-key" onclick="dialpadPress('0')">0</button>
-      <button class="dialpad-key" onclick="dialpadPress('#')">#</button>
-    </div>
-    
-    <div class="dialpad-actions">
-      <button class="btn-call-action call-btn-start" onclick="startCall()" title="Call" style="width:44px;height:44px">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-      </button>
-    </div>
-    <div style="border-top:1px solid var(--border);padding:8px 10px;max-height:200px;overflow-y:auto">
-      <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Recent Calls</div>
-      <div id="call-history-list"><div style="font-size:11px;color:var(--text3);text-align:center;padding:8px 0">No calls yet</div></div>
+
+    <!-- ── IDLE DIALER ── -->
+    <div id="dialpad-idle">
+      <div class="dialpad-display">
+        <input class="dialpad-number-input" id="call-dial-number" placeholder="Enter or paste number…"
+          oninput="matchDialpadContact(this.value)"
+          onkeydown="if(event.key==='Enter')startCall();if(event.key==='Backspace'){event.preventDefault();dialpadBackspace();}"/>
+        <span class="dialpad-backspace" onclick="dialpadBackspace()" title="Backspace">⌫</span>
+      </div>
+      <div id="dialpad-contact-match" style="font-size:11px;color:var(--accent2);text-align:center;min-height:16px;margin-bottom:6px"></div>
+      <div class="dialpad-grid">
+        <button class="dialpad-key" onclick="dialpadPress('1')">1</button>
+        <button class="dialpad-key" onclick="dialpadPress('2')">2</button>
+        <button class="dialpad-key" onclick="dialpadPress('3')">3</button>
+        <button class="dialpad-key" onclick="dialpadPress('4')">4</button>
+        <button class="dialpad-key" onclick="dialpadPress('5')">5</button>
+        <button class="dialpad-key" onclick="dialpadPress('6')">6</button>
+        <button class="dialpad-key" onclick="dialpadPress('7')">7</button>
+        <button class="dialpad-key" onclick="dialpadPress('8')">8</button>
+        <button class="dialpad-key" onclick="dialpadPress('9')">9</button>
+        <button class="dialpad-key" onclick="dialpadPress('*')" style="font-size:22px;line-height:1">*</button>
+        <button class="dialpad-key" onclick="dialpadPress('0')">0</button>
+        <button class="dialpad-key" onclick="dialpadPress('#')">#</button>
+      </div>
+      <div class="dialpad-actions">
+        <button class="btn-call-action call-btn-start" onclick="startCall()" title="Call" style="width:44px;height:44px">
+          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </button>
+      </div>
+      <div style="border-top:1px solid var(--border);padding:8px 10px;max-height:200px;overflow-y:auto">
+        <div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Recent Calls</div>
+        <div id="call-history-list"><div style="font-size:11px;color:var(--text3);text-align:center;padding:8px 0">No calls yet</div></div>
+      </div>
     </div>
   </div>
 
@@ -2740,6 +2761,13 @@ function setCallActive(name, number){
   document.getElementById('call-active-name').textContent=name||number;
   callSeconds=0; callMuted=false;
   document.getElementById('call-mute-btn')?.classList.remove('muted');
+  document.getElementById('dialpad-incall').style.display='block';
+  document.getElementById('dialpad-idle').style.display='none';
+  document.getElementById('dp-call-name').textContent=name||number;
+  document.getElementById('dp-call-timer').textContent='00:00';
+  document.getElementById('dp-mute-btn')?.classList.remove('muted');
+  document.getElementById('dp-mute-label').textContent='Mute';
+  document.getElementById('dialpad-head-label').textContent='On Call';
   clearInterval(callTimer);
   callTimer=setInterval(()=>{
     callSeconds++;
@@ -2747,6 +2775,8 @@ function setCallActive(name, number){
     const s=String(callSeconds%60).padStart(2,'0');
     const t=document.getElementById('call-active-timer');
     if(t) t.textContent=`${m}:${s}`;
+    const dp=document.getElementById('dp-call-timer');
+    if(dp) dp.textContent=`${m}:${s}`;
   },1000);
 }
 
@@ -2772,6 +2802,10 @@ function endCall(){
   if(timerEl) timerEl.textContent='00:00';
   const nameEl=document.getElementById('call-active-name');
   if(nameEl) nameEl.textContent='Calling…';
+  document.getElementById('dialpad-incall').style.display='none';
+  document.getElementById('dialpad-idle').style.display='block';
+  document.getElementById('dp-call-timer').textContent='00:00';
+  document.getElementById('dialpad-head-label').textContent='Dialer';
   const input=document.getElementById('call-dial-number');
   if(input) input.value='';
   activeCallContact=null;
@@ -2782,6 +2816,8 @@ function toggleMute(){
   callMuted=!callMuted;
   if(swCall) swCall.mute(callMuted);
   document.getElementById('call-mute-btn')?.classList.toggle('muted',callMuted);
+  document.getElementById('dp-mute-btn')?.classList.toggle('muted',callMuted);
+  document.getElementById('dp-mute-label').textContent=callMuted?'Unmute':'Mute';
   showToast(callMuted?'🔇 Muted':'🔊 Unmuted');
 }
 
