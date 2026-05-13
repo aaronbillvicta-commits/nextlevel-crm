@@ -1195,7 +1195,28 @@ table th[onclick]{transition:background .15s,color .15s}
   <div class="dialpad-float" id="dialpad-float" style="display:none">
     <div class="dialpad-head">
       <span style="font-size:12px;font-weight:600;color:var(--text)" id="dialpad-head-label">Dialer</span>
-      <span style="cursor:pointer;color:var(--text3);font-size:18px;line-height:1" onclick="toggleDialpad()">×</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <button id="audio-settings-btn" onclick="toggleAudioSettings()" title="Audio devices" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:2px;display:flex;align-items:center;transition:color .15s" onmouseenter="this.style.color='var(--text)'" onmouseleave="this.style.color='var(--text3)'">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+        </button>
+        <span style="cursor:pointer;color:var(--text3);font-size:18px;line-height:1" onclick="toggleDialpad()">×</span>
+      </div>
+    </div>
+    <!-- ── AUDIO DEVICE SETTINGS ── -->
+    <div id="dialpad-audio-settings" style="display:none;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg1)">
+      <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Audio Devices</div>
+      <div style="margin-bottom:8px">
+        <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px">Microphone</label>
+        <select id="audio-input-select" onchange="applyAudioDevice('input')" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;padding:4px 6px;cursor:pointer">
+          <option value="">Default</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-size:10px;color:var(--text3);display:block;margin-bottom:3px">Speaker</label>
+        <select id="audio-output-select" onchange="applyAudioDevice('output')" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-size:11px;padding:4px 6px;cursor:pointer">
+          <option value="">Default</option>
+        </select>
+      </div>
     </div>
 
     <!-- ── IN-CALL PANEL ── -->
@@ -2567,6 +2588,63 @@ let activeCallContact = null;
 let dialpadOpen = false;
 let swDevice = null;
 let swCall = null;
+let preferredInputDevice = '';
+let preferredOutputDevice = '';
+
+// ── AUDIO DEVICE SELECTION ──
+async function toggleAudioSettings(){
+  const panel = document.getElementById('dialpad-audio-settings');
+  const open = panel.style.display !== 'none';
+  panel.style.display = open ? 'none' : 'block';
+  if(!open) await enumerateAudioDevices();
+}
+
+async function enumerateAudioDevices(){
+  try {
+    // Trigger permission prompt so labels are populated
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    stream.getTracks().forEach(t => t.stop());
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const inSel = document.getElementById('audio-input-select');
+    const outSel = document.getElementById('audio-output-select');
+    inSel.innerHTML = '<option value="">Default</option>';
+    outSel.innerHTML = '<option value="">Default</option>';
+    devices.forEach((d, i) => {
+      const opt = document.createElement('option');
+      opt.value = d.deviceId;
+      if(d.kind === 'audioinput'){
+        opt.textContent = d.label || `Microphone ${i+1}`;
+        if(d.deviceId === preferredInputDevice) opt.selected = true;
+        inSel.appendChild(opt);
+      } else if(d.kind === 'audiooutput'){
+        opt.textContent = d.label || `Speaker ${i+1}`;
+        if(d.deviceId === preferredOutputDevice) opt.selected = true;
+        outSel.appendChild(opt);
+      }
+    });
+  } catch(e){
+    showToast('Mic permission denied — grant access in browser settings', 'error');
+  }
+}
+
+async function applyAudioDevice(type){
+  const sel = document.getElementById(type==='input' ? 'audio-input-select' : 'audio-output-select');
+  const deviceId = sel.value;
+  if(type === 'input'){
+    preferredInputDevice = deviceId;
+    if(swDevice?.audio){
+      if(deviceId) await swDevice.audio.setInputDevice(deviceId);
+      else swDevice.audio.unsetInputDevice();
+    }
+    showToast('🎙 Microphone updated');
+  } else {
+    preferredOutputDevice = deviceId;
+    if(swDevice?.audio){
+      if(deviceId) await swDevice.audio.speakerDevices.set([deviceId]);
+    }
+    showToast('🔊 Speaker updated');
+  }
+}
 
 // ── CALL HISTORY ──
 let callHistory = JSON.parse(localStorage.getItem('nlm_call_history')||'[]');
@@ -2731,6 +2809,9 @@ async function startCall(){
         swDevice.on('error', reject);
         setTimeout(()=>reject(new Error('Device setup timeout')), 8000);
       });
+      // Apply saved device preferences
+      if(preferredInputDevice) swDevice.audio?.setInputDevice(preferredInputDevice).catch(()=>{});
+      if(preferredOutputDevice) swDevice.audio?.speakerDevices.set([preferredOutputDevice]).catch(()=>{});
     }
 
     swCall = swDevice.connect({ To: dialTo });
