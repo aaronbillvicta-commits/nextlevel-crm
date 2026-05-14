@@ -49,6 +49,11 @@ body.theme-light .topbar{background:#ffffff;}
 .theme-swatch{width:80px;height:48px;border-radius:6px}
 .theme-opt-label{font-size:12px;color:var(--text);font-weight:500}
 
+/* ── CONTACT VIEW TABS (All Contacts / Bulk Action Log) ── */
+.contact-view-tab{font-size:17px;font-weight:600;color:var(--text3);cursor:pointer;padding:2px 0;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
+.contact-view-tab:hover{color:var(--text2)}
+.contact-view-tab.active{color:var(--text);border-bottom-color:var(--accent)}
+
 /* ── BULK SELECT ── */
 #bulk-action-bar{display:none}
 #bulk-action-bar.active{display:flex !important}
@@ -1313,8 +1318,11 @@ table th[onclick]{transition:background .15s,color .15s}
     <div class="page" id="page-contacts">
       
       <div class="sec-head">
-        <div class="sec-title">All Contacts <span id="contact-count-label" style="color:var(--text3);font-weight:400"></span></div>
-        <div style="display:flex;gap:8px;align-items:center">
+        <div style="display:flex;align-items:center;gap:18px">
+          <div class="contact-view-tab active" data-cview="contacts" onclick="setContactView('contacts')">All Contacts <span id="contact-count-label" style="color:var(--text3);font-weight:400"></span></div>
+          <div class="contact-view-tab" data-cview="log" onclick="setContactView('log')">Bulk Action Log</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center" id="contacts-header-actions">
           <button class="btn btn-sm" onclick="openImportContacts()">⬆ Import CSV</button>
           <button class="btn btn-sm" onclick="exportContactsCSV()">⬇ Export CSV</button>
           <button class="btn btn-primary btn-sm" onclick="openContactModal()">+ Add Contact</button>
@@ -1324,6 +1332,7 @@ table th[onclick]{transition:background .15s,color .15s}
         </div>
       </div>
 
+      <div id="contacts-main-view">
       <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;flex-wrap:nowrap">
 
         <div style="position:relative;flex:1;min-width:0">
@@ -1395,6 +1404,31 @@ table th[onclick]{transition:background .15s,color .15s}
           <thead id="contacts-thead"><tr></tr></thead>
           <tbody id="contacts-tbody"></tbody>
         </table>
+      </div>
+      </div><!-- /contacts-main-view -->
+
+      <!-- ── BULK ACTION LOG VIEW ── -->
+      <div id="bulk-log-view" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-size:12px;color:var(--text3)">History of bulk actions you've performed — newest first. Stored locally in this browser.</div>
+          <button class="btn btn-sm" onclick="clearBulkActionLog()" style="color:var(--red)">Clear Log</button>
+        </div>
+        <div class="tbl-wrap">
+          <table id="bulk-log-table">
+            <thead>
+              <tr>
+                <th>Action Label</th>
+                <th>Operation</th>
+                <th>Status</th>
+                <th>User</th>
+                <th>Created</th>
+                <th>Completed</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="bulk-log-tbody"></tbody>
+          </table>
+        </div>
       </div>
 
       <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="handleCSVImport(event)"/>
@@ -4195,6 +4229,7 @@ function openContactDetail(contactId, tab='info') {
       const sp = splitName(c.name);
       c.first_name = sp.first; c.last_name = sp.last;
     }
+    migrateContactNotes(c);
     body = `
       <div class="form-row">
         <div class="form-group"><label class="form-label">First Name</label>
@@ -4223,8 +4258,13 @@ function openContactDetail(contactId, tab='info') {
             ${contactStatuses.map(s=>`<option value="${s.value}" ${c.status===s.value?'selected':''}>${s.label}</option>`).join('')}
           </select></div>
       </div>
-      <div class="form-group"><label class="form-label">Notes</label>
-        <textarea class="form-textarea" id="cd-notes" style="min-height:80px" placeholder="Add notes about this contact…">${(c.customFields||{})['__notes__']||''}</textarea>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <div style="display:flex;gap:6px;margin-bottom:10px;align-items:flex-start">
+          <textarea class="form-input" id="cd-new-note" placeholder="Write a note… (2-3 sentences)" style="flex:1;min-height:54px;resize:vertical;font-family:inherit"></textarea>
+          <button class="btn btn-primary btn-sm" onclick="addContactNote('${contactId}')" style="flex-shrink:0">+ Add Note</button>
+        </div>
+        <div id="cd-notes-list"></div>
       </div>
       <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
         <button class="btn btn-primary" onclick="saveContactDetail('${contactId}')">💾 Save Changes</button>
@@ -4354,6 +4394,8 @@ function openContactDetail(contactId, tab='info') {
     <div style="padding:16px;overflow-y:auto;flex:1;min-height:0">${body}</div>`;
 
   document.getElementById('detail-panel').classList.add('open');
+  // Render the notes list (info tab only)
+  if(tab==='info') renderContactNotes(contactId);
 }
 
 async function saveContactDetail(contactId){
@@ -4366,13 +4408,11 @@ async function saveContactDetail(contactId){
   const phone     = document.getElementById('cd-phone')?.value.trim();
   const source    = document.getElementById('cd-source')?.value;
   const status    = document.getElementById('cd-status')?.value;
-  const notes     = document.getElementById('cd-notes')?.value.trim();
   if(!firstName && !lastName){ showToast('First or last name is required','error'); return; }
   if(!c.customFields) c.customFields={};
-  c.customFields['__notes__'] = notes;
   const lastAct = { ts:new Date().toISOString(), type:'update' };
   try {
-    await sb.patch('contacts', contactId, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,custom_fields:c.customFields,last_activity:lastAct});
+    await sb.patch('contacts', contactId, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct});
     Object.assign(c, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct});
     showToast('Contact saved! ✅');
     renderContacts();
@@ -4410,6 +4450,133 @@ async function addContactToPipeline(contactId){
 }
 
 function closeDetail(){ document.getElementById('detail-panel').classList.remove('open'); }
+
+// ═══════════════════════════════════════════════
+// CONTACT NOTES — timestamped, editable, with separators
+// ═══════════════════════════════════════════════
+function fmtNoteTime(ts){
+  if(!ts) return '';
+  const d = new Date(ts);
+  return d.toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'})
+    + ' · ' + d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+}
+
+// Convert a legacy single-blob note (customFields.__notes__) into the array format
+function migrateContactNotes(c){
+  if(!Array.isArray(c.notes)) c.notes = [];
+  const legacy = (c.customFields||{})['__notes__'];
+  if(legacy && legacy.trim() && c.notes.length === 0){
+    c.notes = [{
+      id:'note_legacy_'+Date.now(),
+      text: legacy.trim(),
+      created_at: c.created_at || new Date().toISOString(),
+      edited_at: null,
+    }];
+    if(c.customFields) delete c.customFields['__notes__'];
+    try { sb.patch('contacts', c.id, { notes:c.notes, custom_fields:c.customFields||{} }); } catch(_){}
+  }
+}
+
+function renderContactNotes(contactId){
+  const el = document.getElementById('cd-notes-list');
+  if(!el) return;
+  const c = contacts.find(x=>x.id===contactId);
+  if(!c) return;
+  if(!Array.isArray(c.notes)) c.notes = [];
+  if(c.notes.length === 0){
+    el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;text-align:center">No notes yet — add the first one above.</div>';
+    return;
+  }
+  // Newest first
+  const sorted = [...c.notes].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  el.innerHTML = sorted.map((n, i)=>{
+    const safeText = (n.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const isEditing = el.dataset.editing === n.id;
+    const sep = i>0 ? 'border-top:1px solid var(--border);' : '';
+    if(isEditing){
+      return `<div style="${sep}padding:10px 0">
+        <textarea class="form-input" id="cd-note-edit-${n.id}" style="width:100%;min-height:54px;resize:vertical;font-family:inherit">${safeText}</textarea>
+        <div style="display:flex;gap:6px;margin-top:6px">
+          <button class="btn btn-primary btn-sm" onclick="saveContactNoteEdit('${contactId}','${n.id}')">Save</button>
+          <button class="btn btn-sm" onclick="cancelContactNoteEdit('${contactId}')">Cancel</button>
+        </div>
+      </div>`;
+    }
+    return `<div style="${sep}padding:10px 0">
+      <div style="font-size:13px;color:var(--text);line-height:1.55;white-space:pre-wrap;word-break:break-word">${safeText}</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap">
+        <span style="font-size:10px;color:var(--text3)">🕐 Added ${fmtNoteTime(n.created_at)}</span>
+        ${n.edited_at ? `<span style="font-size:10px;color:var(--amber)">✏️ Edited ${fmtNoteTime(n.edited_at)}</span>` : ''}
+        <span style="flex:1"></span>
+        <button class="btn btn-sm" style="font-size:10px;padding:2px 7px" onclick="editContactNote('${contactId}','${n.id}')">Edit</button>
+        <button class="btn btn-sm" style="font-size:10px;padding:2px 7px;color:var(--red)" onclick="deleteContactNote('${contactId}','${n.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function addContactNote(contactId){
+  const ta = document.getElementById('cd-new-note');
+  const text = (ta?.value || '').trim();
+  if(!text){ showToast('Write something first','error'); return; }
+  const c = contacts.find(x=>x.id===contactId); if(!c) return;
+  if(!Array.isArray(c.notes)) c.notes = [];
+  c.notes.push({
+    id:'note_'+Date.now()+Math.random().toString(36).slice(2,6),
+    text,
+    created_at: new Date().toISOString(),
+    edited_at: null,
+  });
+  if(ta) ta.value = '';
+  renderContactNotes(contactId);
+  try {
+    await sb.patch('contacts', contactId, { notes:c.notes });
+    touchContactActivity(contactId, 'update');
+    showToast('Note added ✅');
+  } catch(e){ showToast('Error saving note','error'); }
+}
+
+function editContactNote(contactId, noteId){
+  const el = document.getElementById('cd-notes-list');
+  if(el) el.dataset.editing = noteId;
+  renderContactNotes(contactId);
+  setTimeout(()=>document.getElementById('cd-note-edit-'+noteId)?.focus(), 40);
+}
+
+function cancelContactNoteEdit(contactId){
+  const el = document.getElementById('cd-notes-list');
+  if(el) delete el.dataset.editing;
+  renderContactNotes(contactId);
+}
+
+async function saveContactNoteEdit(contactId, noteId){
+  const ta = document.getElementById('cd-note-edit-'+noteId);
+  const text = (ta?.value || '').trim();
+  if(!text){ showToast('Note cannot be empty — use Delete instead','error'); return; }
+  const c = contacts.find(x=>x.id===contactId); if(!c) return;
+  const note = (c.notes||[]).find(n=>n.id===noteId); if(!note) return;
+  note.text = text;
+  note.edited_at = new Date().toISOString();
+  const el = document.getElementById('cd-notes-list');
+  if(el) delete el.dataset.editing;
+  renderContactNotes(contactId);
+  try {
+    await sb.patch('contacts', contactId, { notes:c.notes });
+    touchContactActivity(contactId, 'update');
+    showToast('Note updated ✅');
+  } catch(e){ showToast('Error saving note','error'); }
+}
+
+async function deleteContactNote(contactId, noteId){
+  const c = contacts.find(x=>x.id===contactId); if(!c) return;
+  if(!confirm('Delete this note? This cannot be undone.')) return;
+  c.notes = (c.notes||[]).filter(n=>n.id!==noteId);
+  renderContactNotes(contactId);
+  try {
+    await sb.patch('contacts', contactId, { notes:c.notes });
+    showToast('Note deleted');
+  } catch(e){ showToast('Error deleting note','error'); }
+}
 
 // ═══════════════════════════════════════════════
 // PIPELINE
@@ -5123,6 +5290,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-14', time:'04:30', name:'Contact Notes Log + Bulk Action Log', area:'Contacts',                description:'Notes are now timestamped entries (Added/Edited stamps, separators, edit & delete) instead of one textarea. New "Bulk Action Log" tab beside All Contacts shows every bulk Export/Tag/Pipeline/Delete/Import — operation, status, user, created & completed times.', commit:'pending' },
   { date:'2026-05-14', time:'03:55', name:'Pop-ups: No Outside-Click Close',  area:'All modals',                  description:'Pop-up boxes no longer close when you click outside them. Close only via the × button or the Esc key — prevents losing work on an accidental click.', commit:'c4d7505' },
   { date:'2026-05-14', time:'03:40', name:'Contacts: Names, Statuses, Last Activity', area:'Contacts',          description:'Split Full Name into First/Last; gear ⚙ to add/edit/remove Statuses & Sources; new Last Activity column (date+time of last call/email/SMS/profile update) beside Date Added.', commit:'f8151de' },
   { date:'2026-05-14', time:'03:10', name:'Fix Expired Call Token (root cause)', area:'Calling',                description:'Token endpoint was being browser-cached so the stale 2h token kept coming back. Added no-cache headers, cache-buster, 8h expiry, and wrapped call.start() in the retry.', commit:'dff70d1' },
@@ -9787,7 +9955,7 @@ async function aiScoreLead(contactId) {
     name: c.name, company: c.company, email: c.email, phone: c.phone,
     source: c.source, status: c.status,
     tags: (c.tags||[]).map(t=>t.label),
-    notes: (c.customFields||{})['__notes__'] || '',
+    notes: (Array.isArray(c.notes)?c.notes.map(n=>n.text):[]).join(' | ') || (c.customFields||{})['__notes__'] || '',
     messageCount: conv?.messages?.length || 0
   });
   if (btn) { btn.textContent = '🎯 AI Score'; btn.disabled = false; }
@@ -9816,7 +9984,7 @@ async function aiNextAction(contactId) {
   const result = await callAI('next_action', {
     name: c.name, company: c.company, status: c.status, source: c.source,
     tags: (c.tags||[]).map(t=>t.label),
-    notes: (c.customFields||{})['__notes__'] || '',
+    notes: (Array.isArray(c.notes)?c.notes.map(n=>n.text):[]).join(' | ') || (c.customFields||{})['__notes__'] || '',
     lastMessage: lastMsg?.body || null,
     lastMessageDir: lastMsg?.dir || null
   });
@@ -9879,6 +10047,7 @@ async function confirmCSVImport(){
   const btn = document.getElementById('import-confirm-btn');
   if(btn){ btn.textContent='Importing…'; btn.disabled=true; }
 
+  const _importEntry = startBulkAction('Import', `Import ${_csvImportRows.length} row${_csvImportRows.length>1?'s':''} from CSV`);
   let imported=0, skipped=0;
   const defaultCls = ['tag-blue','tag-green','tag-amber','tag-pink','tag-purple','tag-teal'];
 
@@ -9907,6 +10076,7 @@ async function confirmCSVImport(){
   renderContacts();
   renderContactTagFilters();
   renderTagsPage();
+  finishBulkAction(_importEntry, skipped===0?'Complete':'Partial', `${imported} imported${skipped?`, ${skipped} skipped (duplicates)`:''}`);
   showToast(`✅ Imported ${imported} contacts${skipped?` (${skipped} skipped)`:''}`);
 }
 
@@ -9998,11 +10168,106 @@ function getSelectedContacts(){
   return contacts.filter(c => selectedContactIds.has(c.id));
 }
 
+// ═══════════════════════════════════════════════
+// BULK ACTION LOG — local audit trail of bulk/batch operations
+// ═══════════════════════════════════════════════
+let bulkActionLog = JSON.parse(localStorage.getItem('nlm_bulk_action_log')||'[]');
+function saveBulkActionLog(){
+  localStorage.setItem('nlm_bulk_action_log', JSON.stringify(bulkActionLog.slice(0,300)));
+}
+
+// Create a log entry at the start of a bulk action
+function startBulkAction(operation, label){
+  return {
+    id:'bal_'+Date.now()+Math.random().toString(36).slice(2,6),
+    label, operation,
+    status:'In Progress',
+    user: (typeof currentUser!=='undefined' && currentUser?.name) || 'Unknown',
+    created_at: new Date().toISOString(),
+    completed_at: null,
+    result: '',
+  };
+}
+// Finalize and persist a log entry
+function finishBulkAction(entry, status, result){
+  entry.status = status;            // 'Complete' | 'Failed' | 'Partial'
+  entry.completed_at = new Date().toISOString();
+  entry.result = result || '';
+  bulkActionLog.unshift(entry);
+  saveBulkActionLog();
+  if(contactView === 'log') renderBulkActionLog();
+}
+
+function fmtLogTime(ts){
+  if(!ts) return '—';
+  const d = new Date(ts);
+  return `${d.toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'})} <span style="color:var(--text3)">${d.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</span>`;
+}
+
+// View toggle: 'contacts' | 'log'
+let contactView = 'contacts';
+function setContactView(view){
+  contactView = view;
+  document.querySelectorAll('.contact-view-tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.cview === view);
+  });
+  const mainView = document.getElementById('contacts-main-view');
+  const logView  = document.getElementById('bulk-log-view');
+  const headerActions = document.getElementById('contacts-header-actions');
+  if(view === 'log'){
+    if(mainView) mainView.style.display='none';
+    if(logView)  logView.style.display='block';
+    if(headerActions) headerActions.style.display='none';
+    renderBulkActionLog();
+  } else {
+    if(mainView) mainView.style.display='block';
+    if(logView)  logView.style.display='none';
+    if(headerActions) headerActions.style.display='flex';
+  }
+}
+
+function renderBulkActionLog(){
+  const tbody = document.getElementById('bulk-log-tbody');
+  if(!tbody) return;
+  if(!bulkActionLog.length){
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">No bulk actions yet. Select contacts and run an Export, Tag, Pipeline move, or Delete — they'll show up here.</td></tr>`;
+    return;
+  }
+  const statusPill = {
+    'Complete':'pill-active', 'In Progress':'pill-new', 'Failed':'pill-hot', 'Partial':'pill-cold',
+  };
+  const opIcon = {
+    'Delete':'🗑', 'Add Tags':'🏷', 'Remove Tags':'🏷', 'Move to Pipeline':'📊', 'Export':'⬇', 'Import':'⬆',
+  };
+  tbody.innerHTML = bulkActionLog.map(e=>`
+    <tr>
+      <td style="font-weight:500;color:var(--text)">${(e.label||'—').replace(/</g,'&lt;')}</td>
+      <td><span style="font-size:11px;color:var(--text2)">${opIcon[e.operation]||''} ${e.operation||'—'}</span></td>
+      <td><span class="pill ${statusPill[e.status]||'pill-cold'}">${e.status||'—'}</span></td>
+      <td style="font-size:12px;color:var(--text2)">${(e.user||'Unknown').replace(/</g,'&lt;')}</td>
+      <td style="font-size:11px;color:var(--text2)">${fmtLogTime(e.created_at)}</td>
+      <td style="font-size:11px;color:var(--text2)">${fmtLogTime(e.completed_at)}</td>
+      <td style="font-size:11px;color:var(--text3)">${(e.result||'—').replace(/</g,'&lt;')}</td>
+    </tr>
+  `).join('');
+}
+
+function clearBulkActionLog(){
+  if(!bulkActionLog.length) return;
+  if(!confirm(`Clear all ${bulkActionLog.length} bulk action log entries? This cannot be undone.`)) return;
+  bulkActionLog = [];
+  saveBulkActionLog();
+  renderBulkActionLog();
+  showToast('Bulk action log cleared');
+}
+
 // ── BULK ACTION: EXPORT ──
 function bulkExport(){
   const sel = getSelectedContacts();
   if(!sel.length) return;
+  const entry = startBulkAction('Export', `Export ${sel.length} contact${sel.length>1?'s':''}`);
   contactsToCSV(sel, `contacts-selected-${new Date().toISOString().slice(0,10)}.csv`);
+  finishBulkAction(entry, 'Complete', `${sel.length} contact${sel.length>1?'s':''} exported to CSV`);
   showToast(`Exported ${sel.length} contact${sel.length>1?'s':''}`);
 }
 
@@ -10034,6 +10299,8 @@ async function executeBulkAddTag(){
   const picks = [...document.querySelectorAll('.bulk-tag-pick:checked')].map(cb => ({label: cb.value, cls: cb.dataset.cls}));
   if(!picks.length){ showToast('Pick at least one tag','error'); return; }
   const sel = getSelectedContacts();
+  const tagNames = picks.map(p=>p.label).join(', ');
+  const entry = startBulkAction('Add Tags', `Add tag${picks.length>1?'s':''} "${tagNames}" to ${sel.length} contact${sel.length>1?'s':''}`);
   let updated = 0;
   for(const c of sel){
     const existing = c.tags || [];
@@ -10044,6 +10311,7 @@ async function executeBulkAddTag(){
   }
   closeModal();
   renderContacts();
+  finishBulkAction(entry, updated===sel.length?'Complete':'Partial', `Tagged ${updated} of ${sel.length} contact${sel.length>1?'s':''}`);
   showToast(`Tags added to ${updated} contact${updated!==1?'s':''}`);
 }
 
@@ -10079,6 +10347,7 @@ async function executeBulkRemoveTag(){
   const picks = [...document.querySelectorAll('.bulk-tag-pick:checked')].map(cb => cb.value);
   if(!picks.length){ showToast('Pick at least one tag','error'); return; }
   const sel = getSelectedContacts();
+  const entry = startBulkAction('Remove Tags', `Remove tag${picks.length>1?'s':''} "${picks.join(', ')}" from ${sel.length} contact${sel.length>1?'s':''}`);
   let updated = 0;
   for(const c of sel){
     const before = c.tags || [];
@@ -10089,6 +10358,7 @@ async function executeBulkRemoveTag(){
   }
   closeModal();
   renderContacts();
+  finishBulkAction(entry, 'Complete', `Removed from ${updated} of ${sel.length} contact${sel.length>1?'s':''}`);
   showToast(`Tags removed from ${updated} contact${updated!==1?'s':''}`);
 }
 
@@ -10130,7 +10400,9 @@ async function executeBulkMoveToPipeline(){
   const pipelineId = document.getElementById('bulk-pl-select').value;
   const stageId    = document.getElementById('bulk-st-select').value;
   const pl = pipelines.find(p => p.id === pipelineId); if(!pl) return;
+  const stageLabel = pl.stages.find(s=>s.id===stageId)?.label || 'stage';
   const sel = getSelectedContacts();
+  const entry = startBulkAction('Move to Pipeline', `Move ${sel.length} contact${sel.length>1?'s':''} → ${pl.name} / ${stageLabel}`);
   let moved = 0, created = 0;
   pl.deals = pl.deals || [];
   for(const c of sel){
@@ -10158,6 +10430,7 @@ async function executeBulkMoveToPipeline(){
   closeModal();
   renderContacts();
   if(document.getElementById('page-pipeline')?.classList.contains('active')) renderBoard();
+  finishBulkAction(entry, 'Complete', `${created} new deal${created!==1?'s':''}, ${moved} moved → ${pl.name} / ${stageLabel}`);
   showToast(`${created} new deal${created!==1?'s':''} · ${moved} moved`);
 }
 
@@ -10207,6 +10480,7 @@ function checkBulkDeleteConfirm(expected){
 
 async function executeBulkDelete(){
   const sel = getSelectedContacts();
+  const entry = startBulkAction('Delete', `Delete ${sel.length} contact${sel.length>1?'s':''}`);
   const btn = document.getElementById('bulk-del-btn');
   if(btn){ btn.disabled = true; btn.textContent = 'Deleting…'; }
   let deleted = 0;
@@ -10221,6 +10495,7 @@ async function executeBulkDelete(){
   selectedContactIds.clear();
   closeModal();
   renderContacts();
+  finishBulkAction(entry, deleted===sel.length?'Complete':'Partial', `${deleted} of ${sel.length} contact${sel.length>1?'s':''} deleted`);
   showToast(`Deleted ${deleted} contact${deleted!==1?'s':''}`);
 }
 
