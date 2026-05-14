@@ -1314,10 +1314,13 @@ table th[onclick]{transition:background .15s,color .15s}
       
       <div class="sec-head">
         <div class="sec-title">All Contacts <span id="contact-count-label" style="color:var(--text3);font-weight:400"></span></div>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;align-items:center">
           <button class="btn btn-sm" onclick="openImportContacts()">⬆ Import CSV</button>
           <button class="btn btn-sm" onclick="exportContactsCSV()">⬇ Export CSV</button>
           <button class="btn btn-primary btn-sm" onclick="openContactModal()">+ Add Contact</button>
+          <button class="btn btn-sm" onclick="openContactSettingsModal()" title="Contact settings — manage statuses & sources" style="width:34px;height:30px;padding:0;display:flex;align-items:center;justify-content:center">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
         </div>
       </div>
 
@@ -2928,6 +2931,9 @@ function logCall(direction, number, contactName, durationSecs, status){
   });
   saveCallHistory();
   renderCallHistory();
+  // Stamp last activity on the matching contact
+  const matched = typeof findContactByPhone === 'function' ? findContactByPhone(number) : null;
+  if(matched) touchContactActivity(matched.id, 'call');
   // Refresh the conversation list if Calls tab is active
   if(convFilter === 'calls' && typeof renderConvList === 'function') renderConvList();
 }
@@ -2945,6 +2951,30 @@ function fmtCallTime(ts){
   if(diff<60) return `${diff}m ago`;
   if(diff<1440) return `${Math.floor(diff/60)}h ago`;
   return d.toLocaleDateString([],{month:'short',day:'numeric'});
+}
+
+// Last-activity column: date + time, with the activity type as a hint
+function fmtLastActivity(act){
+  // act = { ts, type } or just an ISO string
+  const ts = typeof act === 'object' ? act.ts : act;
+  const type = typeof act === 'object' ? act.type : '';
+  if(!ts) return '<span style="opacity:.4">—</span>';
+  const d = new Date(ts);
+  const dateStr = d.toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});
+  const timeStr = d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
+  const typeIcon = {call:'📞',email:'📧',sms:'💬',update:'✏️'}[type] || '';
+  return `<div style="line-height:1.35">${typeIcon} ${dateStr}<br><span style="font-size:10px;opacity:.7">${timeStr}</span></div>`;
+}
+
+// Stamp a contact's last_activity. type: 'call' | 'email' | 'sms' | 'update'
+function touchContactActivity(contactId, type){
+  if(!contactId) return;
+  const c = contacts.find(x=>x.id===contactId);
+  if(!c) return;
+  const act = { ts: new Date().toISOString(), type };
+  c.last_activity = act;
+  // Persist (fire-and-forget — don't block the calling flow)
+  try { sb.patch('contacts', contactId, { last_activity: act }); } catch(_) {}
 }
 
 function renderCallHistory(){
@@ -3256,7 +3286,22 @@ function sendDTMF(digit){
 let activeSourceFilters = new Set();
 let activePipelineFilter = null;
 
-const CONTACT_SOURCES = ['Facebook','Instagram','LinkedIn','Google Ads','Website','Referral','Walk-in','Email','Phone','Import','Other'];
+// ── EDITABLE STATUSES & SOURCES (managed via the Contacts gear ⚙) ──
+let contactStatuses = JSON.parse(localStorage.getItem('nlm_contact_statuses')||'null') || [
+  {value:'new',    label:'New',    color:'pill-new'},
+  {value:'active', label:'Active', color:'pill-active'},
+  {value:'hot',    label:'Hot',    color:'pill-hot'},
+  {value:'cold',   label:'Cold',   color:'pill-cold'},
+  {value:'done',   label:'Client', color:'pill-done'},
+];
+let contactSources = JSON.parse(localStorage.getItem('nlm_contact_sources')||'null') ||
+  ['Facebook','Instagram','LinkedIn','Google Ads','Website','Referral','Walk-in','Email','Phone','Import','Other'];
+
+function saveContactStatuses(){ localStorage.setItem('nlm_contact_statuses', JSON.stringify(contactStatuses)); }
+function saveContactSources(){ localStorage.setItem('nlm_contact_sources', JSON.stringify(contactSources)); }
+function getStatusMeta(value){
+  return contactStatuses.find(s=>s.value===value) || {value, label:(value||'New'), color:'pill-cold'};
+}
 
 function toggleSourceDropdown(){
   const dd=document.getElementById('source-filter-dropdown');
@@ -3269,7 +3314,7 @@ function toggleSourceDropdown(){
 function renderSourceDropdown(){
   const dd=document.getElementById('source-filter-dropdown');if(!dd)return;
   const usedSources=[...new Set(contacts.map(c=>c.source||'Other').filter(Boolean))].sort();
-  const allSources=[...new Set([...usedSources,...CONTACT_SOURCES])].sort();
+  const allSources=[...new Set([...usedSources,...contactSources])].sort();
   dd.innerHTML=`<div class="cf-filter-opt" onclick="clearSourceFilters()" style="border-bottom:1px solid var(--border);color:var(--text3);font-size:11px">All Sources</div>`+
     allSources.map(s=>`<div class="cf-filter-opt ${activeSourceFilters.has(s)?"selected":""}" onclick="toggleSourceFilter('${s}')">
       <div class="cf-filter-opt-check">${activeSourceFilters.has(s)?"✓":""}</div>
@@ -3346,6 +3391,7 @@ const ALL_COLUMNS=[
   {id:'status',  label:'Status',         required:false, sortable:true,  custom:false},
   {id:'pipeline',label:'Pipeline/Stage', required:false, sortable:true,  custom:false},
   {id:'created', label:'Date Added',     required:false, sortable:true,  custom:false},
+  {id:'lastActivity', label:'Last Activity', required:false, sortable:true, custom:false},
 ];
 
 // Custom columns: [{id, label, type: 'text'|'number'|'date'|'select', options:[]}]
@@ -3355,6 +3401,13 @@ function saveCustomColumns(){ localStorage.setItem('nlm_custom_cols', JSON.strin
 // Column order — array of column IDs in display order (persisted)
 let columnOrder = JSON.parse(localStorage.getItem('nlm_col_order')||'null') || null;
 function saveColumnOrder(){ localStorage.setItem('nlm_col_order', JSON.stringify(columnOrder)); }
+// One-time migration: put lastActivity right after 'created' for existing users
+if(columnOrder && !columnOrder.includes('lastActivity')){
+  const ci = columnOrder.indexOf('created');
+  if(ci >= 0) columnOrder.splice(ci+1, 0, 'lastActivity');
+  else columnOrder.push('lastActivity');
+  saveColumnOrder();
+}
 
 // All columns combined (built-in + custom), sorted by columnOrder
 function getAllCols(){
@@ -3375,7 +3428,14 @@ function initColumnOrder(){
 }
 
 let visibleColumns = JSON.parse(localStorage.getItem('nlm_contact_cols')||'null') ||
-  ['name','company','email','phone','source','tags','status','pipeline'];
+  ['name','company','email','phone','source','tags','status','pipeline','created','lastActivity'];
+// One-time migration: ensure the new Last Activity column is visible for existing users
+if(!visibleColumns.includes('lastActivity')){
+  const ci = visibleColumns.indexOf('created');
+  if(ci >= 0) visibleColumns.splice(ci+1, 0, 'lastActivity');
+  else visibleColumns.push('lastActivity');
+  localStorage.setItem('nlm_contact_cols', JSON.stringify(visibleColumns));
+}
 
 let contactSort = {col:'name', dir:'asc'};
 
@@ -3659,6 +3719,10 @@ function sortContactList(list){
     if(col==='source')  { av=a.source||''; bv=b.source||''; }
     if(col==='status')  { av=a.status||''; bv=b.status||''; }
     if(col==='created') { av=a.created_at||''; bv=b.created_at||''; }
+    if(col==='lastActivity'){
+      av=(a.last_activity&&a.last_activity.ts)||a.last_activity||'';
+      bv=(b.last_activity&&b.last_activity.ts)||b.last_activity||'';
+    }
     if(col==='pipeline'){
       const getStage=c=>{
         for(const p of pipelines){
@@ -3740,7 +3804,6 @@ function renderContacts(){
   filtered = sortContactList(filtered);
   const cols = getAllCols().filter(c=>c.required||visibleColumns.includes(c.id)).map(c=>c.id);
   const totalCols=cols.length+2; // +1 actions column, +1 select column
-  const statusLabels={hot:"pill-hot",active:"pill-active",new:"pill-new",cold:"pill-cold",done:"pill-done"};
   if(filtered.length===0){
     tbody.innerHTML=`<tr><td colspan="${totalCols}" style="text-align:center;color:var(--text3);padding:32px">${(q||activeTags.length||activeSourceFilters.size||activePipelineFilter)?"No contacts match your filters":"No contacts yet — add your first one!"}</td></tr>`;
     renderContactTagFilters();syncBulkActionBar();return;
@@ -3752,6 +3815,8 @@ function renderContacts(){
     pipelines.forEach(p=>{p.deals.filter(d=>d.name===c.name||(c.email&&d.company===c.company)||d.contactId===c.id).forEach(d=>{const stage=p.stages.find(s=>s.id===d.stage);deals.push({pName:p.name,sLabel:stage?.label||"—"});});});
     const pipelineCell=deals.length?`<div style="line-height:1.3"><div style="font-size:11px;font-weight:500;color:var(--accent2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px">${deals[0].sLabel}</div><div style="font-size:10px;color:var(--text3)">${deals[0].pName}</div></div>`:`<span style="font-size:11px;color:var(--text3)">—</span>`;
     const created=c.created_at?new Date(c.created_at).toLocaleDateString([],{month:"short",day:"numeric",year:"numeric"}):"-";
+    const lastAct = c.last_activity ? fmtLastActivity(c.last_activity) : '<span style="opacity:.4">—</span>';
+    const stMeta = getStatusMeta(c.status);
     // Build custom column cells
     const customCells={};
     customColumns.forEach(col=>{
@@ -3768,9 +3833,10 @@ function renderContacts(){
       phone:`<td><div style="display:flex;align-items:center;gap:5px"><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.phone||'—'}</span>${c.phone?`<button class="btn-call-inline" onclick="initiateCall('${c.id}','${c.phone.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>`:''}</div></td>`,
       source:`<td><span class="tag tag-blue" style="font-size:10px">${c.source||"Other"}</span></td>`,
       tags:`<td><div class="tags-cell">${(c.tags||[]).map(t=>`<span class="tag ${t.cls}">${t.label}</span>`).join("")}<span class="tag-add-inline" onclick="openContactModal('${c.id}','tags')">+</span></div></td>`,
-      status:`<td><span class="pill ${statusLabels[c.status]||"pill-cold"}">${(c.status||"new").charAt(0).toUpperCase()+(c.status||"new").slice(1)}</span></td>`,
+      status:`<td><span class="pill ${stMeta.color}">${stMeta.label}</span></td>`,
       pipeline:`<td>${pipelineCell}</td>`,
       created:`<td style="font-size:11px;color:var(--text3)">${created}</td>`,
+      lastActivity:`<td style="font-size:11px;color:var(--text3)">${lastAct}</td>`,
       ...customCells
     };
     const isSelected = selectedContactIds.has(c.id);
@@ -3794,10 +3860,22 @@ function getAv(id) {
 function initials(name) { return (name||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
 
 // ─── CONTACT MODAL ───
+// Split a legacy single "name" into first + last (first word = first name, rest = last name)
+function splitName(full){
+  const parts = (full||'').trim().split(/\s+/);
+  if(parts.length === 0 || parts[0] === '') return { first:'', last:'' };
+  return { first: parts[0], last: parts.slice(1).join(' ') };
+}
+
 function openContactModal(contactId=null, tab='info') {
   const isEdit = !!contactId;
-  const c = isEdit ? contacts.find(x=>x.id===contactId) : {id:'',name:'',company:'',email:'',phone:'',source:'Facebook',status:'new',tags:[],customFields:{}};
+  const c = isEdit ? contacts.find(x=>x.id===contactId) : {id:'',name:'',first_name:'',last_name:'',company:'',email:'',phone:'',source:(contactSources[0]||'Other'),status:(contactStatuses[0]?.value||'new'),tags:[],customFields:{}};
   if(!c) return;
+  // Backfill first/last from legacy name field when editing an older contact
+  if(isEdit && !c.first_name && !c.last_name && c.name){
+    const sp = splitName(c.name);
+    c.first_name = sp.first; c.last_name = sp.last;
+  }
 
   const tabLabels = {info:'Info',tags:'Tags',custom:'Custom Fields'};
   const tabs = ['info','tags','custom'].map(t =>
@@ -3808,22 +3886,26 @@ function openContactModal(contactId=null, tab='info') {
   if(tab==='info') {
     body = `
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Full Name</label><input class="form-input" id="cf-name" value="${c.name}" placeholder="Maria Santos"/></div>
-        <div class="form-group"><label class="form-label">Company</label><input class="form-input" id="cf-company" value="${c.company||''}" placeholder="Santos Bakery"/></div>
+        <div class="form-group"><label class="form-label">First Name</label><input class="form-input" id="cf-first-name" value="${(c.first_name||'').replace(/"/g,'&quot;')}" placeholder="Maria"/></div>
+        <div class="form-group"><label class="form-label">Last Name</label><input class="form-input" id="cf-last-name" value="${(c.last_name||'').replace(/"/g,'&quot;')}" placeholder="Santos"/></div>
       </div>
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="cf-email" type="email" value="${c.email||''}" placeholder="email@example.com"/></div>
-        <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="cf-phone" value="${c.phone||''}" placeholder="+1 555 000 0000"/></div>
+        <div class="form-group"><label class="form-label">Company</label><input class="form-input" id="cf-company" value="${(c.company||'').replace(/"/g,'&quot;')}" placeholder="Santos Bakery"/></div>
+        <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="cf-phone" value="${(c.phone||'').replace(/"/g,'&quot;')}" placeholder="+1 555 000 0000"/></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="cf-email" type="email" value="${(c.email||'').replace(/"/g,'&quot;')}" placeholder="email@example.com"/></div>
+        <div class="form-group"></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Lead Source</label>
           <select class="form-select" id="cf-source">
-            ${['Facebook','Instagram','Website','Referral','Cold Outreach','Other'].map(s=>`<option ${c.source===s?'selected':''}>${s}</option>`).join('')}
+            ${contactSources.map(s=>`<option ${c.source===s?'selected':''}>${s}</option>`).join('')}
           </select>
         </div>
         <div class="form-group"><label class="form-label">Status</label>
           <select class="form-select" id="cf-status">
-            ${[['new','New'],['active','Active'],['hot','Hot'],['cold','Cold'],['done','Client']].map(([v,l])=>`<option value="${v}" ${c.status===v?'selected':''}>${l}</option>`).join('')}
+            ${contactStatuses.map(s=>`<option value="${s.value}" ${c.status===s.value?'selected':''}>${s.label}</option>`).join('')}
           </select>
         </div>
       </div>`;
@@ -3948,21 +4030,24 @@ async function quickAddTagToContact(contactId, label, cls){
 
 async function saveContact(id, tab, keepOpen=false) {
   if(tab==='info') {
-    const name    = document.getElementById('cf-name')?.value.trim();
-    const company = document.getElementById('cf-company')?.value.trim();
-    const email   = document.getElementById('cf-email')?.value.trim();
-    const phone   = document.getElementById('cf-phone')?.value.trim();
-    const source  = document.getElementById('cf-source')?.value;
-    const status  = document.getElementById('cf-status')?.value;
-    if(!name){ showToast('Please enter a name','error'); return; }
+    const firstName = document.getElementById('cf-first-name')?.value.trim() || '';
+    const lastName  = document.getElementById('cf-last-name')?.value.trim() || '';
+    const name      = [firstName, lastName].filter(Boolean).join(' ').trim();
+    const company   = document.getElementById('cf-company')?.value.trim();
+    const email     = document.getElementById('cf-email')?.value.trim();
+    const phone     = document.getElementById('cf-phone')?.value.trim();
+    const source    = document.getElementById('cf-source')?.value;
+    const status    = document.getElementById('cf-status')?.value;
+    if(!firstName && !lastName){ showToast('Please enter a first or last name','error'); return; }
+    const lastAct = { ts:new Date().toISOString(), type:'update' };
     try {
       if(id) {
-        await sb.patch('contacts', id, {name,company,email,phone,source,status});
+        await sb.patch('contacts', id, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct});
         const c = contacts.find(x=>x.id===id);
-        if(c) Object.assign(c,{name,company,email,phone,source,status});
+        if(c) Object.assign(c,{name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct});
         showToast('Contact updated! ✅');
       } else {
-        const res = await sb.post('contacts', {name,company,email,phone,source,status,tags:[],custom_fields:{}});
+        const res = await sb.post('contacts', {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,tags:[],custom_fields:{},last_activity:lastAct});
         contacts.unshift({...res[0], tags:[], customFields:{}});
         showToast('Contact added!');
         keepOpen = false; // new contacts always close
@@ -3989,6 +4074,104 @@ async function saveContact(id, tab, keepOpen=false) {
   }
 }
 
+// ═══════════════════════════════════════════════
+// CONTACT SETTINGS — manage Statuses & Sources
+// ═══════════════════════════════════════════════
+const STATUS_COLORS = [
+  {cls:'pill-new',    name:'Blue'},
+  {cls:'pill-active', name:'Green'},
+  {cls:'pill-hot',    name:'Red'},
+  {cls:'pill-cold',   name:'Gray'},
+  {cls:'pill-done',   name:'Teal'},
+];
+
+function csStatusRowHTML(s){
+  return `<div class="cs-status-row" data-value="${(s.value||'').replace(/"/g,'&quot;')}" style="display:flex;gap:6px;align-items:center">
+    <input class="form-input cs-st-label" value="${(s.label||'').replace(/"/g,'&quot;')}" placeholder="Status name" style="flex:1;min-width:0" oninput="csUpdateStatusPreview(this)"/>
+    <select class="form-select cs-st-color" style="width:90px;flex-shrink:0" onchange="csUpdateStatusPreview(this)">
+      ${STATUS_COLORS.map(sc=>`<option value="${sc.cls}" ${sc.cls===s.color?'selected':''}>${sc.name}</option>`).join('')}
+    </select>
+    <span class="pill ${s.color} cs-st-prev" style="min-width:54px;text-align:center;flex-shrink:0">${s.label||'—'}</span>
+    <button onclick="this.closest('.cs-status-row').remove()" title="Remove" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);width:30px;height:32px;cursor:pointer;color:var(--text3);flex-shrink:0;font-size:14px">×</button>
+  </div>`;
+}
+
+function csSourceRowHTML(src){
+  return `<div class="cs-source-row" style="display:flex;gap:6px;align-items:center">
+    <input class="form-input cs-src-input" value="${(src||'').replace(/"/g,'&quot;')}" placeholder="Source name" style="flex:1;min-width:0"/>
+    <button onclick="this.closest('.cs-source-row').remove()" title="Remove" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);width:30px;height:32px;cursor:pointer;color:var(--text3);flex-shrink:0;font-size:14px">×</button>
+  </div>`;
+}
+
+function csUpdateStatusPreview(el){
+  const row = el.closest('.cs-status-row');
+  const label = row.querySelector('.cs-st-label').value || '—';
+  const color = row.querySelector('.cs-st-color').value;
+  const prev = row.querySelector('.cs-st-prev');
+  prev.textContent = label;
+  prev.className = 'pill ' + color + ' cs-st-prev';
+}
+
+function csAddStatus(){
+  document.getElementById('cs-status-list').insertAdjacentHTML('beforeend',
+    csStatusRowHTML({value:'', label:'New Status', color:'pill-new'}));
+}
+function csAddSource(){
+  document.getElementById('cs-source-list').insertAdjacentHTML('beforeend', csSourceRowHTML(''));
+  const inputs = document.querySelectorAll('.cs-src-input');
+  inputs[inputs.length-1]?.focus();
+}
+
+function openContactSettingsModal(){
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">Contact Settings</div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section-title">Statuses</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">Add, rename, recolor, or remove the status options shown in contact forms. Renaming keeps existing contacts' status intact.</div>
+      <div id="cs-status-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+      <button class="btn btn-sm" onclick="csAddStatus()">+ Add Status</button>
+
+      <div class="modal-section-title" style="margin-top:22px">Sources</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">Lead source options shown in contact forms and the Source filter.</div>
+      <div id="cs-source-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+      <button class="btn btn-sm" onclick="csAddSource()">+ Add Source</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="csSaveSettings()">Save Settings</button>
+    </div>
+  `);
+  document.getElementById('cs-status-list').innerHTML = contactStatuses.map(csStatusRowHTML).join('');
+  document.getElementById('cs-source-list').innerHTML = contactSources.map(csSourceRowHTML).join('');
+}
+
+function csSaveSettings(){
+  // Collect statuses
+  const newStatuses = [...document.querySelectorAll('.cs-status-row')].map(row=>{
+    const label = row.querySelector('.cs-st-label').value.trim();
+    const color = row.querySelector('.cs-st-color').value;
+    let value = row.dataset.value;
+    if(!value) value = (label.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')) || ('status-'+Date.now()+Math.random().toString(36).slice(2,5));
+    return { value, label: label || 'Status', color };
+  }).filter(s=>s.label);
+  // Collect sources (dedupe, drop blanks)
+  const newSources = [...new Set(
+    [...document.querySelectorAll('.cs-src-input')].map(i=>i.value.trim()).filter(Boolean)
+  )];
+  if(!newStatuses.length){ showToast('Keep at least one status','error'); return; }
+  if(!newSources.length){ showToast('Keep at least one source','error'); return; }
+  contactStatuses = newStatuses;
+  contactSources = newSources;
+  saveContactStatuses();
+  saveContactSources();
+  closeModal();
+  renderContacts();
+  showToast('Contact settings saved ✅');
+}
+
 // ─── CONTACT DETAIL PANEL ───
 function openContactDetail(contactId, tab='info') {
   const c = contacts.find(x=>x.id===contactId); if(!c) return;
@@ -4000,27 +4183,37 @@ function openContactDetail(contactId, tab='info') {
   let body = '';
 
   if(tab==='info'){
+    // Backfill first/last from legacy name when needed
+    if(!c.first_name && !c.last_name && c.name){
+      const sp = splitName(c.name);
+      c.first_name = sp.first; c.last_name = sp.last;
+    }
     body = `
       <div class="form-row">
-        <div class="form-group"><label class="form-label">Full Name</label>
-          <input class="form-input" id="cd-name" value="${c.name||''}" placeholder="Maria Santos"/></div>
+        <div class="form-group"><label class="form-label">First Name</label>
+          <input class="form-input" id="cd-first-name" value="${(c.first_name||'').replace(/"/g,'&quot;')}" placeholder="Maria"/></div>
+        <div class="form-group"><label class="form-label">Last Name</label>
+          <input class="form-input" id="cd-last-name" value="${(c.last_name||'').replace(/"/g,'&quot;')}" placeholder="Santos"/></div>
+      </div>
+      <div class="form-row">
         <div class="form-group"><label class="form-label">Company</label>
-          <input class="form-input" id="cd-company" value="${c.company||''}" placeholder="Santos Bakery"/></div>
+          <input class="form-input" id="cd-company" value="${(c.company||'').replace(/"/g,'&quot;')}" placeholder="Santos Bakery"/></div>
+        <div class="form-group"><label class="form-label">Phone</label>
+          <input class="form-input" id="cd-phone" value="${(c.phone||'').replace(/"/g,'&quot;')}" placeholder="+63 912 000 0000"/></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Email</label>
-          <input class="form-input" id="cd-email" type="email" value="${c.email||''}" placeholder="email@example.com"/></div>
-        <div class="form-group"><label class="form-label">Phone</label>
-          <input class="form-input" id="cd-phone" value="${c.phone||''}" placeholder="+63 912 000 0000"/></div>
+          <input class="form-input" id="cd-email" type="email" value="${(c.email||'').replace(/"/g,'&quot;')}" placeholder="email@example.com"/></div>
+        <div class="form-group"></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Source</label>
           <select class="form-select" id="cd-source">
-            ${['Facebook','Instagram','LinkedIn','Google Ads','Website','Referral','Walk-in','Email','Phone','Import','Other'].map(s=>`<option ${(c.source||'')==s?'selected':''}>${s}</option>`).join('')}
+            ${contactSources.map(s=>`<option ${(c.source||'')==s?'selected':''}>${s}</option>`).join('')}
           </select></div>
         <div class="form-group"><label class="form-label">Status</label>
           <select class="form-select" id="cd-status">
-            ${[['new','New'],['active','Active'],['hot','Hot 🔥'],['cold','Cold'],['done','Client']].map(([v,l])=>`<option value="${v}" ${c.status===v?'selected':''}>${l}</option>`).join('')}
+            ${contactStatuses.map(s=>`<option value="${s.value}" ${c.status===s.value?'selected':''}>${s.label}</option>`).join('')}
           </select></div>
       </div>
       <div class="form-group"><label class="form-label">Notes</label>
@@ -4158,19 +4351,22 @@ function openContactDetail(contactId, tab='info') {
 
 async function saveContactDetail(contactId){
   const c = contacts.find(x=>x.id===contactId); if(!c) return;
-  const name    = document.getElementById('cd-name')?.value.trim();
-  const company = document.getElementById('cd-company')?.value.trim();
-  const email   = document.getElementById('cd-email')?.value.trim();
-  const phone   = document.getElementById('cd-phone')?.value.trim();
-  const source  = document.getElementById('cd-source')?.value;
-  const status  = document.getElementById('cd-status')?.value;
-  const notes   = document.getElementById('cd-notes')?.value.trim();
-  if(!name){ showToast('Name is required','error'); return; }
+  const firstName = document.getElementById('cd-first-name')?.value.trim() || '';
+  const lastName  = document.getElementById('cd-last-name')?.value.trim() || '';
+  const name      = [firstName, lastName].filter(Boolean).join(' ').trim();
+  const company   = document.getElementById('cd-company')?.value.trim();
+  const email     = document.getElementById('cd-email')?.value.trim();
+  const phone     = document.getElementById('cd-phone')?.value.trim();
+  const source    = document.getElementById('cd-source')?.value;
+  const status    = document.getElementById('cd-status')?.value;
+  const notes     = document.getElementById('cd-notes')?.value.trim();
+  if(!firstName && !lastName){ showToast('First or last name is required','error'); return; }
   if(!c.customFields) c.customFields={};
   c.customFields['__notes__'] = notes;
+  const lastAct = { ts:new Date().toISOString(), type:'update' };
   try {
-    await sb.patch('contacts', contactId, {name,company,email,phone,source,status,custom_fields:c.customFields});
-    Object.assign(c, {name,company,email,phone,source,status});
+    await sb.patch('contacts', contactId, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,custom_fields:c.customFields,last_activity:lastAct});
+    Object.assign(c, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct});
     showToast('Contact saved! ✅');
     renderContacts();
     openContactDetail(contactId,'info'); // refresh drawer
@@ -4920,6 +5116,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-14', time:'03:40', name:'Contacts: Names, Statuses, Last Activity', area:'Contacts',          description:'Split Full Name into First/Last; gear ⚙ to add/edit/remove Statuses & Sources; new Last Activity column (date+time of last call/email/SMS/profile update) beside Date Added.', commit:'pending' },
   { date:'2026-05-14', time:'03:10', name:'Fix Expired Call Token (root cause)', area:'Calling',                description:'Token endpoint was being browser-cached so the stale 2h token kept coming back. Added no-cache headers, cache-buster, 8h expiry, and wrapped call.start() in the retry.', commit:'dff70d1' },
   { date:'2026-05-14', time:'02:55', name:'Call Token Auto-Refresh',         area:'Calling',                     description:'Detect expired SignalWire Fabric subscriber token (authblock_is_expired) and re-init the SDK automatically — calls work indefinitely without page refresh.', commit:'bc984df' },
   { date:'2026-05-13', time:'22:35', name:'Disable Browser Autofill',        area:'All inputs',                  description:'Suppress Chrome/password-manager popups on search and filter inputs; login + account-password fields still autofill normally.', commit:'410749f' },
@@ -8681,7 +8878,7 @@ function renderConvInfoPanel(contact, conv){
   const emailCount = msgs.filter(m=>m.ch==='email').length;
   const lastMsgTime = msgs.length ? relativeTime(getConvLastMsg(conv).ts) : '—';
 
-  const statusMap={hot:'pill-hot',active:'pill-active',new:'pill-new',cold:'pill-cold',done:'pill-done'};
+  const _stMeta = getStatusMeta(contact.status);
 
   el.innerHTML=`
     <!-- Contact summary -->
@@ -8693,7 +8890,7 @@ function renderConvInfoPanel(contact, conv){
           <div style="font-size:11px;color:var(--text3)">${contact.company||'—'}</div>
         </div>
       </div>
-      <span class="pill ${statusMap[contact.status]||'pill-cold'}" style="margin-bottom:10px;display:inline-block">${(contact.status||'new').charAt(0).toUpperCase()+(contact.status||'new').slice(1)}</span>
+      <span class="pill ${_stMeta.color}" style="margin-bottom:10px;display:inline-block">${_stMeta.label}</span>
       <div class="conv-info-row"><span class="conv-info-key">Email</span><span class="conv-info-val" style="font-family:'DM Mono',monospace;font-size:11px">${contact.email||'—'}</span></div>
       <div class="conv-info-row"><span class="conv-info-key">Phone</span><span class="conv-info-val" style="font-family:'DM Mono',monospace;font-size:11px">${contact.phone||'—'}</span></div>
       <div class="conv-info-row"><span class="conv-info-key">Source</span><span class="conv-info-val">${contact.source||'—'}</span></div>
@@ -8842,6 +9039,7 @@ async function sendConvMessage(ch){
         newMsg.status='sent';
         if(data.sid) newMsg.sid=data.sid;
         saveConversations();
+        touchContactActivity(contact.id, 'sms');
         renderConvBubbles(conv, avBg, avClr);
         showToast(`SMS sent to ${contact.phone} ✅`);
       } catch(e){
@@ -9461,6 +9659,11 @@ async function dispatchEmail(email){
       email.sentAt=new Date().toISOString();
       saveEmailStore();
       syncEmailToConversation(email);
+      // Stamp last activity on the contact
+      const emailContact = email.contactId
+        ? contacts.find(c=>c.id===email.contactId)
+        : contacts.find(c=>c.email && c.email.toLowerCase()===(email.to||'').toLowerCase());
+      if(emailContact) touchContactActivity(emailContact.id, 'email');
       renderEmailPage(); renderEmailFolderCounts();
       showToast(`✅ Email sent to ${email.to}`);
     } else {
