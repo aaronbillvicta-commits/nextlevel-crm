@@ -1262,7 +1262,7 @@ table th[onclick]{transition:background .15s,color .15s}
     <!-- ── IDLE DIALER ── -->
     <div id="dialpad-idle">
       <div class="dialpad-display">
-        <input class="dialpad-number-input" id="call-dial-number" placeholder="Enter or paste number…"
+        <input class="dialpad-number-input" id="call-dial-number" placeholder="Enter or paste number…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" name="crm-dial-number"
           oninput="matchDialpadContact(this.value)"
           onkeydown="if(event.key==='Enter')startCall();if(event.key==='Backspace'){event.preventDefault();dialpadBackspace();}"/>
         <span class="dialpad-backspace" onclick="dialpadBackspace()" title="Backspace">⌫</span>
@@ -1341,7 +1341,7 @@ table th[onclick]{transition:background .15s,color .15s}
 
         <div style="position:relative;flex:1;min-width:0">
           <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;z-index:1"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="form-input cf-filter-input has-icon" id="contact-search" placeholder="Search name, email…" oninput="renderContacts()"/>
+          <input class="form-input cf-filter-input has-icon" id="contact-search" type="search" placeholder="Search name, email…" oninput="renderContacts()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" name="crm-search-contacts"/>
         </div>
 
         <div style="position:relative;flex:1;min-width:0">
@@ -1477,7 +1477,7 @@ table th[onclick]{transition:background .15s,color .15s}
             <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Filter by Contact</div>
             <div style="position:relative">
               <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input id="cal-contact-filter" class="form-input" style="padding-left:28px;font-size:12px" placeholder="Search contacts…" oninput="filterCalByContact(this.value)"/>
+              <input id="cal-contact-filter" type="search" class="form-input" style="padding-left:28px;font-size:12px" placeholder="Search contacts…" oninput="filterCalByContact(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" name="crm-search-cal"/>
             </div>
             <div id="cal-contact-filter-list" style="margin-top:6px;display:none;max-height:160px;overflow-y:auto;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)"></div>
             <div id="cal-contact-filter-active" style="margin-top:6px"></div>
@@ -1558,7 +1558,7 @@ table th[onclick]{transition:background .15s,color .15s}
       
       <div style="position:relative;max-width:320px;margin-bottom:14px">
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="form-input" id="tag-search" style="padding-left:32px" placeholder="Search tags…" oninput="renderTagsPage()"/>
+        <input class="form-input" id="tag-search" type="search" style="padding-left:32px" placeholder="Search tags…" oninput="renderTagsPage()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" name="crm-search-tags"/>
       </div>
       
       <div class="tbl-wrap">
@@ -1576,7 +1576,7 @@ table th[onclick]{transition:background .15s,color .15s}
           <div class="conv-sidebar-head">
             <div class="conv-search-wrap">
               <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input id="conv-search" placeholder="Search conversations…" oninput="filterConvList(this.value)"/>
+              <input id="conv-search" type="search" placeholder="Search conversations…" oninput="filterConvList(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" name="crm-search-convs"/>
             </div>
             
             <div style="display:flex;align-items:center;gap:6px">
@@ -1701,7 +1701,7 @@ table th[onclick]{transition:background .15s,color .15s}
             <div style="font-size:13px;font-weight:600;color:var(--text)" id="email-folder-title">Sent</div>
             <div style="position:relative">
               <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input class="form-input" id="email-search" style="padding-left:28px;font-size:12px;width:180px" placeholder="Search emails…" oninput="renderEmailList()"/>
+              <input class="form-input" id="email-search" type="search" style="padding-left:28px;font-size:12px;width:180px" placeholder="Search emails…" oninput="renderEmailList()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" name="crm-search-emails"/>
             </div>
           </div>
           <div class="email-list" id="email-list"></div>
@@ -2331,8 +2331,8 @@ table th[onclick]{transition:background .15s,color .15s}
       <div class="login-title">Welcome back</div>
       <div class="login-sub">Sign in to your workspace</div>
       <div id="login-error" class="login-error" style="display:none"></div>
-      <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="login-email" type="email" placeholder="you@agency.com" onkeydown="if(event.key==='Enter')doLogin()"/></div>
-      <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="login-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/></div>
+      <div class="form-group"><label class="form-label">Email Address</label><input class="form-input" id="login-email" type="email" placeholder="you@agency.com" onkeydown="if(event.key==='Enter')doLogin()" autocomplete="username" data-allow-autofill="true"/></div>
+      <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="login-password" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" autocomplete="current-password" data-allow-autofill="true"/></div>
       <button class="btn btn-primary" style="width:100%;margin-top:4px;padding:10px" onclick="doLogin()">Sign In</button>
       <div id="login-hint" style="font-size:11px;color:var(--text3);text-align:center;margin-top:14px">Enter your email and password to sign in</div>
     </div>
@@ -4882,6 +4882,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-13', time:'22:35', name:'Disable Browser Autofill',        area:'All inputs',                  description:'Suppress Chrome/password-manager popups on search and filter inputs; login + account-password fields still autofill normally.', commit:'pending' },
   { date:'2026-05-13', time:'22:25', name:'Multi-Number Support + Cleanup',  area:'Integrations, SMS',           description:'Add up to 5 SignalWire phone numbers; per-message From picker in SMS compose; deleted dead SIP/click-to-call API files.', commit:'4304b2d' },
   { date:'2026-05-13', time:'22:05', name:'Bulk Contact Actions',            area:'Contacts',                    description:'Select-all + per-row checkboxes; bulk Export, Add/Remove Tag, Move to Pipeline, and Delete with typed confirmation.', commit:'8427382' },
   { date:'2026-05-13', time:'21:50', name:'Version History Tracker',         area:'Settings',                    description:'Added in-app version list with rollback instructions and CHANGELOG file.', commit:'fee2a58' },
@@ -10027,7 +10028,37 @@ document.querySelectorAll('.nav-item').forEach(item=>{
   // Restore saved favicon
   const savedFavicon = localStorage.getItem('crm-favicon');
   if(savedFavicon) applyFavicon(savedFavicon);
+  // Suppress browser autofill/autocomplete on every input that doesn't explicitly want it
+  disableBrowserAutofill();
+  // Watch for newly-added inputs (modals, dynamic forms) and silence those too
+  new MutationObserver(muts => {
+    for(const m of muts){
+      m.addedNodes.forEach(n => {
+        if(n.nodeType !== 1) return;
+        if(n.matches?.('input, textarea')) suppressAutofillOn(n);
+        n.querySelectorAll?.('input, textarea').forEach(suppressAutofillOn);
+      });
+    }
+  }).observe(document.body, { childList:true, subtree:true });
 })();
+
+function suppressAutofillOn(el){
+  if(!el || el.dataset.allowAutofill === 'true') return;
+  // Don't fight password fields — password managers should still work there
+  if(el.type === 'password') return;
+  if(!el.hasAttribute('autocomplete'))   el.setAttribute('autocomplete','off');
+  if(!el.hasAttribute('autocorrect'))    el.setAttribute('autocorrect','off');
+  if(!el.hasAttribute('autocapitalize')) el.setAttribute('autocapitalize','off');
+  if(!el.hasAttribute('spellcheck'))     el.setAttribute('spellcheck','false');
+  if(!el.hasAttribute('data-form-type')) el.setAttribute('data-form-type','other');
+  // 1Password/LastPass/Bitwarden hints
+  if(!el.hasAttribute('data-lpignore'))  el.setAttribute('data-lpignore','true');
+  if(!el.hasAttribute('data-1p-ignore')) el.setAttribute('data-1p-ignore','true');
+}
+
+function disableBrowserAutofill(){
+  document.querySelectorAll('input, textarea').forEach(suppressAutofillOn);
+}
 
 function setTheme(name){
   if(name !== 'default' && name !== 'light') name = 'default';
