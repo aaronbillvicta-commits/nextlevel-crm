@@ -1542,11 +1542,18 @@ table th[onclick]{transition:background .15s,color .15s}
               <input id="conv-search" placeholder="Search conversations…" oninput="filterConvList(this.value)"/>
             </div>
             
-            <div class="conv-filter-tabs">
-              <div class="conv-filter-tab active" data-filter="all" onclick="setConvFilter('all',this)">All</div>
-              <div class="conv-filter-tab" data-filter="sms" onclick="setConvFilter('sms',this)">SMS</div>
-              <div class="conv-filter-tab" data-filter="email" onclick="setConvFilter('email',this)">Email</div>
-              <div class="conv-filter-tab" data-filter="unread" onclick="setConvFilter('unread',this)">Unread</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <div class="conv-filter-tabs" style="flex:1">
+                <div class="conv-filter-tab active" data-filter="all" onclick="setConvFilter('all',this)">All</div>
+                <div class="conv-filter-tab" data-filter="sms" onclick="setConvFilter('sms',this)">SMS</div>
+                <div class="conv-filter-tab" data-filter="calls" onclick="setConvFilter('calls',this)">Calls</div>
+                <div class="conv-filter-tab" data-filter="email" onclick="setConvFilter('email',this)">Email</div>
+                <div class="conv-filter-tab" data-filter="unread" onclick="setConvFilter('unread',this)">Unread</div>
+              </div>
+              <button id="conv-sort-btn" onclick="toggleConvSort()" title="Sort newest first" style="background:var(--bg3);border:1px solid var(--border);color:var(--text2);padding:5px 8px;font-size:11px;font-weight:500;cursor:pointer;border-radius:var(--radius);display:flex;align-items:center;gap:4px;flex-shrink:0;white-space:nowrap" aria-label="Toggle sort order">
+                <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" id="conv-sort-icon"><path d="M12 5v14"/><polyline points="19 12 12 19 5 12"/></svg>
+                <span id="conv-sort-label">New</span>
+              </button>
             </div>
           </div>
           <div class="conv-list" id="conv-contact-list"></div>
@@ -2707,6 +2714,8 @@ function logCall(direction, number, contactName, durationSecs, status){
   });
   saveCallHistory();
   renderCallHistory();
+  // Refresh the conversation list if Calls tab is active
+  if(convFilter === 'calls' && typeof renderConvList === 'function') renderConvList();
 }
 
 function fmtDuration(secs){
@@ -7628,6 +7637,7 @@ let conversations = [];
 let activeConvContactId = null;
 let convFilter = 'all';
 let convSearchQ = '';
+let convSort = 'newest'; // 'newest' or 'oldest'
 let composeChannel = 'sms';
 
 async function saveConversations(){
@@ -7654,6 +7664,74 @@ function getConvLastMsg(conv){
 
 function renderConvList(){
   const el = document.getElementById('conv-contact-list'); if(!el) return;
+
+  // ── CALLS TAB: render call history items, not conversation contacts ──
+  if(convFilter === 'calls'){
+    let calls = [...callHistory];
+    if(convSearchQ){
+      calls = calls.filter(c => {
+        const contact = findContactByPhone(c.number);
+        const name = (contact?.name || c.contactName || '').toLowerCase();
+        return name.includes(convSearchQ) || (c.number||'').includes(convSearchQ);
+      });
+    }
+    calls.sort((a,b) => {
+      const ta = new Date(a.ts||0).getTime();
+      const tb = new Date(b.ts||0).getTime();
+      return convSort === 'oldest' ? ta - tb : tb - ta;
+    });
+
+    if(calls.length === 0){
+      el.innerHTML = `<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px">${convSearchQ?'No calls match your search':'No call history yet'}</div>`;
+      return;
+    }
+
+    el.innerHTML = calls.map(c => {
+      const contact = findContactByPhone(c.number);
+      const displayName = contact?.name || c.contactName || c.number;
+      const isUnknown = !contact;
+      const avCls = contact ? getAv(contact.id) : 'av-blue';
+      const avClr = {'av-pink':'var(--pink)','av-blue':'var(--accent2)','av-amber':'var(--amber)','av-green':'var(--green)','av-purple':'var(--purple)'}[avCls]||'var(--accent2)';
+      const avBg  = {'av-pink':'var(--pink-bg)','av-blue':'var(--accent-bg)','av-amber':'var(--amber-bg)','av-green':'var(--green-bg)','av-purple':'var(--purple-bg)'}[avCls]||'var(--accent-bg)';
+      const av    = contact ? initials(contact.name) : '☎';
+
+      let icon, iconColor;
+      if(c.direction === 'inbound'){
+        if(c.status === 'missed'){ icon = '↙'; iconColor = 'var(--red)'; }
+        else                      { icon = '↙'; iconColor = 'var(--green)'; }
+      } else {
+        if(c.status === 'failed') { icon = '↗'; iconColor = 'var(--red)'; }
+        else                      { icon = '↗'; iconColor = 'var(--accent2)'; }
+      }
+      const statusText = c.status === 'missed' ? 'Missed call'
+                       : c.status === 'failed' ? 'Failed'
+                       : c.direction === 'inbound' ? `Incoming · ${fmtDuration(c.duration)}`
+                       : `Outgoing · ${fmtDuration(c.duration)}`;
+      const statusColor = (c.status==='missed'||c.status==='failed') ? 'var(--red)' : 'var(--text3)';
+      const numberLine = contact
+        ? `<span style="color:var(--text3)">${c.number}</span>`
+        : `<span style="color:var(--amber);font-size:10px">Not in contacts</span>`;
+      const onClick = contact
+        ? `openConversation('${contact.id}')`
+        : `dialpadSetNumber('${c.number}');openDialpad()`;
+
+      return `<div class="conv-item" onclick="${onClick}" title="${contact?'Open conversation':'Redial '+c.number}">
+        <div class="conv-item-av" style="background:${avBg};color:${avClr}">${av}</div>
+        <div class="conv-item-info">
+          <div class="conv-item-name">
+            <span style="color:${iconColor};font-weight:700;margin-right:4px">${icon}</span>${displayName}
+          </div>
+          <div class="conv-item-preview" style="color:${statusColor}">${statusText} · ${numberLine}</div>
+        </div>
+        <div class="conv-item-meta">
+          <span class="conv-item-time">${relativeTime(c.ts)}</span>
+        </div>
+      </div>`;
+    }).join('');
+    return;
+  }
+
+  // ── ALL / SMS / EMAIL / UNREAD: render conversation contacts ──
   let filtered = [...conversations];
 
   // Apply filter
@@ -7671,8 +7749,12 @@ function renderConvList(){
     });
   }
 
-  // Sort by latest message
-  filtered.sort((a,b)=>new Date(getConvLastMsg(b)?.ts||0)-new Date(getConvLastMsg(a)?.ts||0));
+  // Sort by latest message — respect convSort direction
+  filtered.sort((a,b)=>{
+    const ta = new Date(getConvLastMsg(a)?.ts||0).getTime();
+    const tb = new Date(getConvLastMsg(b)?.ts||0).getTime();
+    return convSort === 'oldest' ? ta - tb : tb - ta;
+  });
 
   if(filtered.length===0){
     el.innerHTML=`<div style="padding:24px;text-align:center;color:var(--text3);font-size:12px">${convSearchQ?'No conversations match your search':'No conversations yet'}</div>`;
@@ -7707,6 +7789,30 @@ function renderConvList(){
       </div>
     </div>`;
   }).join('');
+}
+
+// Match a phone number (any format) against the contacts list
+function findContactByPhone(number){
+  if(!number) return null;
+  const digits = number.replace(/\D/g,'');
+  if(!digits) return null;
+  return contacts.find(c => c.phone && c.phone.replace(/\D/g,'').endsWith(digits.slice(-10))) || null;
+}
+
+function toggleConvSort(){
+  convSort = convSort === 'newest' ? 'oldest' : 'newest';
+  const btn = document.getElementById('conv-sort-btn');
+  const icon = document.getElementById('conv-sort-icon');
+  const label = document.getElementById('conv-sort-label');
+  if(label) label.textContent = convSort === 'newest' ? 'New' : 'Old';
+  if(btn) btn.title = convSort === 'newest' ? 'Sort: newest first (click for oldest)' : 'Sort: oldest first (click for newest)';
+  // Flip the arrow icon
+  if(icon){
+    icon.innerHTML = convSort === 'newest'
+      ? '<path d="M12 5v14"/><polyline points="19 12 12 19 5 12"/>'
+      : '<path d="M12 19V5"/><polyline points="5 12 12 5 19 12"/>';
+  }
+  renderConvList();
 }
 
 function relativeTime(isoStr){
