@@ -49,6 +49,17 @@ body.theme-light .topbar{background:#ffffff;}
 .theme-swatch{width:80px;height:48px;border-radius:6px}
 .theme-opt-label{font-size:12px;color:var(--text);font-weight:500}
 
+/* ── DIALER ── */
+.dialer-q-row{display:flex;align-items:center;gap:9px;padding:8px;border-radius:var(--radius);margin-bottom:5px;background:var(--bg3);border:1px solid transparent;transition:border-color .15s}
+.dialer-q-row.next{border-color:var(--accent);background:var(--accent-bg)}
+.dialer-q-pos{font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);width:18px;text-align:center;flex-shrink:0}
+.dialer-q-x{cursor:pointer;color:var(--text3);font-size:15px;line-height:1;flex-shrink:0;padding:0 2px;transition:color .12s}
+.dialer-q-x:hover{color:var(--red)}
+.dialer-search-opt{padding:8px 10px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:8px;transition:background .12s}
+.dialer-search-opt:hover{background:var(--bg3)}
+.dispo-btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:transform .1s,filter .12s}
+.dispo-btn:hover{filter:brightness(1.15);transform:translateY(-1px)}
+
 /* ── CONTACT VIEW TABS (All Contacts / Bulk Action Log) ── */
 .contact-view-tab{font-size:17px;font-weight:600;color:var(--text3);cursor:pointer;padding:2px 0;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
 .contact-view-tab:hover{color:var(--text2)}
@@ -1120,6 +1131,10 @@ table th[onclick]{transition:background .15s,color .15s}
       Calendar
     </div>
     <div class="nav-sec">Outreach</div>
+    <div class="nav-item" data-page="dialer">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+      Dialer
+    </div>
     <div class="nav-item" data-page="conversations">
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
       Conversations
@@ -1392,6 +1407,7 @@ table th[onclick]{transition:background .15s,color .15s}
           <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export CSV
         </button>
+        <button class="btn btn-sm" onclick="bulkAddToDialerQueue()">📞 Add to Queue</button>
         <button class="btn btn-sm" onclick="bulkAddTag()">+ Add Tag</button>
         <button class="btn btn-sm" onclick="bulkRemoveTag()">− Remove Tag</button>
         <button class="btn btn-sm" onclick="bulkMoveToPipeline()">→ Move to Pipeline</button>
@@ -1603,6 +1619,31 @@ table th[onclick]{transition:background .15s,color .15s}
           <thead><tr><th>Tag</th><th>Color</th><th>Contacts</th><th>Deals</th><th>Actions</th></tr></thead>
           <tbody id="tags-tbody"></tbody>
         </table>
+      </div>
+    </div>
+
+    <div class="page" id="page-dialer">
+      <div class="sec-head">
+        <div class="sec-title">Dialer <span id="dialer-queue-count" style="color:var(--text3);font-weight:400"></span></div>
+        <button class="btn btn-sm" onclick="openDialerSettingsModal()" title="Dialer settings — dispositions & auto-dial" style="width:34px;height:30px;padding:0;display:flex;align-items:center;justify-content:center">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <!-- LEFT: QUEUE -->
+        <div style="flex:0 0 340px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;display:flex;flex-direction:column;max-height:calc(100vh - 170px)">
+          <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Call Queue</div>
+          <div style="position:relative;margin-bottom:10px">
+            <input id="dialer-search" class="form-input" placeholder="Search a contact to add…" oninput="renderDialerSearchResults(this.value)" onfocus="renderDialerSearchResults(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" name="crm-dialer-search" style="font-size:12px"/>
+            <div id="dialer-search-results" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:50;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.4)"></div>
+          </div>
+          <div id="dialer-queue-list" style="flex:1;overflow-y:auto;min-height:120px"></div>
+          <button class="btn btn-sm" onclick="clearDialerQueue()" style="margin-top:10px;color:var(--red);flex-shrink:0">Clear Queue</button>
+        </div>
+        <!-- RIGHT: NOW CALLING -->
+        <div style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;min-height:340px;display:flex;align-items:center;justify-content:center">
+          <div id="dialer-now-calling" style="width:100%;max-width:380px;text-align:center"></div>
+        </div>
       </div>
     </div>
 
@@ -3257,6 +3298,11 @@ function setCallActive(name, number){
 }
 
 function endCall(){
+  // Capture dialer context before activeCallContact is cleared below
+  const _dialerCtx = dialerCallInProgress && activeCallContact
+    ? { id:activeCallContact.id, name:activeCallContact.name, phone:activeCallContact.phone, seconds:callSeconds }
+    : null;
+
   if(swCall){ try{ swCall.leave(); }catch(e){} swCall=null; }
   clearInterval(callTimer); callTimer=null;
   const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
@@ -3289,6 +3335,12 @@ function endCall(){
   if(input) input.value='';
   activeCallContact=null;
   showToast(`Call ended — ${m}:${s}`);
+
+  // Dialer: a queue call just ended — prompt for a disposition
+  if(_dialerCtx){
+    dialerCallInProgress = false;
+    showDialerDisposition(_dialerCtx);
+  }
 }
 
 function toggleMute(){
@@ -5290,6 +5342,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-14', time:'05:15', name:'Dialer — Power Call Queue',       area:'Dialer',                      description:'New Dialer section above Conversations: build a FIFO call queue, dial leads through the browser, log a disposition after each call. Editable dispositions + auto-advance/auto-dial toggle with countdown, all in the Dialer gear ⚙. "📞 Add to Queue" bulk action on Contacts.', commit:'pending' },
   { date:'2026-05-14', time:'04:30', name:'Contact Notes Log + Bulk Action Log', area:'Contacts',                description:'Notes are now timestamped entries (Added/Edited stamps, separators, edit & delete) instead of one textarea. New "Bulk Action Log" tab beside All Contacts shows every bulk Export/Tag/Pipeline/Delete/Import — operation, status, user, created & completed times.', commit:'b648537' },
   { date:'2026-05-14', time:'03:55', name:'Pop-ups: No Outside-Click Close',  area:'All modals',                  description:'Pop-up boxes no longer close when you click outside them. Close only via the × button or the Esc key — prevents losing work on an accidental click.', commit:'c4d7505' },
   { date:'2026-05-14', time:'03:40', name:'Contacts: Names, Statuses, Last Activity', area:'Contacts',          description:'Split Full Name into First/Last; gear ⚙ to add/edit/remove Statuses & Sources; new Last Activity column (date+time of last call/email/SMS/profile update) beside Date Added.', commit:'f8151de' },
@@ -10499,10 +10552,407 @@ async function executeBulkDelete(){
   showToast(`Deleted ${deleted} contact${deleted!==1?'s':''}`);
 }
 
+// ── BULK ACTION: ADD TO DIALER QUEUE ──
+function bulkAddToDialerQueue(){
+  const sel = getSelectedContacts();
+  if(!sel.length) return;
+  const entry = startBulkAction('Add to Queue', `Add ${sel.length} contact${sel.length>1?'s':''} to the dialer queue`);
+  let added=0, noPhone=0, dup=0;
+  sel.forEach(c=>{
+    if(!c.phone){ noPhone++; return; }
+    if(dialerQueue.includes(c.id)){ dup++; return; }
+    dialerQueue.push(c.id);
+    added++;
+  });
+  saveDialerQueue();
+  if(document.getElementById('page-dialer')?.classList.contains('active')) renderDialerPage();
+  clearContactSelection();
+  finishBulkAction(entry, 'Complete', `${added} queued${dup?`, ${dup} already in queue`:''}${noPhone?`, ${noPhone} skipped (no phone)`:''}`);
+  const parts=[`${added} added to dialer queue`];
+  if(dup) parts.push(`${dup} already queued`);
+  if(noPhone) parts.push(`${noPhone} skipped — no phone`);
+  showToast(parts.join(' · '));
+}
+
+// ═══════════════════════════════════════════════
+// DIALER — call queue + dispositions + auto-dial
+// ═══════════════════════════════════════════════
+let dialerQueue = JSON.parse(localStorage.getItem('nlm_dialer_queue')||'[]');
+let dialerSettings = JSON.parse(localStorage.getItem('nlm_dialer_settings')||'null') || {
+  dispositions: [
+    {value:'interested',     label:'Interested',     color:'pill-active'},
+    {value:'callback',       label:'Callback',       color:'pill-new'},
+    {value:'no-answer',      label:'No Answer',      color:'pill-cold'},
+    {value:'voicemail',      label:'Left Voicemail', color:'pill-cold'},
+    {value:'wrong-number',   label:'Wrong Number',   color:'pill-hot'},
+    {value:'not-interested', label:'Not Interested', color:'pill-hot'},
+    {value:'do-not-call',    label:'Do Not Call',    color:'pill-hot'},
+  ],
+  autoDial: false,
+  countdownSecs: 3,
+};
+let dialerCallInProgress = false;   // true while a queue-initiated call is live
+let dialerCountdownTimer = null;
+
+function saveDialerQueue(){ localStorage.setItem('nlm_dialer_queue', JSON.stringify(dialerQueue)); }
+function saveDialerSettings(){ localStorage.setItem('nlm_dialer_settings', JSON.stringify(dialerSettings)); }
+
+// Resolve queue IDs → live contacts, dropping any that no longer exist
+function getDialerQueueContacts(){
+  const resolved = dialerQueue.map(id => contacts.find(c=>c.id===id)).filter(Boolean);
+  // Self-heal: prune dead IDs
+  if(resolved.length !== dialerQueue.length){
+    dialerQueue = resolved.map(c=>c.id);
+    saveDialerQueue();
+  }
+  return resolved;
+}
+
+function renderDialerPage(){
+  renderDialerQueue();
+  renderDialerNowCalling();
+}
+
+function renderDialerQueue(){
+  const list = document.getElementById('dialer-queue-list');
+  const countEl = document.getElementById('dialer-queue-count');
+  if(!list) return;
+  const q = getDialerQueueContacts();
+  if(countEl) countEl.textContent = q.length ? `(${q.length} in queue)` : '';
+  if(!q.length){
+    list.innerHTML = '<div style="font-size:12px;color:var(--text3);text-align:center;padding:24px 8px;line-height:1.6">Queue is empty.<br>Search above, or use<br>"📞 Add to Queue" on the Contacts page.</div>';
+    return;
+  }
+  list.innerHTML = q.map((c,i)=>`
+    <div class="dialer-q-row ${i===0?'next':''}">
+      <span class="dialer-q-pos">${i===0?'▶':i+1}</span>
+      <div class="av-sm ${getAv(c.id)}" style="flex-shrink:0">${initials(c.name)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name||'Unknown'}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${c.phone||'⚠ no phone'}</div>
+      </div>
+      <span class="dialer-q-x" onclick="removeFromDialerQueue('${c.id}')" title="Remove from queue">×</span>
+    </div>
+  `).join('');
+}
+
+function renderDialerNowCalling(){
+  const el = document.getElementById('dialer-now-calling');
+  if(!el) return;
+  const q = getDialerQueueContacts();
+
+  // Countdown state
+  if(dialerCountdownTimer && q.length){
+    const c = q[0];
+    el.innerHTML = `
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Auto-dialing next in</div>
+      <div style="font-size:48px;font-weight:700;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:6px"><span id="dialer-countdown-num">${dialerSettings.countdownSecs}</span></div>
+      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px">${c.name}</div>
+      <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:18px">${c.phone||''}</div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button class="btn btn-primary btn-sm" onclick="cancelDialerCountdown(true)">📞 Call Now</button>
+        <button class="btn btn-sm" onclick="cancelDialerCountdown(false)">Cancel</button>
+      </div>`;
+    return;
+  }
+
+  // Empty queue
+  if(!q.length){
+    el.innerHTML = `
+      <div style="font-size:42px;margin-bottom:14px;opacity:.5">📞</div>
+      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Queue is empty</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.6">Add contacts using the search on the left,<br>or select contacts on the Contacts page<br>and click "📞 Add to Queue".</div>`;
+    return;
+  }
+
+  // In-progress (queue call live)
+  if(dialerCallInProgress && callTimer){
+    const c = q[0];
+    el.innerHTML = `
+      <div class="call-active-pulse" style="margin:0 auto 14px"></div>
+      <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:8px">● On Call</div>
+      <div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:2px">${c.name}</div>
+      <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:14px">${c.phone||''}</div>
+      <div style="font-size:12px;color:var(--text3);line-height:1.6">Call controls are in the dialpad ↘<br>Disposition appears when the call ends.</div>`;
+    return;
+  }
+
+  // Idle — up next
+  const c = q[0];
+  el.innerHTML = `
+    <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Up Next</div>
+    <div class="av-sm ${getAv(c.id)}" style="width:64px;height:64px;font-size:22px;margin:0 auto 12px">${initials(c.name)}</div>
+    <div style="font-size:19px;font-weight:700;color:var(--text);margin-bottom:3px">${c.name}</div>
+    <div style="font-size:13px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:20px">${c.phone||'⚠ No phone number'}</div>
+    <button class="btn btn-primary" onclick="dialerCallTop()" style="font-size:14px;padding:10px 24px" ${!c.phone?'disabled':''}>📞 Call ${(c.name||'').split(' ')[0]}</button>
+    <div style="font-size:11px;color:var(--text3);margin-top:14px">${q.length} lead${q.length>1?'s':''} in queue${dialerSettings.autoDial?' · auto-dial ON':''}</div>`;
+}
+
+function renderDialerSearchResults(query){
+  const box = document.getElementById('dialer-search-results');
+  if(!box) return;
+  const q = (query||'').trim().toLowerCase();
+  if(!q){ box.style.display='none'; box.innerHTML=''; return; }
+  const matches = contacts.filter(c=>{
+    if(dialerQueue.includes(c.id)) return false;
+    return (c.name||'').toLowerCase().includes(q) ||
+           (c.phone||'').includes(q) ||
+           (c.company||'').toLowerCase().includes(q);
+  }).slice(0,8);
+  if(!matches.length){
+    box.style.display='block';
+    box.innerHTML = '<div style="padding:10px;font-size:12px;color:var(--text3);text-align:center">No matching contacts (or already queued)</div>';
+    return;
+  }
+  box.style.display='block';
+  box.innerHTML = matches.map(c=>`
+    <div class="dialer-search-opt" onclick="addToDialerQueue('${c.id}')">
+      <div class="av-sm ${getAv(c.id)}" style="flex-shrink:0">${initials(c.name)}</div>
+      <div style="flex:1;min-width:0">
+        <div style="color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name||'Unknown'}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${c.phone||'⚠ no phone'}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function addToDialerQueue(contactId){
+  const c = contacts.find(x=>x.id===contactId);
+  if(!c) return;
+  if(!c.phone){ showToast(`${c.name} has no phone number`,'error'); return; }
+  if(dialerQueue.includes(contactId)){ showToast('Already in queue','error'); return; }
+  dialerQueue.push(contactId);
+  saveDialerQueue();
+  const search = document.getElementById('dialer-search');
+  if(search) search.value = '';
+  const box = document.getElementById('dialer-search-results');
+  if(box){ box.style.display='none'; box.innerHTML=''; }
+  renderDialerPage();
+  showToast(`${c.name} added to queue`);
+}
+
+function removeFromDialerQueue(contactId){
+  dialerQueue = dialerQueue.filter(id=>id!==contactId);
+  saveDialerQueue();
+  renderDialerPage();
+}
+
+function clearDialerQueue(){
+  if(!dialerQueue.length) return;
+  if(!confirm(`Clear all ${dialerQueue.length} leads from the dialer queue?`)) return;
+  dialerQueue = [];
+  saveDialerQueue();
+  if(dialerCountdownTimer){ clearInterval(dialerCountdownTimer); dialerCountdownTimer=null; }
+  renderDialerPage();
+  showToast('Queue cleared');
+}
+
+// Call the top lead in the queue
+function dialerCallTop(){
+  const q = getDialerQueueContacts();
+  const c = q[0];
+  if(!c){ showToast('Queue is empty','error'); return; }
+  if(!c.phone){ showToast(`${c.name} has no phone number — remove or fix it`,'error'); return; }
+  if(swCall || callTimer){ showToast('A call is already in progress','error'); return; }
+  if(!getPrimarySwPhone()){ showToast('Connect SignalWire first (Integrations)','error'); return; }
+  activeCallContact = { id:c.id, name:c.name, phone:c.phone };
+  const input = document.getElementById('call-dial-number');
+  if(input) input.value = c.phone;
+  dialerCallInProgress = true;
+  renderDialerNowCalling();
+  startCall();
+}
+
+// Auto-dial countdown between leads
+function startDialerCountdown(){
+  const q = getDialerQueueContacts();
+  if(!q.length) { renderDialerNowCalling(); return; }
+  if(dialerCountdownTimer){ clearInterval(dialerCountdownTimer); }
+  let secs = Math.max(1, parseInt(dialerSettings.countdownSecs,10) || 3);
+  dialerCountdownTimer = setInterval(()=>{
+    secs--;
+    if(secs <= 0){
+      clearInterval(dialerCountdownTimer); dialerCountdownTimer = null;
+      dialerCallTop();
+    } else {
+      const num = document.getElementById('dialer-countdown-num');
+      if(num) num.textContent = secs;
+    }
+  }, 1000);
+  renderDialerNowCalling();
+}
+
+function cancelDialerCountdown(callNow){
+  if(dialerCountdownTimer){ clearInterval(dialerCountdownTimer); dialerCountdownTimer = null; }
+  if(callNow){ dialerCallTop(); }
+  else { renderDialerNowCalling(); }
+}
+
+// ── DISPOSITION (fired by endCall when a queue call ends) ──
+function showDialerDisposition(ctx){
+  // ctx = { id, name, phone, seconds }
+  const c = contacts.find(x=>x.id===ctx.id) || { id:ctx.id, name:ctx.name, phone:ctx.phone };
+  const m = String(Math.floor((ctx.seconds||0)/60)).padStart(2,'0');
+  const s = String((ctx.seconds||0)%60).padStart(2,'0');
+  const colorMap = {'pill-hot':'var(--red)','pill-active':'var(--green)','pill-new':'var(--accent2)','pill-cold':'var(--text3)','pill-done':'var(--green)'};
+  const colorBgMap = {'pill-hot':'var(--red-bg)','pill-active':'var(--green-bg)','pill-new':'var(--accent-bg)','pill-cold':'var(--bg4)','pill-done':'var(--green-bg)'};
+  const btns = dialerSettings.dispositions.map(d=>`
+    <button class="dispo-btn" style="background:${colorBgMap[d.color]||'var(--bg3)'};color:${colorMap[d.color]||'var(--text)'}"
+      onclick="applyDisposition('${c.id}','${d.value}')">${d.label}</button>
+  `).join('');
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">📞 Call Disposition</div>
+      <span class="modal-close" onclick="dispositionSkip()" title="Skip">×</span>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+        <div class="av-sm ${getAv(c.id)}" style="width:42px;height:42px;font-size:15px">${initials(c.name)}</div>
+        <div>
+          <div style="font-size:15px;font-weight:600;color:var(--text)">${c.name||'Unknown'}</div>
+          <div style="font-size:11px;color:var(--text3)">${c.phone||''} · Call duration ${m}:${s}</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;font-weight:500">How did the call go?</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sm" onclick="dispositionSkip()" style="color:var(--text3)">Skip — keep lead in queue</button>
+    </div>
+  `);
+}
+
+// Skip disposition: keep lead in queue, just close
+function dispositionSkip(){
+  closeModalForce();
+  if(document.getElementById('page-dialer')?.classList.contains('active')) renderDialerPage();
+}
+
+async function applyDisposition(contactId, dispoValue){
+  const c = contacts.find(x=>x.id===contactId);
+  const dispo = dialerSettings.dispositions.find(d=>d.value===dispoValue);
+  const label = dispo?.label || dispoValue;
+  closeModalForce();
+  if(c){
+    // Log as a timestamped note
+    if(!Array.isArray(c.notes)) c.notes = [];
+    c.notes.push({
+      id:'note_'+Date.now()+Math.random().toString(36).slice(2,6),
+      text:`📞 Call disposition: ${label}`,
+      created_at:new Date().toISOString(),
+      edited_at:null,
+    });
+    try { await sb.patch('contacts', contactId, { notes:c.notes }); } catch(_){}
+    touchContactActivity(contactId, 'call');
+  }
+  // Remove the dispositioned lead from the queue
+  dialerQueue = dialerQueue.filter(id=>id!==contactId);
+  saveDialerQueue();
+  showToast(`Logged: ${label}`);
+  // Advance behavior
+  if(dialerSettings.autoDial && getDialerQueueContacts().length){
+    startDialerCountdown();
+  } else {
+    renderDialerPage();
+  }
+}
+
+// ── DIALER SETTINGS MODAL ──
+function dispoRowHTML(d){
+  return `<div class="cs-status-row" data-value="${(d.value||'').replace(/"/g,'&quot;')}" style="display:flex;gap:6px;align-items:center">
+    <input class="form-input dispo-label" value="${(d.label||'').replace(/"/g,'&quot;')}" placeholder="Disposition name" style="flex:1;min-width:0" oninput="dispoUpdatePreview(this)"/>
+    <select class="form-select dispo-color" style="width:90px;flex-shrink:0" onchange="dispoUpdatePreview(this)">
+      ${STATUS_COLORS.map(sc=>`<option value="${sc.cls}" ${sc.cls===d.color?'selected':''}>${sc.name}</option>`).join('')}
+    </select>
+    <span class="pill ${d.color} dispo-prev" style="min-width:54px;text-align:center;flex-shrink:0">${d.label||'—'}</span>
+    <button onclick="this.closest('.cs-status-row').remove()" title="Remove" style="background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);width:30px;height:32px;cursor:pointer;color:var(--text3);flex-shrink:0;font-size:14px">×</button>
+  </div>`;
+}
+function dispoUpdatePreview(el){
+  const row = el.closest('.cs-status-row');
+  const label = row.querySelector('.dispo-label').value || '—';
+  const color = row.querySelector('.dispo-color').value;
+  const prev = row.querySelector('.dispo-prev');
+  prev.textContent = label;
+  prev.className = 'pill ' + color + ' dispo-prev';
+}
+function dispoAddRow(){
+  document.getElementById('dispo-list').insertAdjacentHTML('beforeend',
+    dispoRowHTML({value:'', label:'New Disposition', color:'pill-new'}));
+}
+
+function openDialerSettingsModal(){
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">Dialer Settings</div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body">
+      <div class="modal-section-title">Dispositions</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">The outcome buttons shown after each call. Add, rename, recolor, or remove.</div>
+      <div id="dispo-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+      <button class="btn btn-sm" onclick="dispoAddRow()">+ Add Disposition</button>
+
+      <div class="modal-section-title" style="margin-top:22px">After a Call</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:12px;line-height:1.5">What happens once you pick a disposition.</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px">
+        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px;color:var(--text)">
+          <input type="radio" name="dialer-mode" value="manual" ${!dialerSettings.autoDial?'checked':''} style="margin-top:2px"/>
+          <span><strong>Auto-advance only</strong><br><span style="font-size:11px;color:var(--text3)">Next lead moves up, but you click Call yourself.</span></span>
+        </label>
+        <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:13px;color:var(--text)">
+          <input type="radio" name="dialer-mode" value="auto" ${dialerSettings.autoDial?'checked':''} style="margin-top:2px"/>
+          <span><strong>Auto-advance + auto-dial</strong><br><span style="font-size:11px;color:var(--text3)">After a countdown, the next lead is dialed automatically. You can cancel the countdown.</span></span>
+        </label>
+      </div>
+      <div class="form-group" style="max-width:240px">
+        <label class="form-label">Auto-dial countdown (seconds)</label>
+        <input class="form-input" id="dialer-countdown-input" type="number" min="1" max="30" value="${dialerSettings.countdownSecs}"/>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveDialerSettingsModal()">Save Settings</button>
+    </div>
+  `);
+  document.getElementById('dispo-list').innerHTML = dialerSettings.dispositions.map(dispoRowHTML).join('');
+}
+
+function saveDialerSettingsModal(){
+  const newDispos = [...document.querySelectorAll('#dispo-list .cs-status-row')].map(row=>{
+    const label = row.querySelector('.dispo-label').value.trim();
+    const color = row.querySelector('.dispo-color').value;
+    let value = row.dataset.value;
+    if(!value) value = (label.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')) || ('dispo-'+Date.now()+Math.random().toString(36).slice(2,5));
+    return { value, label: label||'Disposition', color };
+  }).filter(d=>d.label);
+  if(!newDispos.length){ showToast('Keep at least one disposition','error'); return; }
+  const mode = document.querySelector('input[name="dialer-mode"]:checked')?.value || 'manual';
+  let secs = parseInt(document.getElementById('dialer-countdown-input')?.value,10);
+  if(isNaN(secs) || secs<1) secs = 3;
+  if(secs>30) secs = 30;
+  dialerSettings.dispositions = newDispos;
+  dialerSettings.autoDial = (mode === 'auto');
+  dialerSettings.countdownSecs = secs;
+  saveDialerSettings();
+  closeModal();
+  if(document.getElementById('page-dialer')?.classList.contains('active')) renderDialerPage();
+  showToast('Dialer settings saved ✅');
+}
+
+// Close the dialer search dropdown when clicking elsewhere
+document.addEventListener('click', function(e){
+  const box = document.getElementById('dialer-search-results');
+  const inp = document.getElementById('dialer-search');
+  if(box && box.style.display!=='none' && e.target!==inp && !box.contains(e.target)){
+    box.style.display='none';
+  }
+});
+
 // Update navigate to handle new pages
 const PAGE_TITLES = {
   dashboard:'Dashboard', contacts:'Contacts', pipeline:'Pipeline & Deal',
-  calendar:'Calendar', conversations:'Conversations', email:'Email',
+  calendar:'Calendar', dialer:'Dialer', conversations:'Conversations', email:'Email',
   automations:'Automations', social:'Social Planner', campaigns:'Campaigns',
   tags:'Tags', integrations:'Integrations', 'custom-fields':'Custom Fields', settings:'Settings'
 };
@@ -10523,6 +10973,7 @@ function navigate(page){
     else renderBoard();
   }
   if(page==='calendar') renderCalendar();
+  if(page==='dialer') renderDialerPage();
   if(page==='conversations') renderConversations();
   if(page==='email') renderEmailPage();
   if(page==='automations') renderAutoList();
