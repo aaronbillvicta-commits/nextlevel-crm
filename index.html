@@ -56,6 +56,17 @@ tr.row-selected{background:rgba(0,210,255,0.06)}
 tr.row-selected td{border-bottom-color:rgba(0,210,255,0.18)}
 .contact-row-checkbox,#contact-select-all{accent-color:var(--accent)}
 
+/* ── SIGNALWIRE PHONE ROWS ── */
+.sw-phone-row{display:flex;gap:6px;align-items:center}
+.sw-phone-row input{flex:1;min-width:0}
+.sw-phone-row .sw-phone-num{flex:1.5}
+.sw-phone-row .sw-phone-label{flex:1}
+.sw-phone-row button{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);width:32px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);font-size:14px;flex-shrink:0;transition:all .15s}
+.sw-phone-row .sw-phone-primary:hover{color:var(--amber);border-color:var(--amber)}
+.sw-phone-row .sw-phone-primary.active{color:var(--amber);background:var(--amber-bg);border-color:var(--amber)}
+.sw-phone-row .sw-phone-remove:hover{color:var(--red);border-color:var(--red)}
+#sw-add-phone-btn:disabled{opacity:.4;cursor:not-allowed}
+
 html,body{height:100%;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -1605,6 +1616,7 @@ table th[onclick]{transition:background .15s,color .15s}
               </div>
               
               <div id="compose-sms-panel">
+                <div id="conv-sms-from-picker" style="margin-bottom:6px;display:none"></div>
                 <textarea id="compose-sms-body" class="conv-textarea" placeholder="Type an SMS message… (160 chars)" oninput="updateConvSmsCount()"></textarea>
                 <div class="conv-compose-footer">
                   <span id="conv-sms-count" style="font-size:11px;color:var(--text3)">0/160</span>
@@ -1895,7 +1907,13 @@ table th[onclick]{transition:background .15s,color .15s}
           <div class="int-form-grid">
             <div class="form-group"><label class="form-label">Project ID</label><input class="form-input" id="sw-project" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"/></div>
             <div class="form-group"><label class="form-label">API Token</label><input class="form-input" id="sw-token" type="password" placeholder="PTxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"/></div>
-            <div class="form-group"><label class="form-label">SignalWire Phone Number</label><input class="form-input" id="sw-phone" placeholder="+13058458883"/></div>
+          </div>
+          <div class="form-group" style="margin-top:14px">
+            <label class="form-label">SignalWire Phone Numbers <span style="color:var(--text3);font-weight:400;font-size:11px">(up to 5 — click ★ to set primary)</span></label>
+            <div id="sw-phones-list" style="display:flex;flex-direction:column;gap:6px;margin-top:6px"></div>
+            <button type="button" id="sw-add-phone-btn" class="btn btn-sm" onclick="addSwPhoneRow()" style="margin-top:8px;display:inline-flex;align-items:center;gap:6px">
+              <span style="font-size:14px;line-height:1">+</span> Add another number
+            </button>
           </div>
           <div class="int-form-actions">
             <button class="btn" onclick="toggleIntSection('signalwire')">Cancel</button>
@@ -3042,7 +3060,7 @@ async function startCall(){
     if(match) activeCallContact={id:match.id,name:match.name,phone:number};
   }
 
-  const swPhone = getIntData('signalwire')['sw-phone']||'';
+  const swPhone = getPrimarySwPhone();
   if(!swPhone){
     openModal(`
       <div class="modal-head"><div class="modal-title">Connect SignalWire to Make Calls</div><span class="modal-close" onclick="closeModal()">×</span></div>
@@ -4864,6 +4882,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-13', time:'22:25', name:'Multi-Number Support + Cleanup',  area:'Integrations, SMS',           description:'Add up to 5 SignalWire phone numbers; per-message From picker in SMS compose; deleted dead SIP/click-to-call API files.', commit:'pending' },
   { date:'2026-05-13', time:'22:05', name:'Bulk Contact Actions',            area:'Contacts',                    description:'Select-all + per-row checkboxes; bulk Export, Add/Remove Tag, Move to Pipeline, and Delete with typed confirmation.', commit:'8427382' },
   { date:'2026-05-13', time:'21:50', name:'Version History Tracker',         area:'Settings',                    description:'Added in-app version list with rollback instructions and CHANGELOG file.', commit:'fee2a58' },
   { date:'2026-05-13', time:'21:40', name:'Team Member Safety',              area:'Settings → Team Members',     description:'Removed self-delete option; typed confirmation now required to remove invited team members.', commit:'774d714' },
@@ -5577,6 +5596,15 @@ function markIntConnected(key, data){
       const el = document.getElementById(fieldKey);
       if(el && el.type!=='password') el.value = data[fieldKey]||'';
     });
+    // Special-case: rebuild SignalWire phone list
+    if(key === 'signalwire'){
+      const phones = data['sw-phones'] && Array.isArray(data['sw-phones']) && data['sw-phones'].length
+        ? data['sw-phones']
+        : (data['sw-phone'] ? [{ number: data['sw-phone'], label: 'Main', primary: true }] : []);
+      renderSwPhonesList(phones);
+    }
+  } else if(key === 'signalwire'){
+    renderSwPhonesList([]);
   }
 }
 
@@ -5595,6 +5623,103 @@ function updateIntCount(){
   const count = INT_KEYS.filter(k=>_intCache[k]).length;
   const el = document.getElementById('int-connected-count');
   if(el) el.textContent = `${count} of ${INT_KEYS.length} connected`;
+}
+
+// ─── MULTI-PHONE SUPPORT (SignalWire — up to 5 numbers) ───
+const SW_PHONE_MAX = 5;
+
+function getSwPhones(){
+  const d = getIntData('signalwire');
+  if(Array.isArray(d['sw-phones']) && d['sw-phones'].length) return d['sw-phones'];
+  if(d['sw-phone']) return [{ number: d['sw-phone'], label: 'Main', primary: true }];
+  return [];
+}
+
+function getPrimarySwPhone(){
+  const all = getSwPhones();
+  return (all.find(p => p.primary) || all[0])?.number || '';
+}
+
+function renderSwPhonesList(phones){
+  const list = document.getElementById('sw-phones-list');
+  if(!list) return;
+  const safePhones = phones.length ? phones : [{ number: '', label: 'Main', primary: true }];
+  list.innerHTML = safePhones.map((p, i) => buildSwPhoneRow(p, i)).join('');
+  updateSwAddButton();
+}
+
+function buildSwPhoneRow(p, idx){
+  return `
+    <div class="sw-phone-row" data-idx="${idx}">
+      <input type="text" class="form-input sw-phone-num"   placeholder="+13058458883" value="${(p.number||'').replace(/"/g,'&quot;')}"/>
+      <input type="text" class="form-input sw-phone-label" placeholder="Label (Main, Sales…)" value="${(p.label||'').replace(/"/g,'&quot;')}"/>
+      <button type="button" class="sw-phone-primary ${p.primary?'active':''}" onclick="setSwPhonePrimary(this)" title="${p.primary?'Primary':'Set as primary'}">★</button>
+      <button type="button" class="sw-phone-remove" onclick="removeSwPhoneRow(this)" title="Remove">×</button>
+    </div>
+  `;
+}
+
+function addSwPhoneRow(){
+  const list = document.getElementById('sw-phones-list');
+  if(!list) return;
+  const current = list.querySelectorAll('.sw-phone-row').length;
+  if(current >= SW_PHONE_MAX) return;
+  list.insertAdjacentHTML('beforeend', buildSwPhoneRow({number:'', label:'', primary: current===0}, current));
+  updateSwAddButton();
+  // Focus the new input
+  const last = list.querySelectorAll('.sw-phone-row .sw-phone-num');
+  last[last.length-1]?.focus();
+}
+
+function removeSwPhoneRow(btn){
+  const row = btn.closest('.sw-phone-row'); if(!row) return;
+  const list = document.getElementById('sw-phones-list');
+  const rows = list.querySelectorAll('.sw-phone-row');
+  if(rows.length <= 1){
+    // Keep at least one row — just clear it
+    row.querySelectorAll('input').forEach(i => i.value = '');
+    return;
+  }
+  const wasPrimary = row.querySelector('.sw-phone-primary')?.classList.contains('active');
+  row.remove();
+  // If we removed primary, mark the first remaining as primary
+  if(wasPrimary){
+    const firstStar = list.querySelector('.sw-phone-row .sw-phone-primary');
+    if(firstStar) firstStar.classList.add('active');
+  }
+  updateSwAddButton();
+}
+
+function setSwPhonePrimary(btn){
+  const list = document.getElementById('sw-phones-list');
+  list.querySelectorAll('.sw-phone-primary').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function updateSwAddButton(){
+  const list = document.getElementById('sw-phones-list');
+  const btn = document.getElementById('sw-add-phone-btn');
+  if(!list || !btn) return;
+  const n = list.querySelectorAll('.sw-phone-row').length;
+  btn.disabled = n >= SW_PHONE_MAX;
+  btn.innerHTML = n >= SW_PHONE_MAX
+    ? `<span style="font-size:14px;line-height:1">✓</span> Max ${SW_PHONE_MAX} numbers`
+    : `<span style="font-size:14px;line-height:1">+</span> Add another number (${n}/${SW_PHONE_MAX})`;
+}
+
+function collectSwPhones(){
+  const rows = document.querySelectorAll('#sw-phones-list .sw-phone-row');
+  const phones = [];
+  rows.forEach(row => {
+    const num = row.querySelector('.sw-phone-num').value.trim();
+    if(!num) return;
+    phones.push({
+      number: num,
+      label: row.querySelector('.sw-phone-label').value.trim() || 'Number',
+      primary: row.querySelector('.sw-phone-primary').classList.contains('active'),
+    });
+  });
+  return phones;
 }
 
 function toggleIntSection(key){
@@ -5618,9 +5743,13 @@ async function saveIntegration(key){
   if(key==='signalwire'){
     const project = document.getElementById('sw-project').value.trim();
     const token   = document.getElementById('sw-token').value.trim();
-    const phone   = document.getElementById('sw-phone').value.trim();
-    if(!project||!token||!phone){ showToast('Fill in all SignalWire fields','error'); return; }
-    data = {'sw-project':project,'sw-phone':phone};
+    const phones  = collectSwPhones();
+    if(!project||!token){ showToast('Fill in Project ID and API Token','error'); return; }
+    if(!phones.length){ showToast('Add at least one phone number','error'); return; }
+    // Ensure exactly one primary; if user marked none, first is primary
+    if(!phones.some(p => p.primary)) phones[0].primary = true;
+    const primary = phones.find(p => p.primary) || phones[0];
+    data = {'sw-project':project, 'sw-phone':primary.number, 'sw-phones':phones};
     secret = token;
     swClient = null;
   } else if(key==='email'){
@@ -5720,15 +5849,17 @@ document.addEventListener('input', e=>{
 async function sendSMS(){
   const to   = document.getElementById('sms-to').value.trim();
   const body = document.getElementById('sms-body').value.trim();
-  const phone= getIntData('signalwire')['sw-phone']||'';
+  // Optional from-picker — falls back to primary if none chosen
+  const fromSel = document.getElementById('sms-from-select');
+  const from = (fromSel && fromSel.value) ? fromSel.value : getPrimarySwPhone();
   if(!to||!body){ showToast('Enter a phone number and message','error'); return; }
-  if(!phone){ showToast('SignalWire not connected','error'); return; }
+  if(!from){ showToast('SignalWire not connected','error'); return; }
   addIntLog('sms-log','Sending SMS…','info');
   try {
     const r = await fetch('/api/sms',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({to, body})
+      body: JSON.stringify({to, body, from})
     });
     const data = await r.json();
     if(!r.ok||data.error) throw new Error(data.error||'Send failed');
@@ -5737,12 +5868,28 @@ async function sendSMS(){
     document.getElementById('sms-char-count').textContent='0 / 160';
     showToast('SMS sent! ✅');
     logActivity('sms', `SMS sent to ${to}: "${body.slice(0,60)}"`);
-    fireZapierEvent('sms_sent', {to, body, from:phone});
+    fireZapierEvent('sms_sent', {to, body, from});
   } catch(e){
     addIntLog('sms-log','❌ Failed: '+e.message,'err');
     showToast('SMS failed: '+e.message,'error');
     logError('sendSMS', e.message, e.stack, { to });
   }
+}
+
+// Render a "From" picker into the given container.
+// Used by SMS composer in conversations.
+function renderSwFromPicker(containerId, currentVal){
+  const el = document.getElementById(containerId); if(!el) return;
+  const phones = getSwPhones();
+  if(phones.length <= 1){ el.innerHTML = ''; el.style.display='none'; return; }
+  el.style.display = '';
+  const primary = currentVal || getPrimarySwPhone();
+  el.innerHTML = `
+    <label style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-right:6px">From:</label>
+    <select id="${containerId}-select" class="form-select" style="display:inline-block;width:auto;font-size:11px;padding:4px 8px">
+      ${phones.map(p => `<option value="${p.number}" ${p.number===primary?'selected':''}>${p.label || 'Number'} — ${p.number}</option>`).join('')}
+    </select>
+  `;
 }
 
 // ── EMAIL SEND ──
@@ -8372,6 +8519,9 @@ function openConversation(contactId){
   activeConvContactId = contactId;
   renderConvList(); // re-render to highlight active
 
+  // Show "From" picker if user has multiple SignalWire numbers
+  renderSwFromPicker('conv-sms-from-picker');
+
   const conv    = conversations.find(c=>c.contactId===contactId);
   const contact = contacts.find(x=>x.id===contactId)||{name:'Unknown',id:contactId};
   const avCls   = getAv(contactId);
@@ -8638,11 +8788,14 @@ async function sendConvMessage(ch){
 
   // Send via integration
   if(ch==='sms'){
-    if(getIntData('signalwire')['sw-phone'] && contact?.phone){
+    if(getPrimarySwPhone() && contact?.phone){
       newMsg.status='sending';
       renderConvBubbles(conv, avBg, avClr);
+      // Use picker if multi-number, else primary
+      const fromPicker = document.getElementById('conv-sms-from-picker-select');
+      const fromNumber = (fromPicker && fromPicker.value) ? fromPicker.value : getPrimarySwPhone();
       try {
-        const r = await fetch('/api/sms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:contact.phone,body:mergedBody})});
+        const r = await fetch('/api/sms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:contact.phone,body:mergedBody,from:fromNumber})});
         const data = await r.json();
         if(data.error) throw new Error(data.error);
         newMsg.status='sent';
