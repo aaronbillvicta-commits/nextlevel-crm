@@ -2252,11 +2252,6 @@ table th[onclick]{transition:background .15s,color .15s}
           </div>
         </div>
 
-        <div class="settings-card" style="border-color:rgba(242,107,107,.2)">
-          <div class="settings-card-title" style="color:var(--red)">Danger Zone</div>
-          <div style="font-size:12px;color:var(--text3);margin:8px 0 14px">Permanently delete your account and all data. This cannot be undone.</div>
-          <button class="btn btn-danger btn-sm" onclick="showToast('Account deletion requires backend support')">Delete Account</button>
-        </div>
       </div>
     </div>
 
@@ -5001,14 +4996,75 @@ async function changeUserRole(userId,role){
     if(u){u.role=role;showToast(`${u.name} is now ${role}`);renderUsersList();}
   } catch(e){showToast('Error updating role','error');}
 }
-async function removeUser(userId){
-  const u=users.find(x=>x.id===userId); if(!u) return;
-  if(!confirm(`Remove ${u.name}?`)) return;
+function removeUser(userId){
+  const u = users.find(x => x.id === userId);
+  if(!u) return;
+  // Defensive: never allow removing the current logged-in user via this flow
+  if(u.id === currentUser?.id){
+    showToast("You can't remove your own account here", 'error');
+    return;
+  }
+  const safeName = u.name.replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+  const escapedName = u.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title" style="color:var(--red)">Remove Team Member?</div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:14px">
+        You're about to remove <strong>${safeName}</strong> (<span style="color:var(--text3)">${u.email}</span>) from your workspace.
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:14px">
+        <strong style="color:var(--text)">This will:</strong>
+        <ul style="margin:6px 0 0 18px;color:var(--text2)">
+          <li>Revoke their login access immediately</li>
+          <li>Remove them from the team members list</li>
+          <li>Keep their assigned contacts and deals intact (just unassign)</li>
+        </ul>
+      </div>
+      <div style="background:var(--red-bg);border:1px solid rgba(255,77,109,.25);border-radius:var(--radius);padding:10px;font-size:12px;color:var(--red);font-weight:500;margin-bottom:14px">
+        ⚠️ This cannot be undone.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type <strong style="color:var(--text)">${safeName}</strong> to confirm:</label>
+        <input id="confirm-remove-input" class="form-input" placeholder="${safeName}" autocomplete="off" oninput="checkRemoveUserConfirm('${escapedName}')"/>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button id="confirm-remove-btn" class="btn btn-danger" disabled onclick="executeRemoveUser('${userId}')" style="opacity:.5;cursor:not-allowed">Remove ${safeName}</button>
+    </div>
+  `);
+  // Focus the input so they can type immediately
+  setTimeout(() => document.getElementById('confirm-remove-input')?.focus(), 60);
+}
+
+function checkRemoveUserConfirm(expectedName){
+  const input = document.getElementById('confirm-remove-input');
+  const btn   = document.getElementById('confirm-remove-btn');
+  if(!input || !btn) return;
+  const match = input.value.trim() === expectedName;
+  btn.disabled = !match;
+  btn.style.opacity = match ? '1' : '.5';
+  btn.style.cursor  = match ? 'pointer' : 'not-allowed';
+}
+
+async function executeRemoveUser(userId){
+  const u = users.find(x => x.id === userId);
+  if(!u) return;
+  const btn = document.getElementById('confirm-remove-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Removing…'; }
   try {
-    await sb.del('users',userId);
-    users=users.filter(x=>x.id!==userId);
-    renderUsersList(); showToast(`${u.name} removed`);
-  } catch(e){showToast('Error removing user','error');}
+    await sb.del('users', userId);
+    users = users.filter(x => x.id !== userId);
+    closeModal();
+    renderUsersList();
+    showToast(`${u.name} removed from workspace`);
+  } catch(e){
+    showToast('Error removing user: ' + (e.message || 'unknown'), 'error');
+    if(btn){ btn.disabled = false; btn.textContent = 'Remove ' + u.name; }
+  }
 }
 
 function openInviteUser(){
