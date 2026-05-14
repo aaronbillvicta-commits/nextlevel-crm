@@ -23,38 +23,30 @@
   --sidebar:230px;--radius:8px;--radius-lg:12px;
   font-family:'DM Sans',system-ui,sans-serif;
 }
-/* ── THEME: CYBER (purple/pink/cyan) ── */
-body.theme-cyber{
-  --accent:#8B5CF6;--accent2:#1EC8FF;
-  --accent-bg:rgba(139,92,246,0.1);--accent-border:rgba(139,92,246,0.3);
-  --border:rgba(139,92,246,0.1);--border2:rgba(139,92,246,0.25);
+/* ── THEME: LIGHT ── */
+body.theme-light{
+  --bg:#ffffff;--bg2:#f6f8fc;--bg3:#eef1f7;--bg4:#e3e7f0;
+  --border:rgba(15,30,60,0.08);--border2:rgba(15,30,60,0.16);
+  --text:#0d1225;--text2:#4a5a7a;--text3:#8ca0c8;
+  --accent:#1EC8FF;--accent2:#0099cc;
+  --accent-bg:rgba(0,153,204,0.08);--accent-border:rgba(0,153,204,0.25);
+  --green-bg:rgba(0,176,120,0.1);--green:#00a070;
+  --amber-bg:rgba(220,150,30,0.12);--amber:#c98a18;
+  --red-bg:rgba(225,40,80,0.08);--red:#d9304f;
+  --pink-bg:rgba(225,30,110,0.08);
+  --purple-bg:rgba(125,60,210,0.08);
+  --teal-bg:rgba(0,153,204,0.08);
 }
-body.theme-cyber .sidebar{background:linear-gradient(180deg,#0e0c1e,#0d1225);}
-body.theme-cyber .btn-primary{background:linear-gradient(90deg,#1EC8FF,#8B5CF6,#FF2E88);border-color:transparent;}
-body.theme-cyber .btn-primary:hover{background:linear-gradient(90deg,#FF2E88,#8B5CF6,#1EC8FF);border-color:transparent;}
-body.theme-cyber .nav-item.active::before{background:linear-gradient(180deg,#1EC8FF,#8B5CF6,#FF2E88);}
-body.theme-cyber .main::after{content:'';position:fixed;top:0;right:0;width:100%;height:100%;background:radial-gradient(circle at right,#FF2E8818,transparent 45%);pointer-events:none;z-index:0;}
-body.theme-cyber .topbar{background:linear-gradient(90deg,#0d1225,#120c20);}
+body.theme-light .login-bg{background:linear-gradient(135deg,#f0f4fc 0%,#e1e8f5 100%);}
+body.theme-light .sidebar{background:#f6f8fc;}
+body.theme-light .topbar{background:#ffffff;}
 
-/* ── THEME: OCEAN (bright cyan/teal) ── */
-body.theme-ocean{
-  --accent:#1EC8FF;--accent2:#22D3EE;
-  --accent-bg:rgba(30,200,255,0.1);--accent-border:rgba(30,200,255,0.3);
-  --border:rgba(30,200,255,0.08);--border2:rgba(30,200,255,0.2);
-}
-body.theme-ocean .sidebar{background:linear-gradient(180deg,#071520,#0d1225);}
-body.theme-ocean .btn-primary{background:linear-gradient(135deg,#1EC8FF,#22D3EE);border-color:transparent;}
-body.theme-ocean .btn-primary:hover{background:linear-gradient(135deg,#22D3EE,#1EC8FF);border-color:transparent;}
-body.theme-ocean .topbar{background:linear-gradient(90deg,#0d1225,#071e2a);}
-
-/* ── THEME SWITCHER UI ── */
-.theme-switcher{display:flex;align-items:center;gap:6px;padding:8px 10px 2px}
-.theme-dot{width:18px;height:18px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:all .2s;flex-shrink:0}
-.theme-dot:hover{transform:scale(1.2)}
-.theme-dot.active{border-color:#fff;transform:scale(1.15)}
-.theme-dot-default{background:#00d2ff}
-.theme-dot-cyber{background:linear-gradient(135deg,#1EC8FF,#8B5CF6,#FF2E88)}
-.theme-dot-ocean{background:linear-gradient(135deg,#1EC8FF,#22D3EE)}
+/* ── THEME OPTION BUTTONS (in Settings) ── */
+.theme-option{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px;background:var(--bg2);border:2px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:border-color .15s,transform .15s;min-width:120px}
+.theme-option:hover{border-color:var(--border2);transform:translateY(-1px)}
+.theme-option.active{border-color:var(--accent)}
+.theme-swatch{width:80px;height:48px;border-radius:6px}
+.theme-opt-label{font-size:12px;color:var(--text);font-weight:500}
 
 html,body{height:100%;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
 ::-webkit-scrollbar{width:4px;height:4px}
@@ -1146,12 +1138,6 @@ table th[onclick]{transition:background .15s,color .15s}
       Settings
     </div>
   </nav>
-  <div class="theme-switcher" style="padding:8px 10px 4px;border-top:1px solid var(--border)">
-    <span style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;flex:1">Theme</span>
-    <div class="theme-dot theme-dot-default active" id="td-default" title="Default" onclick="setTheme('default')"></div>
-    <div class="theme-dot theme-dot-cyber" id="td-cyber" title="Cyber" onclick="setTheme('cyber')"></div>
-    <div class="theme-dot theme-dot-ocean" id="td-ocean" title="Ocean" onclick="setTheme('ocean')"></div>
-  </div>
   <div class="sidebar-footer">
     <div class="user-chip" onclick="navigate('settings')">
       <div class="avatar" id="sidebar-avatar">NL</div>
@@ -2104,6 +2090,25 @@ table th[onclick]{transition:background .15s,color .15s}
           <div class="form-group"><label class="form-label">Agency Name</label><input class="form-input" id="ws-name" value="Next Level Marketing"/></div>
           <div style="display:flex;justify-content:flex-end">
             <button class="btn btn-primary btn-sm" onclick="saveWorkspace()">Save</button>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-head">
+            <div>
+              <div class="settings-card-title">Appearance</div>
+              <div class="settings-card-sub">Choose how the CRM looks</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="theme-option" id="theme-opt-default" onclick="setTheme('default')">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#080c18,#1a2240)"></div>
+              <div class="theme-opt-label">Dark <span style="color:var(--text3);font-weight:400">(original)</span></div>
+            </button>
+            <button class="theme-option" id="theme-opt-light" onclick="setTheme('light')">
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#ffffff,#e3e7f0);border:1px solid var(--border)"></div>
+              <div class="theme-opt-label">Light</div>
+            </button>
           </div>
         </div>
 
@@ -8886,11 +8891,12 @@ document.querySelectorAll('.nav-item').forEach(item=>{
 })();
 
 function setTheme(name){
-  document.body.classList.remove('theme-cyber','theme-ocean');
-  if(name !== 'default') document.body.classList.add('theme-'+name);
+  if(name !== 'default' && name !== 'light') name = 'default';
+  document.body.classList.remove('theme-light');
+  if(name === 'light') document.body.classList.add('theme-light');
   localStorage.setItem('crm-theme', name);
-  ['default','cyber','ocean'].forEach(t => {
-    const el = document.getElementById('td-'+t);
+  ['default','light'].forEach(t => {
+    const el = document.getElementById('theme-opt-'+t);
     if(el) el.classList.toggle('active', t === name);
   });
 }
