@@ -81,6 +81,8 @@ body.theme-light .topbar{background:#ffffff;}
 .dialer-search-opt:hover{background:var(--bg3)}
 .dispo-btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:transform .1s,filter .12s}
 .dispo-btn:hover{filter:brightness(1.15);transform:translateY(-1px)}
+.dialer-queue-layout{display:grid;grid-template-columns:minmax(300px,380px) minmax(360px,1fr);gap:16px;align-items:start}
+@media (max-width:980px){.dialer-queue-layout{grid-template-columns:1fr}}
 
 /* ── CONTACT VIEW TABS (All Contacts / Bulk Action Log) ── */
 .contact-view-tab{font-size:17px;font-weight:600;color:var(--text3);cursor:pointer;padding:2px 0;border-bottom:2px solid transparent;transition:color .15s,border-color .15s}
@@ -1670,8 +1672,9 @@ table th[onclick]{transition:background .15s,color .15s}
         <div id="dialer-report-dispos"></div>
       </div>
 
-      <!-- Single vertical column: Calling From → Call Queue → Now Calling → Contact Info -->
-      <div style="display:flex;flex-direction:column;gap:16px;max-width:680px">
+      <!-- Two-column dialer: Calling From + Queue left, Up Next + Contact Info right -->
+      <div class="dialer-queue-layout">
+        <div style="display:flex;flex-direction:column;gap:16px">
 
           <!-- Calling From -->
           <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px">
@@ -1690,6 +1693,9 @@ table th[onclick]{transition:background .15s,color .15s}
             <button class="btn btn-sm" onclick="clearDialerQueue()" style="margin-top:10px;color:var(--red);flex-shrink:0">Clear Queue</button>
           </div>
 
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
           <!-- Now Calling -->
           <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;min-height:220px;display:flex;align-items:center;justify-content:center">
             <div id="dialer-now-calling" style="width:100%;max-width:380px;text-align:center"></div>
@@ -1698,6 +1704,7 @@ table th[onclick]{transition:background .15s,color .15s}
           <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px">
             <div id="dialer-contact-panel"></div>
           </div>
+        </div>
       </div>
       </div><!-- /dialer-main-view -->
 
@@ -5410,6 +5417,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-14', time:'18:40', name:'Dialer - right-side lead context', area:'Dialer',          description:'Moved the Up Next tile and Contact Info panel back to the right side of the Dialer, while Calling From and Call Queue stay together on the left. The layout stacks again on narrower screens.', commit:'pending' },
   { date:'2026-05-14', time:'07:10', name:'Dialer — vertical layout + disposition notes', area:'Dialer',          description:'Dialer queue view is now a single vertical column (Calling From → Call Queue → Now Calling → Contact Info) instead of a two-column split. The disposition pop-up now has an optional notes box — what you type is saved onto the contact alongside the disposition.', commit:'340e056' },
   { date:'2026-05-14', time:'06:45', name:'Dialer — Contact Info + Notes panel', area:'Dialer',                  description:'Beside the call queue: a Contact Info & Notes panel showing the current lead details (company, status, email, tags, last activity) plus a notes box to jot notes while calling. Notes save straight to the contact — same notes everywhere in the CRM.', commit:'dd3f3fd' },
   { date:'2026-05-14', time:'06:20', name:'Dialer — Call History view',      area:'Dialer',                      description:'New "Call History" tab in the Dialer: every past call with its disposition + date/time, grouped by day under a month navigator (◀ ▶ calendar-style). Click any entry to open the live contact card (edits sync CRM-wide); unmatched numbers redial. Dispositions now attach to their call-history entry.', commit:'b4967dd' },
