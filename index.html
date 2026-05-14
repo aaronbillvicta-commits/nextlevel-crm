@@ -3033,8 +3033,13 @@ function initiateCall(contactId, phone, name){
   if(matchEl) matchEl.textContent = `📋 ${name}`;
 }
 
-async function initSWClient(){
-  if(swClient) return swClient;
+async function initSWClient(force = false){
+  if(swClient && !force) return swClient;
+  // Force = tear down the cached client so we don't leak its socket
+  if(force && swClient){
+    try { await swClient.disconnect?.(); } catch(_) {}
+    swClient = null;
+  }
   const r = await fetch('/api/call-token');
   const data = await r.json();
   if(!data.token) throw new Error(data.error || 'Failed to get call token');
@@ -3042,6 +3047,39 @@ async function initSWClient(){
   const SW = (window.SignalWire && window.SignalWire.SignalWire) || window.SignalWire;
   swClient = await SW({ token: data.token, logLevel: 'debug' });
   return swClient;
+}
+
+// Fabric subscriber tokens have a TTL — when one expires the next dial() returns
+// 422 authblock_is_expired. This helper detects that, refreshes the client, and
+// retries the dial exactly once.
+function isExpiredTokenError(e){
+  const msg = String(e?.message || e);
+  return /authblock_is_expired|authblock|expires_at|authentication|unauthorized|invalid_token|401\b|422\b/i.test(msg);
+}
+
+async function dialWithAuthRetry(dialTo){
+  for(let attempt = 0; attempt < 2; attempt++){
+    try {
+      await initSWClient();
+      logError('startCall_step', '2_dialing', null, { attempt });
+      const call = await swClient.dial({
+        to: dialTo,
+        rootElement: document.getElementById('sw-root-element'),
+        audio: true,
+        video: false,
+      });
+      logError('startCall_step', '3_call_object_created', null, { attempt });
+      return call;
+    } catch(e){
+      if(attempt === 0 && isExpiredTokenError(e)){
+        logError('startCall_token_refresh', 'Detected expired auth — refreshing token', null, {});
+        await initSWClient(true);   // force re-init with fresh JWT
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw new Error('Call setup failed after token refresh');
 }
 
 async function startCall(){
@@ -3088,16 +3126,9 @@ async function startCall(){
   try {
     showToast('📞 Connecting…');
     logError('startCall_step', '1_init_client', null, { to: dialTo });
-    await initSWClient();
-    logError('startCall_step', '2_dialing', null, {});
 
-    swCall = await swClient.dial({
-      to: dialTo,
-      rootElement: document.getElementById('sw-root-element'),
-      audio: true,
-      video: false,
-    });
-    logError('startCall_step', '3_call_object_created', null, {});
+    // Wrapper handles expired-token refresh + retry
+    swCall = await dialWithAuthRetry(dialTo);
 
     swCall.on('call.state', ev => logError('sw_call_state', ev.call_state || JSON.stringify(ev), null, {}));
     swCall.on('destroy', () => { logError('sw_call_destroy','',null,{}); swCall=null; if(callTimer) endCall(); });
@@ -3114,6 +3145,8 @@ async function startCall(){
     }
   } catch(e){
     if(swCall){ try{ await swCall.leave(); }catch(_){} swCall=null; }
+    // If we somehow still got an auth error here (e.g. start() threw), force-refresh next time
+    if(isExpiredTokenError(e)){ swClient = null; }
     logCall('outbound', dialTo, activeCallContact?.name||'', 0, 'failed');
     showToast('Call failed: '+(e.message||'Unknown error'),'error');
     logError('startCall', e.message, e.stack, { to: dialTo, contact: activeCallContact?.name });
@@ -4882,6 +4915,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-14', time:'02:55', name:'Call Token Auto-Refresh',         area:'Calling',                     description:'Detect expired SignalWire Fabric subscriber token (authblock_is_expired) and re-init the SDK automatically — calls work indefinitely without page refresh.', commit:'pending' },
   { date:'2026-05-13', time:'22:35', name:'Disable Browser Autofill',        area:'All inputs',                  description:'Suppress Chrome/password-manager popups on search and filter inputs; login + account-password fields still autofill normally.', commit:'410749f' },
   { date:'2026-05-13', time:'22:25', name:'Multi-Number Support + Cleanup',  area:'Integrations, SMS',           description:'Add up to 5 SignalWire phone numbers; per-message From picker in SMS compose; deleted dead SIP/click-to-call API files.', commit:'4304b2d' },
   { date:'2026-05-13', time:'22:05', name:'Bulk Contact Actions',            area:'Contacts',                    description:'Select-all + per-row checkboxes; bulk Export, Add/Remove Tag, Move to Pipeline, and Delete with typed confirmation.', commit:'8427382' },
