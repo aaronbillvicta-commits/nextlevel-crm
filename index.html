@@ -68,6 +68,12 @@ body.theme-light .topbar{background:#ffffff;}
 .dialer-num-row.active{border-color:var(--accent);background:var(--accent-bg)}
 .dialer-num-radio{width:14px;height:14px;border-radius:50%;border:2px solid var(--text3);flex-shrink:0;transition:all .15s}
 .dialer-num-row.active .dialer-num-radio{border-color:var(--accent);background:radial-gradient(circle,var(--accent) 0 4px,transparent 5px)}
+/* call history */
+.dialer-hist-day{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;padding:14px 4px 7px;border-bottom:1px solid var(--border);margin-bottom:6px}
+.dialer-hist-row{display:flex;align-items:center;gap:11px;padding:9px 10px;border-radius:var(--radius);transition:background .12s;cursor:pointer}
+.dialer-hist-row:hover{background:var(--bg3)}
+.dialer-hist-row.unknown{cursor:default}
+.dialer-hist-row.unknown:hover{background:transparent}
 .dialer-q-pos{font-size:11px;font-family:'DM Mono',monospace;color:var(--text3);width:18px;text-align:center;flex-shrink:0}
 .dialer-q-x{cursor:pointer;color:var(--text3);font-size:15px;line-height:1;flex-shrink:0;padding:0 2px;transition:color .12s}
 .dialer-q-x:hover{color:var(--red)}
@@ -1640,11 +1646,16 @@ table th[onclick]{transition:background .15s,color .15s}
 
     <div class="page" id="page-dialer">
       <div class="sec-head">
-        <div class="sec-title">Dialer <span id="dialer-queue-count" style="color:var(--text3);font-weight:400"></span></div>
+        <div style="display:flex;align-items:center;gap:18px">
+          <div class="contact-view-tab active" data-dview="queue" onclick="setDialerView('queue')">Dialer <span id="dialer-queue-count" style="color:var(--text3);font-weight:400"></span></div>
+          <div class="contact-view-tab" data-dview="history" onclick="setDialerView('history')">Call History</div>
+        </div>
         <button class="btn btn-sm" onclick="openDialerSettingsModal()" title="Dialer settings — dispositions & auto-dial" style="width:34px;height:30px;padding:0;display:flex;align-items:center;justify-content:center">
           <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
         </button>
       </div>
+
+      <div id="dialer-main-view">
       <!-- ── REPORTING BAR ── -->
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:16px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
@@ -1685,6 +1696,20 @@ table th[onclick]{transition:background .15s,color .15s}
         <div style="flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px;min-height:420px;display:flex;align-items:center;justify-content:center">
           <div id="dialer-now-calling" style="width:100%;max-width:380px;text-align:center"></div>
         </div>
+      </div>
+      </div><!-- /dialer-main-view -->
+
+      <!-- ── CALL HISTORY VIEW ── -->
+      <div id="dialer-history-view" style="display:none">
+        <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn btn-sm" onclick="dialerHistoryShiftMonth(-1)" style="width:30px;height:30px;padding:0;display:flex;align-items:center;justify-content:center" title="Previous month">◀</button>
+            <div id="dialer-history-month-label" onclick="dialerHistoryThisMonth()" style="font-size:15px;font-weight:700;color:var(--text);min-width:150px;text-align:center;cursor:pointer" title="Jump to current month">—</div>
+            <button class="btn btn-sm" onclick="dialerHistoryShiftMonth(1)" style="width:30px;height:30px;padding:0;display:flex;align-items:center;justify-content:center" title="Next month">▶</button>
+          </div>
+          <div id="dialer-history-summary" style="font-size:12px;color:var(--text3)"></div>
+        </div>
+        <div id="dialer-history-list"></div>
       </div>
     </div>
 
@@ -5383,6 +5408,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-14', time:'06:20', name:'Dialer — Call History view',      area:'Dialer',                      description:'New "Call History" tab in the Dialer: every past call with its disposition + date/time, grouped by day under a month navigator (◀ ▶ calendar-style). Click any entry to open the live contact card (edits sync CRM-wide); unmatched numbers redial. Dispositions now attach to their call-history entry.', commit:'pending' },
   { date:'2026-05-14', time:'05:55', name:'Dialer — Numbers + Activity Report', area:'Dialer',                    description:'Added a "Calling From" number picker (shows all SignalWire numbers, pick which to dial from) and a Call Activity report with Today/Week/Month views — Dials Made, Connected, Connect Rate, Talk Time, and a disposition breakdown bar.', commit:'7812230' },
   { date:'2026-05-14', time:'05:15', name:'Dialer — Power Call Queue',       area:'Dialer',                      description:'New Dialer section above Conversations: build a FIFO call queue, dial leads through the browser, log a disposition after each call. Editable dispositions + auto-advance/auto-dial toggle with countdown, all in the Dialer gear ⚙. "📞 Add to Queue" bulk action on Contacts.', commit:'88913b5' },
   { date:'2026-05-14', time:'04:30', name:'Contact Notes Log + Bulk Action Log', area:'Contacts',                description:'Notes are now timestamped entries (Added/Edited stamps, separators, edit & delete) instead of one textarea. New "Bulk Action Log" tab beside All Contacts shows every bulk Export/Tag/Pipeline/Delete/Import — operation, status, user, created & completed times.', commit:'b648537' },
@@ -10638,6 +10664,8 @@ let dialerCountdownTimer = null;
 let dialerActiveNumber = localStorage.getItem('nlm_dialer_active_number') || '';
 let dialerDispositionLog = JSON.parse(localStorage.getItem('nlm_dialer_dispo_log')||'[]');
 let dialerReportPeriod = 'today';   // 'today' | 'week' | 'month'
+let dialerView = 'queue';           // 'queue' | 'history'
+let dialerHistoryMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
 function saveDialerQueue(){ localStorage.setItem('nlm_dialer_queue', JSON.stringify(dialerQueue)); }
 function saveDialerSettings(){ localStorage.setItem('nlm_dialer_settings', JSON.stringify(dialerSettings)); }
@@ -10671,6 +10699,99 @@ function renderDialerPage(){
   renderDialerReport();
   renderDialerQueue();
   renderDialerNowCalling();
+  renderDialerHistory();
+  applyDialerView();
+}
+
+// ── DIALER VIEW TOGGLE (Dialer / Call History) ──
+function applyDialerView(){
+  const main = document.getElementById('dialer-main-view');
+  const hist = document.getElementById('dialer-history-view');
+  if(main) main.style.display = dialerView==='history' ? 'none' : 'block';
+  if(hist) hist.style.display = dialerView==='history' ? 'block' : 'none';
+  document.querySelectorAll('[data-dview]').forEach(t=>{
+    t.classList.toggle('active', t.dataset.dview === dialerView);
+  });
+}
+function setDialerView(view){
+  dialerView = view;
+  if(view==='history') renderDialerHistory();
+  applyDialerView();
+}
+
+// ── CALL HISTORY (month-filtered, day-grouped, clickable) ──
+function dialerHistoryShiftMonth(delta){
+  dialerHistoryMonth = new Date(dialerHistoryMonth.getFullYear(), dialerHistoryMonth.getMonth()+delta, 1);
+  renderDialerHistory();
+}
+function dialerHistoryThisMonth(){
+  const now = new Date();
+  dialerHistoryMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  renderDialerHistory();
+}
+
+function dialerHistRowHTML(c){
+  const contact = (typeof findContactByPhone==='function') ? findContactByPhone(c.number) : null;
+  const displayName = contact?.name || c.contactName || c.number || 'Unknown';
+  const time = new Date(c.ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  let icon, iconColor;
+  if(c.direction === 'inbound'){
+    icon = '↙'; iconColor = c.status==='missed' ? 'var(--red)' : 'var(--green)';
+  } else {
+    icon = '↗'; iconColor = c.status==='failed' ? 'var(--red)' : 'var(--accent2)';
+  }
+  let statusText;
+  if(c.status==='missed') statusText = 'Missed call';
+  else if(c.status==='failed') statusText = 'Failed';
+  else statusText = c.duration ? fmtDuration(c.duration) : 'Connected';
+  let dispoPill = '';
+  if(c.disposition){
+    const meta = dialerSettings.dispositions.find(d=>d.label===c.disposition);
+    dispoPill = ` <span class="pill ${meta?.color||'pill-cold'}" style="font-size:9px;vertical-align:middle">${c.disposition}</span>`;
+  }
+  const av = contact
+    ? `<div class="av-sm ${getAv(contact.id)}" style="flex-shrink:0">${initials(contact.name)}</div>`
+    : `<div class="av-sm" style="flex-shrink:0;background:var(--bg4);color:var(--text3)">☎</div>`;
+  const numStr = (c.number||'').replace(/'/g,'');
+  const onClick = contact
+    ? `openContactDetail('${contact.id}')`
+    : `dialpadSetNumber('${numStr}');openDialpad()`;
+  return `<div class="dialer-hist-row" onclick="${onClick}" title="${contact?'Open contact':'Redial '+numStr}">
+    <span style="font-size:15px;color:${iconColor};width:16px;text-align:center;flex-shrink:0">${icon}</span>
+    ${av}
+    <div style="flex:1;min-width:0">
+      <div style="font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${displayName}${dispoPill}</div>
+      <div style="font-size:11px;color:var(--text3)">${contact?(c.number+' · '):''}${statusText}${!contact?' · not in contacts':''}</div>
+    </div>
+    <div style="font-size:11px;color:var(--text3);flex-shrink:0">${time}</div>
+  </div>`;
+}
+
+function renderDialerHistory(){
+  const list = document.getElementById('dialer-history-list');
+  const label = document.getElementById('dialer-history-month-label');
+  const summary = document.getElementById('dialer-history-summary');
+  if(!list) return;
+  const monthName = dialerHistoryMonth.toLocaleDateString([], {month:'long', year:'numeric'});
+  if(label) label.textContent = monthName;
+  const monthStart = dialerHistoryMonth.getTime();
+  const monthEnd = new Date(dialerHistoryMonth.getFullYear(), dialerHistoryMonth.getMonth()+1, 1).getTime();
+  const calls = (typeof callHistory!=='undefined' ? callHistory : [])
+    .filter(c => { const t = new Date(c.ts).getTime(); return t>=monthStart && t<monthEnd; })
+    .sort((a,b)=> new Date(b.ts) - new Date(a.ts));
+  const connected = calls.filter(c => c.status==='completed' || (c.duration||0)>0).length;
+  if(summary) summary.textContent = calls.length ? `${calls.length} call${calls.length>1?'s':''} · ${connected} connected` : '';
+  if(!calls.length){
+    list.innerHTML = `<div style="text-align:center;color:var(--text3);font-size:13px;padding:48px 20px">No calls in ${monthName}.</div>`;
+    return;
+  }
+  let html = '', lastDay = '';
+  calls.forEach(c=>{
+    const dayKey = new Date(c.ts).toLocaleDateString([], {weekday:'long', month:'short', day:'numeric'});
+    if(dayKey !== lastDay){ html += `<div class="dialer-hist-day">${dayKey}</div>`; lastDay = dayKey; }
+    html += dialerHistRowHTML(c);
+  });
+  list.innerHTML = html;
 }
 
 // ── CALLING-FROM NUMBER PICKER ──
@@ -11027,6 +11148,12 @@ async function applyDisposition(contactId, dispoValue){
     ts: new Date().toISOString(),
   });
   saveDialerDispoLog();
+  // Attach the disposition to the most recent matching call-history entry
+  if(c && c.phone && typeof callHistory!=='undefined'){
+    const digits = c.phone.replace(/\D/g,'').slice(-10);
+    const match = callHistory.find(ch => (ch.number||'').replace(/\D/g,'').slice(-10) === digits);
+    if(match){ match.disposition = label; if(typeof saveCallHistory==='function') saveCallHistory(); }
+  }
   // Remove the dispositioned lead from the queue
   dialerQueue = dialerQueue.filter(id=>id!==contactId);
   saveDialerQueue();
