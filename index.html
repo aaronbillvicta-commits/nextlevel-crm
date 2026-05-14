@@ -49,6 +49,13 @@ body.theme-light .topbar{background:#ffffff;}
 .theme-swatch{width:80px;height:48px;border-radius:6px}
 .theme-opt-label{font-size:12px;color:var(--text);font-weight:500}
 
+/* ── BULK SELECT ── */
+#bulk-action-bar{display:none}
+#bulk-action-bar.active{display:flex !important}
+tr.row-selected{background:rgba(0,210,255,0.06)}
+tr.row-selected td{border-bottom-color:rgba(0,210,255,0.18)}
+.contact-row-checkbox,#contact-select-all{accent-color:var(--accent)}
+
 html,body{height:100%;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -1351,6 +1358,23 @@ table th[onclick]{transition:background .15s,color .15s}
       </div>
 
       <div id="contact-filter-summary" style="display:none;margin-bottom:8px;padding:5px 10px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);font-size:11px;color:var(--accent2)"></div>
+
+      <!-- ── BULK ACTIONS BAR ── -->
+      <div id="bulk-action-bar" style="display:none;margin-bottom:10px;padding:10px 14px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:600;color:var(--accent2);flex-shrink:0">
+          <span id="bulk-count">0</span> selected
+        </span>
+        <div style="width:1px;height:18px;background:var(--accent-border);flex-shrink:0"></div>
+        <button class="btn btn-sm" onclick="bulkExport()" style="display:inline-flex;align-items:center;gap:5px">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+        <button class="btn btn-sm" onclick="bulkAddTag()">+ Add Tag</button>
+        <button class="btn btn-sm" onclick="bulkRemoveTag()">− Remove Tag</button>
+        <button class="btn btn-sm" onclick="bulkMoveToPipeline()">→ Move to Pipeline</button>
+        <button class="btn btn-sm btn-danger" onclick="bulkDelete()">🗑 Delete</button>
+        <button class="btn btn-sm" onclick="clearContactSelection()" style="margin-left:auto;color:var(--text3)">Clear</button>
+      </div>
 
       <div class="tbl-wrap">
         <table id="contacts-table">
@@ -3602,7 +3626,10 @@ function sortContactList(list){
 function renderContactTableHeader(){
   const tr = document.querySelector('#contacts-table thead tr'); if(!tr) return;
   const cols = getAllCols().filter(c=>c.required||visibleColumns.includes(c.id));
-  tr.innerHTML = cols.map(c=>{
+  const selectAllCell = `<th style="width:28px;padding-left:10px;padding-right:0">
+    <input type="checkbox" id="contact-select-all" onchange="toggleSelectAllContacts(this.checked)" title="Select all visible" style="cursor:pointer"/>
+  </th>`;
+  tr.innerHTML = selectAllCell + cols.map(c=>{
     if(!c.sortable) return `<th>${c.label}</th>`;
     const isActive = contactSort.col===c.id;
     const arrow = isActive
@@ -3656,12 +3683,14 @@ function renderContacts(){
   // Apply sort
   filtered = sortContactList(filtered);
   const cols = getAllCols().filter(c=>c.required||visibleColumns.includes(c.id)).map(c=>c.id);
-  const totalCols=cols.length+1;
+  const totalCols=cols.length+2; // +1 actions column, +1 select column
   const statusLabels={hot:"pill-hot",active:"pill-active",new:"pill-new",cold:"pill-cold",done:"pill-done"};
   if(filtered.length===0){
     tbody.innerHTML=`<tr><td colspan="${totalCols}" style="text-align:center;color:var(--text3);padding:32px">${(q||activeTags.length||activeSourceFilters.size||activePipelineFilter)?"No contacts match your filters":"No contacts yet — add your first one!"}</td></tr>`;
-    renderContactTagFilters();return;
+    renderContactTagFilters();syncBulkActionBar();return;
   }
+  // Track visible contact IDs for the select-all checkbox
+  window._visibleContactIds = filtered.map(c=>c.id);
   tbody.innerHTML=filtered.map(c=>{
     const deals=[];
     pipelines.forEach(p=>{p.deals.filter(d=>d.name===c.name||(c.email&&d.company===c.company)||d.contactId===c.id).forEach(d=>{const stage=p.stages.find(s=>s.id===d.stage);deals.push({pName:p.name,sLabel:stage?.label||"—"});});});
@@ -3688,9 +3717,14 @@ function renderContacts(){
       created:`<td style="font-size:11px;color:var(--text3)">${created}</td>`,
       ...customCells
     };
-    return `<tr>${cols.map(id=>cm[id]||"<td>—</td>").join("")}<td style="white-space:nowrap"><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">💬</button></td></tr>`;
+    const isSelected = selectedContactIds.has(c.id);
+    const selCell = `<td style="width:28px;padding-left:10px;padding-right:0">
+      <input type="checkbox" class="contact-row-checkbox" data-id="${c.id}" ${isSelected?'checked':''} onclick="event.stopPropagation()" onchange="toggleContactSelection('${c.id}', this.checked)" style="cursor:pointer"/>
+    </td>`;
+    return `<tr ${isSelected?'class="row-selected"':''}>${selCell}${cols.map(id=>cm[id]||"<td>—</td>").join("")}<td style="white-space:nowrap"><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">💬</button></td></tr>`;
   }).join("");
   renderContactTagFilters();
+  syncBulkActionBar();
 }
 function renderContactTable(){renderContacts();}
 
@@ -4830,6 +4864,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-13', time:'22:05', name:'Bulk Contact Actions',            area:'Contacts',                    description:'Select-all + per-row checkboxes; bulk Export, Add/Remove Tag, Move to Pipeline, and Delete with typed confirmation.', commit:'pending' },
   { date:'2026-05-13', time:'21:50', name:'Version History Tracker',         area:'Settings',                    description:'Added in-app version list with rollback instructions and CHANGELOG file.', commit:'fee2a58' },
   { date:'2026-05-13', time:'21:40', name:'Team Member Safety',              area:'Settings → Team Members',     description:'Removed self-delete option; typed confirmation now required to remove invited team members.', commit:'774d714' },
   { date:'2026-05-13', time:'21:34', name:'Data Usage Dashboard',            area:'Settings',                    description:'Track Supabase storage with per-table breakdown and growth-based recommendations.', commit:'27e46a2' },
@@ -9471,8 +9506,13 @@ async function confirmCSVImport(){
 }
 
 function exportContactsCSV(){
+  contactsToCSV(contacts, `contacts-${new Date().toISOString().slice(0,10)}.csv`);
+  showToast(`Exported ${contacts.length} contacts`);
+}
+
+function contactsToCSV(list, filename){
   const headers = ['name','email','phone','company','source','status','tags'];
-  const rows = contacts.map(c=>[
+  const rows = list.map(c=>[
     c.name, c.email||'', c.phone||'', c.company||'',
     c.source||'', c.status||'new',
     (c.tags||[]).map(t=>t.label).join('|')
@@ -9480,9 +9520,303 @@ function exportContactsCSV(){
   const csv = [headers.join(','), ...rows.map(r=>r.join(','))].join('\n');
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download=`contacts-${new Date().toISOString().slice(0,10)}.csv`;
+  a.download=filename;
   a.click();
-  showToast(`Exported ${contacts.length} contacts`);
+}
+
+// ═══════════════════════════════════════════════
+// CONTACT BULK SELECTION + ACTIONS
+// ═══════════════════════════════════════════════
+let selectedContactIds = new Set();
+
+function toggleContactSelection(id, checked){
+  if(checked) selectedContactIds.add(id);
+  else selectedContactIds.delete(id);
+  // Add/remove row-selected class without re-render
+  const cb = document.querySelector(`.contact-row-checkbox[data-id="${id}"]`);
+  if(cb){
+    const tr = cb.closest('tr');
+    if(tr) tr.classList.toggle('row-selected', checked);
+  }
+  syncBulkActionBar();
+}
+
+function toggleSelectAllContacts(checked){
+  const visible = window._visibleContactIds || [];
+  if(checked){
+    visible.forEach(id => selectedContactIds.add(id));
+  } else {
+    visible.forEach(id => selectedContactIds.delete(id));
+  }
+  // Update DOM
+  document.querySelectorAll('.contact-row-checkbox').forEach(cb => {
+    cb.checked = checked;
+    const tr = cb.closest('tr');
+    if(tr) tr.classList.toggle('row-selected', checked);
+  });
+  syncBulkActionBar();
+}
+
+function clearContactSelection(){
+  selectedContactIds.clear();
+  document.querySelectorAll('.contact-row-checkbox').forEach(cb => {
+    cb.checked = false;
+    const tr = cb.closest('tr');
+    if(tr) tr.classList.remove('row-selected');
+  });
+  syncBulkActionBar();
+}
+
+function syncBulkActionBar(){
+  const bar  = document.getElementById('bulk-action-bar');
+  const cnt  = document.getElementById('bulk-count');
+  const all  = document.getElementById('contact-select-all');
+  if(!bar) return;
+  const n = selectedContactIds.size;
+  bar.classList.toggle('active', n > 0);
+  if(cnt) cnt.textContent = n;
+  // Sync select-all checkbox state with visible rows
+  if(all){
+    const visible = window._visibleContactIds || [];
+    const visSelected = visible.filter(id => selectedContactIds.has(id)).length;
+    if(visSelected === 0){
+      all.checked = false; all.indeterminate = false;
+    } else if(visSelected === visible.length){
+      all.checked = true; all.indeterminate = false;
+    } else {
+      all.checked = false; all.indeterminate = true;
+    }
+  }
+}
+
+function getSelectedContacts(){
+  return contacts.filter(c => selectedContactIds.has(c.id));
+}
+
+// ── BULK ACTION: EXPORT ──
+function bulkExport(){
+  const sel = getSelectedContacts();
+  if(!sel.length) return;
+  contactsToCSV(sel, `contacts-selected-${new Date().toISOString().slice(0,10)}.csv`);
+  showToast(`Exported ${sel.length} contact${sel.length>1?'s':''}`);
+}
+
+// ── BULK ACTION: ADD TAG ──
+function bulkAddTag(){
+  const sel = getSelectedContacts();
+  if(!sel.length) return;
+  if(!masterTags.length){ showToast('Create some tags first (Tags page)', 'error'); return; }
+  const tagOptions = masterTags.map(t =>
+    `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius);cursor:pointer" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
+      <input type="checkbox" class="bulk-tag-pick" value="${t.label.replace(/"/g,'&quot;')}" data-cls="${t.cls}"/>
+      <span class="tag ${t.cls}">${t.label}</span>
+    </label>`
+  ).join('');
+  openModal(`
+    <div class="modal-head"><div class="modal-title">Add Tags to ${sel.length} Contact${sel.length>1?'s':''}</div><span class="modal-close" onclick="closeModal()">×</span></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Pick one or more tags to add. Existing tags on a contact stay.</div>
+      <div style="display:flex;flex-direction:column;gap:2px;max-height:300px;overflow-y:auto">${tagOptions}</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="executeBulkAddTag()">Apply</button>
+    </div>
+  `);
+}
+
+async function executeBulkAddTag(){
+  const picks = [...document.querySelectorAll('.bulk-tag-pick:checked')].map(cb => ({label: cb.value, cls: cb.dataset.cls}));
+  if(!picks.length){ showToast('Pick at least one tag','error'); return; }
+  const sel = getSelectedContacts();
+  let updated = 0;
+  for(const c of sel){
+    const existing = c.tags || [];
+    const additions = picks.filter(p => !existing.some(t => t.label === p.label));
+    if(!additions.length) continue;
+    c.tags = [...existing, ...additions];
+    try { await sb.patch('contacts', c.id, {tags: c.tags}); updated++; } catch(e){}
+  }
+  closeModal();
+  renderContacts();
+  showToast(`Tags added to ${updated} contact${updated!==1?'s':''}`);
+}
+
+// ── BULK ACTION: REMOVE TAG ──
+function bulkRemoveTag(){
+  const sel = getSelectedContacts();
+  if(!sel.length) return;
+  // Collect tags present on at least one selected contact
+  const tagMap = new Map();
+  sel.forEach(c => (c.tags||[]).forEach(t => { if(!tagMap.has(t.label)) tagMap.set(t.label, t); }));
+  const tagsPresent = [...tagMap.values()];
+  if(!tagsPresent.length){ showToast('Selected contacts have no tags','error'); return; }
+  const tagOptions = tagsPresent.map(t =>
+    `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius);cursor:pointer" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
+      <input type="checkbox" class="bulk-tag-pick" value="${t.label.replace(/"/g,'&quot;')}"/>
+      <span class="tag ${t.cls}">${t.label}</span>
+    </label>`
+  ).join('');
+  openModal(`
+    <div class="modal-head"><div class="modal-title">Remove Tags from ${sel.length} Contact${sel.length>1?'s':''}</div><span class="modal-close" onclick="closeModal()">×</span></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Pick which tags to remove from these contacts. Contacts that don't have a chosen tag are unaffected.</div>
+      <div style="display:flex;flex-direction:column;gap:2px;max-height:300px;overflow-y:auto">${tagOptions}</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="executeBulkRemoveTag()">Remove</button>
+    </div>
+  `);
+}
+
+async function executeBulkRemoveTag(){
+  const picks = [...document.querySelectorAll('.bulk-tag-pick:checked')].map(cb => cb.value);
+  if(!picks.length){ showToast('Pick at least one tag','error'); return; }
+  const sel = getSelectedContacts();
+  let updated = 0;
+  for(const c of sel){
+    const before = c.tags || [];
+    const after = before.filter(t => !picks.includes(t.label));
+    if(after.length === before.length) continue;
+    c.tags = after;
+    try { await sb.patch('contacts', c.id, {tags: after}); updated++; } catch(e){}
+  }
+  closeModal();
+  renderContacts();
+  showToast(`Tags removed from ${updated} contact${updated!==1?'s':''}`);
+}
+
+// ── BULK ACTION: MOVE TO PIPELINE ──
+function bulkMoveToPipeline(){
+  const sel = getSelectedContacts();
+  if(!sel.length) return;
+  if(!pipelines.length){ showToast('Create a pipeline first','error'); return; }
+  const plOptions = pipelines.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+  const firstPl = pipelines[0];
+  const stOptions = firstPl.stages.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+  openModal(`
+    <div class="modal-head"><div class="modal-title">Move ${sel.length} Contact${sel.length>1?'s':''} to Pipeline</div><span class="modal-close" onclick="closeModal()">×</span></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px">A deal will be created for each contact (if one doesn't already exist) and placed in the chosen stage.</div>
+      <div class="form-group">
+        <label class="form-label">Pipeline</label>
+        <select class="form-select" id="bulk-pl-select" onchange="bulkUpdateStageOptions(this.value)">${plOptions}</select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Stage</label>
+        <select class="form-select" id="bulk-st-select">${stOptions}</select>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="executeBulkMoveToPipeline()">Move</button>
+    </div>
+  `);
+}
+
+function bulkUpdateStageOptions(pipelineId){
+  const pl = pipelines.find(p => p.id === pipelineId); if(!pl) return;
+  const sel = document.getElementById('bulk-st-select'); if(!sel) return;
+  sel.innerHTML = pl.stages.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+}
+
+async function executeBulkMoveToPipeline(){
+  const pipelineId = document.getElementById('bulk-pl-select').value;
+  const stageId    = document.getElementById('bulk-st-select').value;
+  const pl = pipelines.find(p => p.id === pipelineId); if(!pl) return;
+  const sel = getSelectedContacts();
+  let moved = 0, created = 0;
+  pl.deals = pl.deals || [];
+  for(const c of sel){
+    // Find an existing deal by contactId or fallback by name match
+    let deal = pl.deals.find(d => d.contactId === c.id || d.name === c.name);
+    if(deal){
+      if(deal.stage !== stageId){
+        deal.stage = stageId;
+        moved++;
+      }
+    } else {
+      pl.deals.push({
+        id: 'deal_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),
+        contactId: c.id,
+        name: c.name,
+        company: c.company || '',
+        value: 0,
+        stage: stageId,
+        created_at: new Date().toISOString(),
+      });
+      created++;
+    }
+  }
+  try { await sb.patch('pipelines', pl.id, {deals: pl.deals}); } catch(e){}
+  closeModal();
+  renderContacts();
+  if(document.getElementById('page-pipeline')?.classList.contains('active')) renderBoard();
+  showToast(`${created} new deal${created!==1?'s':''} · ${moved} moved`);
+}
+
+// ── BULK ACTION: DELETE ──
+function bulkDelete(){
+  const sel = getSelectedContacts();
+  if(!sel.length) return;
+  const expected = 'DELETE ' + sel.length;
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title" style="color:var(--red)">Delete ${sel.length} Contact${sel.length>1?'s':''}?</div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:13px;color:var(--text);line-height:1.6;margin-bottom:14px">
+        You're about to permanently delete <strong>${sel.length}</strong> contact${sel.length>1?'s':''}.
+      </div>
+      <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:11px;color:var(--text2);max-height:140px;overflow-y:auto;margin-bottom:12px">
+        ${sel.slice(0,20).map(c => `<div style="padding:2px 0">• ${c.name}${c.email?' <span style="color:var(--text3)">'+c.email+'</span>':''}</div>`).join('')}
+        ${sel.length>20?`<div style="padding:2px 0;color:var(--text3);font-style:italic">…and ${sel.length-20} more</div>`:''}
+      </div>
+      <div style="background:var(--red-bg);border:1px solid rgba(255,77,109,.25);border-radius:var(--radius);padding:10px;font-size:12px;color:var(--red);font-weight:500;margin-bottom:14px">
+        ⚠️ This cannot be undone. Their conversations and call history will remain but no longer be linked to a contact.
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type <strong style="color:var(--text)">${expected}</strong> to confirm:</label>
+        <input id="bulk-del-input" class="form-input" placeholder="${expected}" autocomplete="off" oninput="checkBulkDeleteConfirm('${expected.replace(/'/g,"\\'")}')"/>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button id="bulk-del-btn" class="btn btn-danger" disabled onclick="executeBulkDelete()" style="opacity:.5;cursor:not-allowed">Delete ${sel.length}</button>
+    </div>
+  `);
+  setTimeout(() => document.getElementById('bulk-del-input')?.focus(), 60);
+}
+
+function checkBulkDeleteConfirm(expected){
+  const input = document.getElementById('bulk-del-input');
+  const btn = document.getElementById('bulk-del-btn');
+  if(!input || !btn) return;
+  const match = input.value.trim() === expected;
+  btn.disabled = !match;
+  btn.style.opacity = match ? '1' : '.5';
+  btn.style.cursor  = match ? 'pointer' : 'not-allowed';
+}
+
+async function executeBulkDelete(){
+  const sel = getSelectedContacts();
+  const btn = document.getElementById('bulk-del-btn');
+  if(btn){ btn.disabled = true; btn.textContent = 'Deleting…'; }
+  let deleted = 0;
+  for(const c of sel){
+    try {
+      await sb.del('contacts', c.id);
+      deleted++;
+    } catch(e){}
+  }
+  // Remove from local list
+  contacts = contacts.filter(c => !selectedContactIds.has(c.id));
+  selectedContactIds.clear();
+  closeModal();
+  renderContacts();
+  showToast(`Deleted ${deleted} contact${deleted!==1?'s':''}`);
 }
 
 // Update navigate to handle new pages
