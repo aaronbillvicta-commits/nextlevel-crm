@@ -2129,6 +2129,62 @@ table th[onclick]{transition:background .15s,color .15s}
         <div class="settings-card">
           <div class="settings-card-head">
             <div>
+              <div class="settings-card-title">Data Usage</div>
+              <div class="settings-card-sub">Track how much of your free Supabase tier (500 MB) you're using</div>
+            </div>
+            <button class="btn btn-sm" onclick="loadStorageStats()" title="Refresh">↻ Refresh</button>
+          </div>
+
+          <div id="usage-loading" style="font-size:12px;color:var(--text3);padding:14px 0">Loading…</div>
+
+          <div id="usage-content" style="display:none">
+            <!-- Headline -->
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+              <div>
+                <span id="usage-used-label" style="font-size:22px;font-weight:700;color:var(--text)">0 KB</span>
+                <span style="font-size:12px;color:var(--text3)"> of </span>
+                <span id="usage-limit-label" style="font-size:13px;color:var(--text2)">500 MB</span>
+              </div>
+              <div id="usage-pct-label" style="font-size:13px;font-weight:600;color:var(--accent2)">0%</div>
+            </div>
+
+            <!-- Stacked horizontal bar -->
+            <div id="usage-bar" style="height:14px;background:var(--bg3);border-radius:8px;overflow:hidden;display:flex;margin-bottom:6px;border:1px solid var(--border)"></div>
+            <div id="usage-remaining-label" style="font-size:11px;color:var(--text3);margin-bottom:18px">— remaining</div>
+
+            <!-- Per-table breakdown -->
+            <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Breakdown</div>
+            <div id="usage-tables-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:18px"></div>
+
+            <!-- Growth -->
+            <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:8px">
+              <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Growth Rate</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+                <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px">
+                  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Per Day</div>
+                  <div id="usage-per-day" style="font-size:15px;font-weight:600;color:var(--text)">—</div>
+                </div>
+                <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px">
+                  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Last 7 Days</div>
+                  <div id="usage-per-week" style="font-size:15px;font-weight:600;color:var(--text)">—</div>
+                </div>
+                <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px">
+                  <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Last 30 Days</div>
+                  <div id="usage-per-month" style="font-size:15px;font-weight:600;color:var(--text)">—</div>
+                </div>
+              </div>
+
+              <!-- Recommendation -->
+              <div id="usage-recommendation" style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--accent2);line-height:1.6"></div>
+            </div>
+          </div>
+
+          <div id="usage-error" style="display:none;color:var(--red);font-size:12px;padding:14px 0"></div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-head">
+            <div>
               <div class="settings-card-title">Branding</div>
               <div class="settings-card-sub">Logo shown in the sidebar and favicon shown in the browser tab</div>
             </div>
@@ -4750,6 +4806,172 @@ function renderSettingsPage(){
     if(nameEl) nameEl.value=currentUser.name;
     if(emailEl) emailEl.value=currentUser.email;
   }
+  // Auto-load data usage stats
+  loadStorageStats();
+}
+
+// ═══════════════════════════════════════════════
+// DATA USAGE / STORAGE STATS
+// ═══════════════════════════════════════════════
+function fmtBytes(b){
+  if(b < 1024) return b + ' B';
+  if(b < 1024*1024) return (b/1024).toFixed(1) + ' KB';
+  if(b < 1024*1024*1024) return (b/(1024*1024)).toFixed(1) + ' MB';
+  return (b/(1024*1024*1024)).toFixed(2) + ' GB';
+}
+
+async function loadStorageStats(){
+  const loadingEl = document.getElementById('usage-loading');
+  const contentEl = document.getElementById('usage-content');
+  const errorEl   = document.getElementById('usage-error');
+  if(!loadingEl) return; // Settings card not in DOM yet
+  loadingEl.style.display='block';
+  contentEl.style.display='none';
+  errorEl.style.display='none';
+  try {
+    const r = await fetch('/api/storage-stats');
+    const data = await r.json();
+    if(!r.ok || data.error) throw new Error(data.error || 'Request failed');
+    renderStorageStats(data);
+    saveUsageSnapshot(data);
+    loadingEl.style.display='none';
+    contentEl.style.display='block';
+  } catch(e){
+    loadingEl.style.display='none';
+    errorEl.style.display='block';
+    errorEl.textContent = 'Could not load usage: ' + e.message;
+  }
+}
+
+function saveUsageSnapshot(data){
+  const history = JSON.parse(localStorage.getItem('crm-usage-history') || '[]');
+  const today = new Date().toISOString().slice(0,10);
+  const filtered = history.filter(h => h.date !== today);
+  filtered.push({
+    date: today,
+    total_bytes: data.total_bytes,
+    counts: Object.fromEntries(data.tables.map(t => [t.name, t.count])),
+  });
+  localStorage.setItem('crm-usage-history', JSON.stringify(filtered.slice(-90)));
+}
+
+function renderStorageStats(data){
+  // Headline
+  document.getElementById('usage-used-label').textContent = fmtBytes(data.total_bytes);
+  document.getElementById('usage-limit-label').textContent = fmtBytes(data.limit_bytes);
+  document.getElementById('usage-pct-label').textContent = data.usage_pct.toFixed(2) + '%';
+  document.getElementById('usage-remaining-label').textContent = fmtBytes(data.remaining_bytes) + ' remaining';
+
+  // Color the % based on threshold
+  const pctEl = document.getElementById('usage-pct-label');
+  if(data.usage_pct >= 90) pctEl.style.color = 'var(--red)';
+  else if(data.usage_pct >= 70) pctEl.style.color = 'var(--amber)';
+  else pctEl.style.color = 'var(--accent2)';
+
+  // Stacked bar — each table contributes its slice
+  const bar = document.getElementById('usage-bar');
+  const usedFraction = Math.min(1, data.total_bytes / data.limit_bytes);
+  bar.innerHTML = data.tables
+    .filter(t => t.bytes > 0)
+    .map(t => {
+      const width = (t.bytes / data.limit_bytes * 100);
+      return `<div style="width:${width}%;background:${t.color}" title="${t.label}: ${fmtBytes(t.bytes)}"></div>`;
+    }).join('');
+
+  // Per-table breakdown rows
+  const list = document.getElementById('usage-tables-list');
+  list.innerHTML = data.tables
+    .sort((a,b) => b.bytes - a.bytes)
+    .map(t => {
+      const tablePct = (t.bytes / data.total_bytes * 100) || 0;
+      return `
+        <div style="display:flex;align-items:center;gap:10px;font-size:12px">
+          <div style="width:18px;text-align:center;font-size:14px">${t.icon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+              <span style="color:var(--text);font-weight:500">${t.label}</span>
+              <span style="color:var(--text3)">${t.count.toLocaleString()} rows · ${fmtBytes(t.bytes)}</span>
+            </div>
+            <div style="height:5px;background:var(--bg3);border-radius:3px;overflow:hidden">
+              <div style="height:100%;background:${t.color};width:${tablePct}%;transition:width .3s"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  // Growth stats
+  const perDay  = data.growth.bytes_per_day_7d;
+  document.getElementById('usage-per-day').textContent =
+    perDay > 0 ? `+${fmtBytes(perDay)}` : '—';
+  document.getElementById('usage-per-week').textContent =
+    data.growth.rows_last_7d > 0
+      ? `+${data.growth.rows_last_7d.toLocaleString()} rows · ${fmtBytes(perDay * 7)}`
+      : '—';
+  document.getElementById('usage-per-month').textContent =
+    data.growth.rows_last_30d > 0
+      ? `+${data.growth.rows_last_30d.toLocaleString()} rows · ${fmtBytes(data.growth.bytes_per_day_30d * 30)}`
+      : '—';
+
+  // Recommendation
+  renderUsageRecommendation(data);
+}
+
+function renderUsageRecommendation(data){
+  const el = document.getElementById('usage-recommendation');
+  const used = data.total_bytes;
+  const limit = data.limit_bytes;
+  const remaining = limit - used;
+  const perDay7 = data.growth.bytes_per_day_7d;
+  const perDay30 = data.growth.bytes_per_day_30d;
+  // Use the more responsive rate but fall back to 30d if 7d is zero
+  const growthRate = perDay7 > 0 ? perDay7 : perDay30;
+
+  const lines = [];
+
+  // Find largest table — candidate for cleanup
+  const biggest = [...data.tables].sort((a,b) => b.bytes - a.bytes)[0];
+
+  if(data.usage_pct >= 90){
+    lines.push('🚨 <strong>Critical:</strong> You\'re using over 90% of your free tier. Upgrade to Supabase Pro (8 GB DB) or clean up data.');
+  } else if(data.usage_pct >= 70){
+    lines.push('⚠️ <strong>Warning:</strong> You\'re past 70% of the free tier. Plan for an upgrade soon.');
+  } else if(data.usage_pct >= 40){
+    lines.push('📊 You\'re at a healthy ~' + Math.round(data.usage_pct) + '% — plenty of room.');
+  } else {
+    lines.push('✅ Storage is comfortable — using ' + data.usage_pct.toFixed(1) + '% of the free tier.');
+  }
+
+  // Project time to limit
+  if(growthRate > 0 && remaining > 0){
+    const daysToLimit = remaining / growthRate;
+    let when;
+    if(daysToLimit < 14) when = Math.round(daysToLimit) + ' days';
+    else if(daysToLimit < 60) when = Math.round(daysToLimit/7) + ' weeks';
+    else if(daysToLimit < 730) when = Math.round(daysToLimit/30) + ' months';
+    else when = Math.round(daysToLimit/365) + ' years';
+    lines.push(`At your current pace (~${fmtBytes(growthRate)}/day, ${data.growth.rows_last_7d} rows last week), you'll reach the 500 MB limit in <strong>${when}</strong>.`);
+  } else if(data.growth.rows_last_30d === 0){
+    lines.push('No new data added in the last 30 days — usage is stable.');
+  }
+
+  // Cleanup suggestion for the biggest table
+  if(biggest && biggest.bytes > 1024*1024){ // >1MB
+    if(biggest.name === 'error_logs'){
+      lines.push(`💡 <strong>Cleanup tip:</strong> Error logs are your biggest table (${fmtBytes(biggest.bytes)}). Old logs are usually safe to delete — they help with active debugging only.`);
+    } else if(biggest.name === 'conversations'){
+      lines.push(`💡 <strong>Cleanup tip:</strong> Conversations take up ${fmtBytes(biggest.bytes)}. Old/archived threads can be exported and removed if needed.`);
+    } else {
+      lines.push(`💡 Largest table: <strong>${biggest.label}</strong> (${fmtBytes(biggest.bytes)}).`);
+    }
+  }
+
+  // Upgrade hint
+  if(data.usage_pct >= 60){
+    lines.push('🔧 <strong>Upgrade path:</strong> Supabase Pro is $25/mo for 8 GB DB + 100 GB storage — 16× the free tier.');
+  }
+
+  el.innerHTML = lines.join('<br>');
 }
 
 function renderUsersList(){
