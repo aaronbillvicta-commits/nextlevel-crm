@@ -48,6 +48,9 @@ body.theme-light .topbar{background:#ffffff;}
 .theme-swatch{width:80px;height:48px;border-radius:6px}
 .theme-opt-label{font-size:12px;color:var(--text);font-weight:500}
 
+/* ── DTMF KEYPAD BUTTON ACTIVE STATE ── */
+#dp-keypad-btn.active{background:var(--accent-bg)!important;border-color:var(--accent)!important;color:var(--accent)!important}
+
 html,body{height:100%;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5}
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-track{background:transparent}
@@ -1209,19 +1212,43 @@ table th[onclick]{transition:background .15s,color .15s}
     <div id="dialpad-incall" style="display:none;padding:20px 16px;text-align:center">
       <div style="font-size:10px;color:var(--green);font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px">● On Call</div>
       <div id="dp-call-name" style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Calling…</div>
-      <div id="dp-call-timer" style="font-size:26px;font-family:'DM Mono',monospace;color:var(--green);font-weight:500;margin-bottom:24px">00:00</div>
-      <div style="display:flex;justify-content:center;gap:20px;align-items:center">
+      <div id="dp-call-timer" style="font-size:26px;font-family:'DM Mono',monospace;color:var(--green);font-weight:500;margin-bottom:20px">00:00</div>
+      <div style="display:flex;justify-content:center;gap:14px;align-items:center">
         <div style="text-align:center">
-          <button class="btn-call-action call-btn-mute" id="dp-mute-btn" onclick="toggleMute()" style="width:52px;height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
-            <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          <button class="btn-call-action call-btn-mute" id="dp-mute-btn" onclick="toggleMute()" style="width:48px;height:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
           </button>
           <div id="dp-mute-label" style="font-size:10px;color:var(--text3);margin-top:4px">Mute</div>
         </div>
         <div style="text-align:center">
-          <button class="btn-call-action call-btn-end" onclick="endCall()" style="width:52px;height:52px">
-            <svg width="18" height="18" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <button class="btn-call-action" id="dp-keypad-btn" onclick="toggleInCallKeypad()" style="width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:var(--bg3);color:var(--text);border:1px solid var(--border2)" title="Show keypad">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="6" cy="6" r="1"/><circle cx="12" cy="6" r="1"/><circle cx="18" cy="6" r="1"/><circle cx="6" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="18" cy="12" r="1"/><circle cx="6" cy="18" r="1"/><circle cx="12" cy="18" r="1"/><circle cx="18" cy="18" r="1"/></svg>
+          </button>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">Keypad</div>
+        </div>
+        <div style="text-align:center">
+          <button class="btn-call-action call-btn-end" onclick="endCall()" style="width:48px;height:48px">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
           </button>
           <div style="font-size:10px;color:var(--text3);margin-top:4px">Drop</div>
+        </div>
+      </div>
+      <!-- ── DTMF KEYPAD (toggle via Keypad button) ── -->
+      <div id="dtmf-keypad" style="display:none;margin-top:18px;border-top:1px solid var(--border);padding-top:14px">
+        <div id="dtmf-display" style="font-family:'DM Mono',monospace;color:var(--accent);font-size:14px;height:18px;margin-bottom:8px;letter-spacing:.08em;min-height:18px">&nbsp;</div>
+        <div class="dialpad-grid">
+          <button class="dialpad-key" onclick="sendDTMF('1')">1</button>
+          <button class="dialpad-key" onclick="sendDTMF('2')">2</button>
+          <button class="dialpad-key" onclick="sendDTMF('3')">3</button>
+          <button class="dialpad-key" onclick="sendDTMF('4')">4</button>
+          <button class="dialpad-key" onclick="sendDTMF('5')">5</button>
+          <button class="dialpad-key" onclick="sendDTMF('6')">6</button>
+          <button class="dialpad-key" onclick="sendDTMF('7')">7</button>
+          <button class="dialpad-key" onclick="sendDTMF('8')">8</button>
+          <button class="dialpad-key" onclick="sendDTMF('9')">9</button>
+          <button class="dialpad-key" onclick="sendDTMF('*')" style="font-size:22px;line-height:1">*</button>
+          <button class="dialpad-key" onclick="sendDTMF('0')">0</button>
+          <button class="dialpad-key" onclick="sendDTMF('#')">#</button>
         </div>
       </div>
     </div>
@@ -2922,6 +2949,13 @@ function endCall(){
   document.getElementById('dialpad-incall').style.display='none';
   document.getElementById('dialpad-idle').style.display='block';
   document.getElementById('dp-call-timer').textContent='00:00';
+  // Reset DTMF keypad state for next call
+  const dtmfKp = document.getElementById('dtmf-keypad');
+  if(dtmfKp) dtmfKp.style.display='none';
+  const dtmfDisp = document.getElementById('dtmf-display');
+  if(dtmfDisp) dtmfDisp.innerHTML='&nbsp;';
+  const kpBtn = document.getElementById('dp-keypad-btn');
+  if(kpBtn) kpBtn.classList.remove('active');
   document.getElementById('dialpad-head-label').textContent='Dialer';
   const input=document.getElementById('call-dial-number');
   if(input) input.value='';
@@ -2939,6 +2973,35 @@ function toggleMute(){
   document.getElementById('dp-mute-btn')?.classList.toggle('muted',callMuted);
   document.getElementById('dp-mute-label').textContent=callMuted?'Unmute':'Mute';
   showToast(callMuted?'🔇 Muted':'🔊 Unmuted');
+}
+
+function toggleInCallKeypad(){
+  const kp = document.getElementById('dtmf-keypad');
+  const btn = document.getElementById('dp-keypad-btn');
+  if(!kp) return;
+  const show = kp.style.display === 'none';
+  kp.style.display = show ? 'block' : 'none';
+  if(btn) btn.classList.toggle('active', show);
+}
+
+function sendDTMF(digit){
+  if(!swCall){ showToast('No active call','error'); return; }
+  try {
+    // SignalWire Call Fabric exposes sendDigits() on the Call object
+    const ret = swCall.sendDigits(digit);
+    if(ret && typeof ret.catch === 'function') ret.catch(e => logError('dtmf', e.message, e.stack, {digit}));
+  } catch(e) {
+    logError('dtmf', e.message, e.stack, {digit});
+    showToast('DTMF failed: '+e.message,'error');
+    return;
+  }
+  // Visual feedback — append digit to display (last 16 chars)
+  const disp = document.getElementById('dtmf-display');
+  if(disp){
+    const cur = disp.textContent.trim();
+    const next = (cur + digit).slice(-16);
+    disp.textContent = next || ' ';
+  }
 }
 
 // ── SOURCE FILTER ──
