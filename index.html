@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Next Level Marketing — CRM</title>
+<link id="app-favicon" rel="icon" type="image/png" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2300d2ff'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' dominant-baseline='middle' fill='%230d1225' font-family='sans-serif' font-weight='700' font-size='14'%3ENL%3C/text%3E%3C/svg%3E"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <script src="https://cdn.jsdelivr.net/npm/@signalwire/js@^3/dist/index.umd.min.js"></script>
@@ -64,8 +65,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-size:14px;line
 .logo-icon img{width:100%;height:100%;object-fit:cover;border-radius:6px;display:none}
 .logo-name{font-size:14px;font-weight:600;color:var(--text);line-height:1.25}
 .logo-sub{font-size:10px;color:var(--accent2);font-weight:500;text-transform:uppercase;letter-spacing:.05em}
-.logo-upload-btn{display:flex;align-items:center;justify-content:center;gap:5px;font-size:11px;color:var(--text3);border:1px dashed var(--border2);border-radius:6px;padding:5px 10px;cursor:pointer;transition:all .15s;width:100%}
-.logo-upload-btn:hover{color:var(--accent2);border-color:var(--accent-border);background:var(--accent-bg)}
 .nav{flex:1;padding:10px 8px;overflow-y:auto;display:flex;flex-direction:column;gap:1px}
 .nav-sec{font-size:10px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:10px 10px 4px}
 .nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius);cursor:pointer;color:var(--text2);font-size:13px;transition:all .15s;position:relative}
@@ -1065,7 +1064,7 @@ table th[onclick]{transition:background .15s,color .15s}
 <aside class="sidebar">
   <div class="logo-wrap">
     <div class="logo-mark">
-      <div class="logo-icon" id="logo-icon-wrap" onclick="document.getElementById('logo-upload').click()" title="Upload logo">
+      <div class="logo-icon" id="logo-icon-wrap">
         <img id="logo-img" src="" alt=""/>
         <span id="logo-initials">NL</span>
       </div>
@@ -1074,11 +1073,6 @@ table th[onclick]{transition:background .15s,color .15s}
         <div class="logo-sub">Marketing</div>
       </div>
     </div>
-    <label class="logo-upload-btn" for="logo-upload">
-      <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      Upload logo
-    </label>
-    <input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="handleLogoUpload(event)"/>
   </div>
   <nav class="nav">
     <div class="nav-sec">Workspace</div>
@@ -2120,6 +2114,57 @@ table th[onclick]{transition:background .15s,color .15s}
         <div class="settings-card">
           <div class="settings-card-head">
             <div>
+              <div class="settings-card-title">Branding</div>
+              <div class="settings-card-sub">Logo shown in the sidebar and favicon shown in the browser tab</div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:24px;flex-wrap:wrap">
+            <!-- Logo -->
+            <div style="flex:1;min-width:240px">
+              <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Logo</div>
+              <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+                <div id="settings-logo-preview" style="width:56px;height:56px;border-radius:12px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+                  <img id="settings-logo-img" src="" alt="" style="max-width:100%;max-height:100%;display:none"/>
+                  <span id="settings-logo-fallback" style="font-size:18px;font-weight:700;color:var(--accent2)">NL</span>
+                </div>
+                <div style="flex:1;font-size:12px;color:var(--text3);line-height:1.5">PNG, JPG, or SVG. Square images look best. Shown in the sidebar header.</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <label class="btn btn-sm" for="logo-upload" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Upload logo
+                </label>
+                <button class="btn btn-sm" onclick="removeLogo()" id="settings-logo-remove" style="display:none;color:var(--red)">Remove</button>
+                <input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="handleLogoUpload(event)"/>
+              </div>
+            </div>
+
+            <!-- Favicon -->
+            <div style="flex:1;min-width:240px">
+              <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Favicon</div>
+              <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px">
+                <div id="settings-favicon-preview" style="width:56px;height:56px;border-radius:12px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0">
+                  <img id="settings-favicon-img" src="" alt="" style="max-width:100%;max-height:100%;display:none"/>
+                  <span id="settings-favicon-fallback" style="font-size:18px;font-weight:700;color:var(--accent2)">NL</span>
+                </div>
+                <div style="flex:1;font-size:12px;color:var(--text3);line-height:1.5">Small icon shown in the browser tab. Square PNG/ICO at 32×32 or larger works best.</div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <label class="btn btn-sm" for="favicon-upload" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Upload favicon
+                </label>
+                <button class="btn btn-sm" onclick="removeFavicon()" id="settings-favicon-remove" style="display:none;color:var(--red)">Remove</button>
+                <input type="file" id="favicon-upload" accept="image/*,.ico" style="display:none" onchange="handleFaviconUpload(event)"/>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-head">
+            <div>
               <div class="settings-card-title">Appearance</div>
               <div class="settings-card-sub">Choose how the CRM looks</div>
             </div>
@@ -2444,7 +2489,7 @@ function showLoading(on) {
 
 
 // ═══════════════════════════════════════════════
-// LOGO UPLOAD
+// LOGO + FAVICON UPLOAD
 // ═══════════════════════════════════════════════
 function handleLogoUpload(e) {
   const file = e.target.files[0]; if(!file) return;
@@ -2458,11 +2503,71 @@ function handleLogoUpload(e) {
 }
 
 function applyLogo(src) {
+  // Sidebar logo
   const img = document.getElementById('logo-img');
   const ini = document.getElementById('logo-initials');
-  if(!img) return;
-  img.src = src; img.style.display='block';
+  if(img){ img.src = src; img.style.display='block'; }
   if(ini) ini.style.display='none';
+  // Settings preview
+  const sImg = document.getElementById('settings-logo-img');
+  const sFb  = document.getElementById('settings-logo-fallback');
+  const sRm  = document.getElementById('settings-logo-remove');
+  if(sImg){ sImg.src = src; sImg.style.display='block'; }
+  if(sFb)  sFb.style.display='none';
+  if(sRm)  sRm.style.display='inline-flex';
+}
+
+function removeLogo(){
+  localStorage.removeItem('crm-logo');
+  const img = document.getElementById('logo-img');
+  const ini = document.getElementById('logo-initials');
+  if(img){ img.src=''; img.style.display='none'; }
+  if(ini) ini.style.display='flex';
+  const sImg = document.getElementById('settings-logo-img');
+  const sFb  = document.getElementById('settings-logo-fallback');
+  const sRm  = document.getElementById('settings-logo-remove');
+  if(sImg){ sImg.src=''; sImg.style.display='none'; }
+  if(sFb)  sFb.style.display='block';
+  if(sRm)  sRm.style.display='none';
+  showToast('Logo removed');
+}
+
+function handleFaviconUpload(e){
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    applyFavicon(ev.target.result);
+    localStorage.setItem('crm-favicon', ev.target.result);
+    showToast('Favicon updated!');
+  };
+  reader.readAsDataURL(file);
+}
+
+function applyFavicon(src){
+  // Update <link rel="icon">
+  const link = document.getElementById('app-favicon');
+  if(link) link.href = src;
+  // Settings preview
+  const sImg = document.getElementById('settings-favicon-img');
+  const sFb  = document.getElementById('settings-favicon-fallback');
+  const sRm  = document.getElementById('settings-favicon-remove');
+  if(sImg){ sImg.src = src; sImg.style.display='block'; }
+  if(sFb)  sFb.style.display='none';
+  if(sRm)  sRm.style.display='inline-flex';
+}
+
+function removeFavicon(){
+  localStorage.removeItem('crm-favicon');
+  // Reset to default SVG favicon
+  const link = document.getElementById('app-favicon');
+  if(link) link.href = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2300d2ff'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' dominant-baseline='middle' fill='%230d1225' font-family='sans-serif' font-weight='700' font-size='14'%3ENL%3C/text%3E%3C/svg%3E";
+  const sImg = document.getElementById('settings-favicon-img');
+  const sFb  = document.getElementById('settings-favicon-fallback');
+  const sRm  = document.getElementById('settings-favicon-remove');
+  if(sImg){ sImg.src=''; sImg.style.display='none'; }
+  if(sFb)  sFb.style.display='block';
+  if(sRm)  sRm.style.display='none';
+  showToast('Favicon reset');
 }
 
 // ═══════════════════════════════════════════════
@@ -9040,6 +9145,9 @@ document.querySelectorAll('.nav-item').forEach(item=>{
   // Restore saved logo
   const savedLogo = localStorage.getItem('crm-logo');
   if(savedLogo) applyLogo(savedLogo);
+  // Restore saved favicon
+  const savedFavicon = localStorage.getItem('crm-favicon');
+  if(savedFavicon) applyFavicon(savedFavicon);
 })();
 
 function setTheme(name){
