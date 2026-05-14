@@ -262,7 +262,11 @@ tbody tr:hover td{background:var(--bg3)}
 .int-full-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:10px;overflow:hidden;transition:border-color .15s}
 .int-full-card:hover{border-color:var(--border2)}
 .int-full-card.connected{border-color:rgba(62,207,142,.25)}
-.int-full-head{display:flex;align-items:center;gap:14px;padding:16px 18px}
+.int-full-head{display:flex;align-items:center;gap:14px;padding:16px 18px;cursor:pointer;user-select:none;transition:background .15s}
+.int-full-head:hover{background:var(--bg3)}
+.int-full-chevron{transition:transform .2s;color:var(--text3);flex-shrink:0}
+.int-full-card.expanded .int-full-chevron{transform:rotate(180deg);color:var(--accent2)}
+.int-full-name{cursor:pointer}
 .int-full-icon{width:40px;height:40px;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
 .int-full-name{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
 .int-full-desc{font-size:11px;color:var(--text3);line-height:1.5}
@@ -1382,7 +1386,12 @@ table th[onclick]{transition:background .15s,color .15s}
             <div style="font-size:14px;font-weight:700;color:var(--text)" id="pl-active-name">Select a pipeline</div>
             <div style="font-size:11px;color:var(--text3);margin-top:1px" id="pl-active-stats"></div>
           </div>
-          <button class="btn btn-primary btn-sm" onclick="openPipelineModal('new-deal')" id="pl-add-deal-btn" style="display:none">+ Add Deal</button>
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-sm" onclick="openPipelineStagesModal()" id="pl-stages-btn" title="Configure pipeline stages" style="display:none;width:34px;height:34px;padding:0;align-items:center;justify-content:center">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="openPipelineModal('new-deal')" id="pl-add-deal-btn" style="display:none">+ Add Deal</button>
+          </div>
         </div>
         <!-- Empty state -->
         <div id="pl-empty-state" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3)">
@@ -1846,14 +1855,14 @@ table th[onclick]{transition:background .15s,color .15s}
 
       <div class="int-section-title">📱 SMS & Phone</div>
       <div class="int-full-card" id="int-card-signalwire">
-        <div class="int-full-head">
+        <div class="int-full-head" onclick="toggleIntSection('signalwire')">
           <div class="int-full-icon" style="background:var(--red-bg)">📱</div>
           <div style="flex:1">
             <div class="int-full-name">SignalWire — SMS & Voice Calls</div>
             <div class="int-full-desc">Send SMS, make browser-based calls, and track replies from your contacts directly in the CRM</div>
           </div>
           <div class="int-status-badge" id="signalwire-status">Not connected</div>
-          <button class="btn btn-sm" id="signalwire-toggle-btn" onclick="toggleIntSection('signalwire')">Connect</button>
+          <svg class="int-full-chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <div class="int-form" id="signalwire-form" style="display:none">
           <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:12px;color:var(--accent2);line-height:1.6">
@@ -1875,42 +1884,48 @@ table th[onclick]{transition:background .15s,color .15s}
 
       <div class="int-section-title">📧 Email Accounts</div>
       <div class="int-full-card" id="int-card-email">
-        <div class="int-full-head">
+        <div class="int-full-head" onclick="toggleIntSection('email')">
           <div class="int-full-icon" style="background:var(--accent-bg)">📧</div>
           <div style="flex:1">
             <div class="int-full-name">Email Accounts</div>
             <div class="int-full-desc">Connect multiple email accounts — send, receive, and track replies inside the CRM</div>
           </div>
           <div id="email-accounts-count" class="int-status-badge">0 connected</div>
-          <button class="btn btn-primary btn-sm" onclick="openAddEmailAccountModal()">+ Add Account</button>
+          <svg class="int-full-chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
 
-        <div id="int-email-accounts-list" style="margin-top:12px"></div>
-
-        <div style="margin-top:14px;background:var(--amber-bg);border:1px solid rgba(255,184,48,.25);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--amber);line-height:1.7">
-          <strong>📬 Receiving replies:</strong> Email replies land in your actual inbox. To pull them into the CRM, use the <strong>↻ Check Replies</strong> button in the Email section — it will import any Brevo inbound emails. For automatic syncing, set up Brevo's inbound parsing to forward replies to your webhook.
-        </div>
-
-        <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
-          <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Inbound Email Webhook (Brevo)</div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:8px">To receive replies automatically: In Brevo → Settings → Inbound Parsing → add this webhook URL:</div>
-          <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent2);word-break:break-all">
-            https://oipkvwdjlwienkphsivr.supabase.co/functions/v1/email-inbound
+        <div class="int-form" id="email-form" style="display:none">
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+            <button class="btn btn-primary btn-sm" onclick="openAddEmailAccountModal()">+ Add Account</button>
           </div>
-          <div style="font-size:11px;color:var(--text3);margin-top:6px">Replies will then appear automatically in Conversations and Email → Inbox.</div>
+
+          <div id="int-email-accounts-list"></div>
+
+          <div style="margin-top:14px;background:var(--amber-bg);border:1px solid rgba(255,184,48,.25);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--amber);line-height:1.7">
+            <strong>📬 Receiving replies:</strong> Email replies land in your actual inbox. To pull them into the CRM, use the <strong>↻ Check Replies</strong> button in the Email section — it will import any Brevo inbound emails. For automatic syncing, set up Brevo's inbound parsing to forward replies to your webhook.
+          </div>
+
+          <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:8px">Inbound Email Webhook (Brevo)</div>
+            <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:8px">To receive replies automatically: In Brevo → Settings → Inbound Parsing → add this webhook URL:</div>
+            <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px;font-family:'DM Mono',monospace;font-size:11px;color:var(--accent2);word-break:break-all">
+              https://oipkvwdjlwienkphsivr.supabase.co/functions/v1/email-inbound
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-top:6px">Replies will then appear automatically in Conversations and Email → Inbox.</div>
+          </div>
         </div>
       </div>
 
       <div class="int-section-title">📘 Social Media</div>
       <div class="int-full-card" id="int-card-facebook">
-        <div class="int-full-head">
+        <div class="int-full-head" onclick="toggleIntSection('facebook')">
           <div class="int-full-icon" style="background:var(--accent-bg)">📘</div>
           <div style="flex:1">
             <div class="int-full-name">Facebook — Pages & Lead Ads</div>
             <div class="int-full-desc">Capture leads from Facebook Lead Ad forms automatically into your CRM contacts</div>
           </div>
           <div class="int-status-badge" id="facebook-status">Not connected</div>
-          <button class="btn btn-sm" id="facebook-toggle-btn" onclick="toggleIntSection('facebook')">Connect</button>
+          <svg class="int-full-chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <div class="int-form" id="facebook-form" style="display:none">
           <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:12px;color:var(--accent2);line-height:1.6">
@@ -1934,14 +1949,14 @@ table th[onclick]{transition:background .15s,color .15s}
       </div>
 
       <div class="int-full-card" id="int-card-instagram">
-        <div class="int-full-head">
+        <div class="int-full-head" onclick="toggleIntSection('instagram')">
           <div class="int-full-icon" style="background:var(--pink-bg)">📸</div>
           <div style="flex:1">
             <div class="int-full-name">Instagram — Business DMs</div>
             <div class="int-full-desc">Connect your Instagram Business account to manage DMs and capture leads from one inbox</div>
           </div>
           <div class="int-status-badge" id="instagram-status">Not connected</div>
-          <button class="btn btn-sm" id="instagram-toggle-btn" onclick="toggleIntSection('instagram')">Connect</button>
+          <svg class="int-full-chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <div class="int-form" id="instagram-form" style="display:none">
           <div style="background:var(--pink-bg);border:1px solid rgba(217,123,186,.3);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:12px;color:var(--pink);line-height:1.6">
@@ -1960,14 +1975,14 @@ table th[onclick]{transition:background .15s,color .15s}
 
       <div class="int-section-title">📅 Calendar</div>
       <div class="int-full-card" id="int-card-calendar">
-        <div class="int-full-head">
+        <div class="int-full-head" onclick="toggleIntSection('calendar')">
           <div class="int-full-icon" style="background:var(--green-bg)">📅</div>
           <div style="flex:1">
             <div class="int-full-name">Google Calendar</div>
             <div class="int-full-desc">Create and sync events directly into Google Calendar for you and your clients</div>
           </div>
           <div class="int-status-badge" id="calendar-status">Not connected</div>
-          <button class="btn btn-sm" id="calendar-toggle-btn" onclick="toggleIntSection('calendar')">Connect</button>
+          <svg class="int-full-chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <div class="int-form" id="calendar-form" style="display:none">
 
@@ -2015,14 +2030,14 @@ table th[onclick]{transition:background .15s,color .15s}
 
       <div class="int-section-title">🔗 Automation & Webhooks</div>
       <div class="int-full-card" id="int-card-zapier">
-        <div class="int-full-head">
+        <div class="int-full-head" onclick="toggleIntSection('zapier')">
           <div class="int-full-icon" style="background:var(--amber-bg)">🔗</div>
           <div style="flex:1">
             <div class="int-full-name">Zapier & Custom Webhooks</div>
             <div class="int-full-desc">Send contact and deal events to any app. Connect to 5,000+ tools via Zapier</div>
           </div>
           <div class="int-status-badge" id="zapier-status">Not connected</div>
-          <button class="btn btn-sm" id="zapier-toggle-btn" onclick="toggleIntSection('zapier')">Connect</button>
+          <svg class="int-full-chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
         <div class="int-form" id="zapier-form" style="display:none">
           <div style="background:var(--amber-bg);border:1px solid rgba(245,158,63,.2);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:12px;color:var(--amber);line-height:1.6">
@@ -2178,21 +2193,6 @@ table th[onclick]{transition:background .15s,color .15s}
               <div class="theme-swatch" style="background:linear-gradient(135deg,#ffffff,#e3e7f0);border:1px solid var(--border)"></div>
               <div class="theme-opt-label">Light</div>
             </button>
-          </div>
-        </div>
-
-        <div class="settings-card">
-          <div class="settings-card-head">
-            <div>
-              <div class="settings-card-title">Pipeline Stages</div>
-              <div class="settings-card-sub">Add, rename, reorder, or remove stages for each pipeline</div>
-            </div>
-          </div>
-          <div id="settings-pipeline-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
-          <div class="stage-list" id="settings-stage-list"></div>
-          <button class="add-stage-btn" onclick="settingsAddStage()">+ Add Stage</button>
-          <div style="display:flex;justify-content:flex-end;margin-top:14px">
-            <button class="btn btn-primary btn-sm" onclick="settingsSaveStages()">Save Stages</button>
           </div>
         </div>
 
@@ -4113,6 +4113,8 @@ function switchPipeline(id){
   if(emptyEl) emptyEl.style.display='none';
   if(boardWrap) boardWrap.style.display='flex';
   if(addBtn) addBtn.style.display='inline-flex';
+  const stagesBtn = document.getElementById('pl-stages-btn');
+  if(stagesBtn) stagesBtn.style.display='inline-flex';
   if(pl && nameEl) nameEl.textContent = pl.name;
   if(pl && statsEl){
     const totalVal = pl.deals?.reduce((s,d)=>s+(d.value||0),0)||0;
@@ -4415,6 +4417,7 @@ async function deletePipelineConfirm(pipelineId){
         if(emptyEl) emptyEl.style.display='flex';
         if(boardWrap) boardWrap.style.display='none';
         if(addBtn) addBtn.style.display='none';
+        const sBtn=document.getElementById('pl-stages-btn'); if(sBtn) sBtn.style.display='none';
         if(nameEl) nameEl.textContent='Select a pipeline';
       } else {
         switchPipeline(activePipelineId);
@@ -4591,7 +4594,30 @@ async function deleteDeal(dealId){
   } catch(e){showToast('Error deleting deal','error');}
 }
 
-// ─── SETTINGS PIPELINE ───
+// ─── PIPELINE STAGES MODAL (was: SETTINGS PIPELINE) ───
+function openPipelineStagesModal(){
+  if(!pipelines.length){ showToast('Create a pipeline first','error'); return; }
+  // If a pipeline is currently active on the board, default the modal to it
+  if(activePipelineId) settingsActivePl = activePipelineId;
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">Pipeline Stages</div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Add, rename, reorder, or remove stages. Drag rows by the ⠿ handle to reorder.</div>
+      <div id="settings-pipeline-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"></div>
+      <div class="stage-list" id="settings-stage-list"></div>
+      <button class="add-stage-btn" onclick="settingsAddStage()">+ Add Stage</button>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="settingsSaveStages();closeModal()">Save Stages</button>
+    </div>
+  `);
+  renderSettingsPipeline();
+}
+
 let settingsActivePl=null;
 function renderSettingsPipeline(){
   if(!settingsActivePl && pipelines.length>0) settingsActivePl=pipelines[0].id;
@@ -5181,9 +5207,16 @@ function toggleIntSection(key){
   const form = document.getElementById(key+'-form');
   if(!form) return;
   const isOpen = form.style.display !== 'none';
-  // Close all forms first
-  INT_KEYS.forEach(k=>{ const f=document.getElementById(k+'-form'); if(f) f.style.display='none'; });
-  if(!isOpen) form.style.display='block';
+  // Close all forms + collapse all cards first
+  INT_KEYS.forEach(k=>{
+    const f = document.getElementById(k+'-form'); if(f) f.style.display='none';
+    const c = document.getElementById('int-card-'+k); if(c) c.classList.remove('expanded');
+  });
+  if(!isOpen){
+    form.style.display='block';
+    const card = document.getElementById('int-card-'+key);
+    if(card) card.classList.add('expanded');
+  }
 }
 
 async function saveIntegration(key){
