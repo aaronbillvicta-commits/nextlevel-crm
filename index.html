@@ -4920,7 +4920,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
-  { date:'2026-05-14', time:'03:10', name:'Fix Expired Call Token (root cause)', area:'Calling',                description:'Token endpoint was being browser-cached so the stale 2h token kept coming back. Added no-cache headers, cache-buster, 8h expiry, and wrapped call.start() in the retry.', commit:'pending' },
+  { date:'2026-05-14', time:'03:10', name:'Fix Expired Call Token (root cause)', area:'Calling',                description:'Token endpoint was being browser-cached so the stale 2h token kept coming back. Added no-cache headers, cache-buster, 8h expiry, and wrapped call.start() in the retry.', commit:'dff70d1' },
   { date:'2026-05-14', time:'02:55', name:'Call Token Auto-Refresh',         area:'Calling',                     description:'Detect expired SignalWire Fabric subscriber token (authblock_is_expired) and re-init the SDK automatically — calls work indefinitely without page refresh.', commit:'bc984df' },
   { date:'2026-05-13', time:'22:35', name:'Disable Browser Autofill',        area:'All inputs',                  description:'Suppress Chrome/password-manager popups on search and filter inputs; login + account-password fields still autofill normally.', commit:'410749f' },
   { date:'2026-05-13', time:'22:25', name:'Multi-Number Support + Cleanup',  area:'Integrations, SMS',           description:'Add up to 5 SignalWire phone numbers; per-message From picker in SMS compose; deleted dead SIP/click-to-call API files.', commit:'4304b2d' },
