@@ -3059,18 +3059,25 @@ function isExpiredTokenError(e){
 
 async function dialWithAuthRetry(dialTo){
   for(let attempt = 0; attempt < 2; attempt++){
+    let call = null;
     try {
       await initSWClient();
       logError('startCall_step', '2_dialing', null, { attempt });
-      const call = await swClient.dial({
+      call = await swClient.dial({
         to: dialTo,
         rootElement: document.getElementById('sw-root-element'),
         audio: true,
         video: false,
       });
       logError('startCall_step', '3_call_object_created', null, { attempt });
+      // start() is part of the same auth flow — must be inside the retry so
+      // an expired token caught here triggers the refresh
+      await call.start();
+      logError('startCall_step', '4_call_started', null, { attempt });
       return call;
     } catch(e){
+      // Tear down the half-created call before retrying
+      if(call) { try { await call.leave(); } catch(_) {} }
       if(attempt === 0 && isExpiredTokenError(e)){
         logError('startCall_token_refresh', 'Detected expired auth — refreshing token', null, {});
         await initSWClient(true);   // force re-init with fresh JWT
@@ -3127,15 +3134,12 @@ async function startCall(){
     showToast('📞 Connecting…');
     logError('startCall_step', '1_init_client', null, { to: dialTo });
 
-    // Wrapper handles expired-token refresh + retry
+    // Wrapper handles dial + start + expired-token refresh/retry
     swCall = await dialWithAuthRetry(dialTo);
 
     swCall.on('call.state', ev => logError('sw_call_state', ev.call_state || JSON.stringify(ev), null, {}));
     swCall.on('destroy', () => { logError('sw_call_destroy','',null,{}); swCall=null; if(callTimer) endCall(); });
     swCall.on('room.left', () => { logError('sw_room_left','',null,{}); swCall=null; if(callTimer) endCall(); });
-
-    await swCall.start();
-    logError('startCall_step', '4_call_started', null, {});
 
     if(activeCallContact?.id){
       let conv=conversations.find(c=>c.contactId===activeCallContact.id);
