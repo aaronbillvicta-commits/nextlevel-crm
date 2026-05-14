@@ -2185,6 +2185,23 @@ table th[onclick]{transition:background .15s,color .15s}
         <div class="settings-card">
           <div class="settings-card-head">
             <div>
+              <div class="settings-card-title">Version History</div>
+              <div class="settings-card-sub">Every update to your CRM, newest first. Use this to roll back if a change doesn't work for you.</div>
+            </div>
+            <span id="version-current-badge" style="font-size:11px;color:var(--green);font-weight:600;background:var(--green-bg);padding:3px 8px;border-radius:10px"></span>
+          </div>
+
+          <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:12px;color:var(--accent2);line-height:1.7">
+            💡 <strong>How to roll back:</strong> Open <a href="https://vercel.com/dashboard" target="_blank" style="color:var(--accent2);text-decoration:underline;font-weight:500">Vercel Dashboard</a> → your project → <strong>Deployments</strong> → find the commit hash below → click <strong>⋯</strong> → <strong>Promote to Production</strong>. Code reverts in seconds.
+            <br><br>📦 <strong>Your data is safe:</strong> rolling back changes the look/features, but contacts, deals, conversations, and call history stay intact in Supabase.
+          </div>
+
+          <div id="version-history-list" style="max-height:480px;overflow-y:auto"></div>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-head">
+            <div>
               <div class="settings-card-title">Branding</div>
               <div class="settings-card-sub">Logo shown in the sidebar and favicon shown in the browser tab</div>
             </div>
@@ -4803,6 +4820,70 @@ function renderSettingsPage(){
   }
   // Auto-load data usage stats
   loadStorageStats();
+  // Render version history
+  renderVersionHistory();
+}
+
+// ═══════════════════════════════════════════════
+// VERSION HISTORY
+// To roll back: vercel.com → Deployments → find commit hash → Promote to Production
+// To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
+// ═══════════════════════════════════════════════
+const APP_VERSIONS = [
+  { date:'2026-05-13', time:'21:50', name:'Version History Tracker',         area:'Settings',                    description:'Added in-app version list with rollback instructions and CHANGELOG file.', commit:'pending' },
+  { date:'2026-05-13', time:'21:40', name:'Team Member Safety',              area:'Settings → Team Members',     description:'Removed self-delete option; typed confirmation now required to remove invited team members.', commit:'774d714' },
+  { date:'2026-05-13', time:'21:34', name:'Data Usage Dashboard',            area:'Settings',                    description:'Track Supabase storage with per-table breakdown and growth-based recommendations.', commit:'27e46a2' },
+  { date:'2026-05-13', time:'21:25', name:'Integrations & Pipeline Refresh', area:'Integrations, Pipeline & Deal', description:'Integration cards collapse — click name to expand; Pipeline Stages moved to a gear-icon modal in Pipeline & Deal.', commit:'b16b0d8' },
+  { date:'2026-05-13', time:'21:15', name:'Logo & Favicon Upload',           area:'Settings → Branding',         description:'Upload your agency logo and browser-tab favicon; old sidebar upload button removed.', commit:'aa5e1f5' },
+  { date:'2026-05-13', time:'21:06', name:'Tag Filter & Search Polish',      area:'Contacts',                    description:'Moved tag filter to leftmost position; fixed search-icon overlapping the placeholder.', commit:'c04561c' },
+  { date:'2026-05-13', time:'20:57', name:'Tag Dropdown Position',           area:'Contacts',                    description:'Adjusted tag filter dropdown anchoring.', commit:'e8c53b4' },
+  { date:'2026-05-13', time:'20:52', name:'Sidebar Cleanup',                 area:'Sidebar',                     description:'Removed the unread/count badges from nav items (Contacts, Conversations, Email, Automations).', commit:'bcecbd9' },
+  { date:'2026-05-13', time:'20:38', name:'Calls Tab + Sort Toggle',         area:'Conversations',               description:'Added Calls tab integrated with dialer history; newest/oldest sort toggle; reordered tabs to All · SMS · Calls · Email · Unread.', commit:'b42a995' },
+  { date:'2026-05-13', time:'20:29', name:'Always-on Dialer During Call',    area:'Dialer',                      description:'Keypad stays visible during calls; prevented accidental double-dialing.', commit:'04d7aab' },
+  { date:'2026-05-13', time:'20:23', name:'DTMF Keypad',                     area:'Dialer',                      description:'In-call keypad for navigating IVR menus (press 1, etc.)', commit:'de8f640' },
+  { date:'2026-05-13', time:'20:12', name:'Light Theme Toggle',              area:'Settings → Appearance',       description:'Switch between Dark (original) and Light themes; removed sidebar theme switcher.', commit:'1bd2b1f' },
+  { date:'2026-05-13', time:'19:34', name:'🎉 Browser Calling Working',       area:'Calling',                     description:'SignalWire Call Fabric v3 — true browser-to-PSTN, no physical phone needed.', commit:'c00b34c', highlight:true },
+  { date:'2026-05-13', time:'18:56', name:'Call Flow Debug Logging',         area:'Calling',                     description:'Added step-by-step error logs to diagnose call failures.', commit:'3cc3186' },
+  { date:'2026-05-13', time:'18:50', name:'Click-via-SIP Bridge Attempt',    area:'Calling',                     description:'Experiment: SignalWire REST → SIP credential bridge (later replaced by Call Fabric).', commit:'5be660e' },
+  { date:'2026-05-13', time:'03:54', name:'JsSIP Attempt',                   area:'Calling',                     description:'Experiment: JsSIP over SIP/WebSocket (failed — incompatible SDP).', commit:'0034ca5' },
+  { date:'2026-05-13', time:'03:26', name:'RELAY v2 SDK Attempt',            area:'Calling',                     description:'Experiment: switched to RELAY v2 (BUG-004 — also failed for PSTN).', commit:'a525755' },
+  { date:'2026-05-13', time:'03:01', name:'Click-to-Call (Physical Phone)',  area:'Calling',                     description:'REST API bridges your phone to the contact — first working call solution.', commit:'4218ac2' },
+  { date:'2026-05-13', time:'01:53', name:'Initial Calling Stack',           area:'Calling',                     description:'Replaced Twilio SDK with @signalwire/js + Fabric token.', commit:'770a27c' },
+  { date:'2026-05-13', time:'01:05', name:'JWT Fix + Error Logging',         area:'Calling, Errors',             description:'Fixed initial JWT format issue; built Supabase error_logs table for all frontend + API errors.', commit:'9512e9d' },
+];
+
+function renderVersionHistory(){
+  const el = document.getElementById('version-history-list');
+  if(!el) return;
+  const badge = document.getElementById('version-current-badge');
+  if(badge && APP_VERSIONS[0]){
+    badge.textContent = APP_VERSIONS[0].date + ' (latest)';
+  }
+  el.innerHTML = APP_VERSIONS.map((v, i) => {
+    const isLatest = i === 0;
+    const isHighlight = v.highlight;
+    const commitDisplay = v.commit === 'pending'
+      ? '<span style="color:var(--text3)" title="Not yet committed">pending</span>'
+      : `<a href="https://github.com/aaronbillvicta-commits/nextlevel-crm/commit/${v.commit}" target="_blank" style="color:var(--text3);text-decoration:none;font-family:'DM Mono',monospace" title="View on GitHub">${v.commit}</a>`;
+    const accentBorder = isHighlight ? 'border-left:3px solid var(--green)' : (isLatest ? 'border-left:3px solid var(--accent)' : '');
+    return `
+      <div style="display:flex;gap:12px;padding:12px 12px 12px 14px;border-bottom:1px solid var(--border);${accentBorder};background:${isLatest?'var(--bg3)':'transparent'};border-radius:${isLatest?'var(--radius)':'0'};margin-bottom:${isLatest?'8px':'0'}">
+        <div style="width:80px;flex-shrink:0">
+          <div style="font-size:11px;color:var(--text2);font-family:'DM Mono',monospace;font-weight:500">${v.date}</div>
+          <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:1px">${v.time}</div>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            ${isLatest ? '<span style="background:var(--green-bg);color:var(--green);padding:1px 6px;border-radius:10px;font-size:9px;font-weight:700;letter-spacing:.04em">CURRENT</span>' : ''}
+            <span>${v.name}</span>
+          </div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">${v.area}</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.55">${v.description}</div>
+        </div>
+        <div style="font-size:10px;align-self:flex-start;flex-shrink:0;padding-top:2px">${commitDisplay}</div>
+      </div>
+    `;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════
