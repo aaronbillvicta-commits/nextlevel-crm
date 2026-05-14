@@ -1670,9 +1670,8 @@ table th[onclick]{transition:background .15s,color .15s}
         <div id="dialer-report-dispos"></div>
       </div>
 
-      <div style="display:flex;gap:16px;align-items:flex-start">
-        <!-- LEFT: NUMBER PICKER + QUEUE -->
-        <div style="flex:0 0 340px;display:flex;flex-direction:column;gap:16px">
+      <!-- Single vertical column: Calling From → Call Queue → Now Calling → Contact Info -->
+      <div style="display:flex;flex-direction:column;gap:16px;max-width:680px">
 
           <!-- Calling From -->
           <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px">
@@ -1681,7 +1680,7 @@ table th[onclick]{transition:background .15s,color .15s}
           </div>
 
           <!-- Call Queue -->
-          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;display:flex;flex-direction:column;max-height:calc(100vh - 430px);min-height:220px">
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px;display:flex;flex-direction:column;max-height:360px;min-height:220px">
             <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Call Queue</div>
             <div style="position:relative;margin-bottom:10px">
               <input id="dialer-search" class="form-input" placeholder="Search a contact to add…" oninput="renderDialerSearchResults(this.value)" onfocus="renderDialerSearchResults(this.value)" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" name="crm-dialer-search" style="font-size:12px"/>
@@ -1690,17 +1689,15 @@ table th[onclick]{transition:background .15s,color .15s}
             <div id="dialer-queue-list" style="flex:1;overflow-y:auto;min-height:120px"></div>
             <button class="btn btn-sm" onclick="clearDialerQueue()" style="margin-top:10px;color:var(--red);flex-shrink:0">Clear Queue</button>
           </div>
-        </div>
 
-        <!-- RIGHT: NOW CALLING + CONTACT INFO/NOTES -->
-        <div style="flex:1;display:flex;flex-direction:column;gap:16px">
+          <!-- Now Calling -->
           <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;min-height:220px;display:flex;align-items:center;justify-content:center">
             <div id="dialer-now-calling" style="width:100%;max-width:380px;text-align:center"></div>
           </div>
+          <!-- Contact Info + Notes -->
           <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px">
             <div id="dialer-contact-panel"></div>
           </div>
-        </div>
       </div>
       </div><!-- /dialer-main-view -->
 
@@ -5413,6 +5410,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-14', time:'07:10', name:'Dialer — vertical layout + disposition notes', area:'Dialer',          description:'Dialer queue view is now a single vertical column (Calling From → Call Queue → Now Calling → Contact Info) instead of a two-column split. The disposition pop-up now has an optional notes box — what you type is saved onto the contact alongside the disposition.', commit:'pending' },
   { date:'2026-05-14', time:'06:45', name:'Dialer — Contact Info + Notes panel', area:'Dialer',                  description:'Beside the call queue: a Contact Info & Notes panel showing the current lead details (company, status, email, tags, last activity) plus a notes box to jot notes while calling. Notes save straight to the contact — same notes everywhere in the CRM.', commit:'dd3f3fd' },
   { date:'2026-05-14', time:'06:20', name:'Dialer — Call History view',      area:'Dialer',                      description:'New "Call History" tab in the Dialer: every past call with its disposition + date/time, grouped by day under a month navigator (◀ ▶ calendar-style). Click any entry to open the live contact card (edits sync CRM-wide); unmatched numbers redial. Dispositions now attach to their call-history entry.', commit:'b4967dd' },
   { date:'2026-05-14', time:'05:55', name:'Dialer — Numbers + Activity Report', area:'Dialer',                    description:'Added a "Calling From" number picker (shows all SignalWire numbers, pick which to dial from) and a Call Activity report with Today/Week/Month views — Dials Made, Connected, Connect Rate, Talk Time, and a disposition breakdown bar.', commit:'7812230' },
@@ -11204,12 +11202,16 @@ function showDialerDisposition(ctx){
         </div>
       </div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:10px;font-weight:500">How did the call go?</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">${btns}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">${btns}</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:500">Add a note <span style="color:var(--text3);font-weight:400">(optional)</span></div>
+      <textarea id="dispo-note-input" class="form-input" placeholder="What happened on the call…" style="width:100%;min-height:62px;resize:vertical;font-family:inherit;font-size:12px"></textarea>
+      <div style="font-size:10px;color:var(--text3);margin-top:5px">Saved to ${c.name||'this contact'}'s notes along with the disposition.</div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-sm" onclick="dispositionSkip()" style="color:var(--text3)">Skip — keep lead in queue</button>
     </div>
   `);
+  setTimeout(()=>document.getElementById('dispo-note-input')?.focus(), 60);
 }
 
 // Skip disposition: keep lead in queue, just close
@@ -11222,13 +11224,15 @@ async function applyDisposition(contactId, dispoValue){
   const c = contacts.find(x=>x.id===contactId);
   const dispo = dialerSettings.dispositions.find(d=>d.value===dispoValue);
   const label = dispo?.label || dispoValue;
+  // Read the optional note BEFORE closing the modal (closing destroys the field)
+  const userNote = (document.getElementById('dispo-note-input')?.value || '').trim();
   closeModalForce();
   if(c){
-    // Log as a timestamped note
+    // Log as a timestamped note — disposition + the optional note, combined
     if(!Array.isArray(c.notes)) c.notes = [];
     c.notes.push({
       id:'note_'+Date.now()+Math.random().toString(36).slice(2,6),
-      text:`📞 Call disposition: ${label}`,
+      text: userNote ? `📞 Call disposition: ${label} — ${userNote}` : `📞 Call disposition: ${label}`,
       created_at:new Date().toISOString(),
       edited_at:null,
     });
