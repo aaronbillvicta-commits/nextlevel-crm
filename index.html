@@ -826,8 +826,8 @@ tbody tr:hover td{background:var(--bg3)}
 }
 .tag-filter-clear:hover{color:var(--red)}
 .tag-filter-dropdown{
-  position:absolute;top:100%;left:auto;right:0;z-index:500;
-  min-width:240px;max-width:420px;width:max-content;
+  position:absolute;top:100%;left:0;right:auto;z-index:500;
+  min-width:100%;width:max-content;max-width:320px;
   background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);
   margin-top:4px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.4);
   max-height:280px;overflow-y:auto
@@ -935,6 +935,7 @@ tbody tr:hover td{background:var(--bg3)}
   transition:border-color .15s
 }
 .cf-filter-input:focus{border-color:var(--accent)}
+.cf-filter-input.has-icon{padding-left:28px}
 .cf-filter-select{
   display:flex;align-items:center;gap:6px;height:34px;padding:0 9px;
   background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);
@@ -1307,8 +1308,24 @@ table th[onclick]{transition:background .15s,color .15s}
       <div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:10px;flex-wrap:nowrap">
 
         <div style="position:relative;flex:1;min-width:0">
-          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="form-input cf-filter-input" id="contact-search" placeholder="Search name, email…" oninput="renderContacts()"/>
+          <div class="tag-filter-bar cf-filter-input" id="tag-filter-bar" onclick="document.getElementById('tag-filter-input').focus()" style="height:34px;min-height:34px;padding:4px 8px;cursor:text">
+            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="color:var(--text3);flex-shrink:0"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+            <div class="tag-filter-chips" id="tag-filter-chips" style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;flex:1;min-width:0;overflow:hidden"></div>
+            <input class="tag-filter-input" id="tag-filter-input"
+              placeholder="Filter by tag…"
+              oninput="searchTagSuggestions(this.value)"
+              onfocus="showAllTagSuggestions()"
+              onkeydown="handleTagFilterKey(event)"
+              autocomplete="off"
+              style="font-size:11px;min-width:40px;flex:1;max-width:120px"/>
+            <span class="tag-filter-clear" id="tag-filter-clear-btn" onclick="clearContactTagFilters()" style="display:none;font-size:15px" title="Clear">×</span>
+          </div>
+          <div class="tag-filter-dropdown" id="tag-filter-dropdown" style="display:none"></div>
+        </div>
+
+        <div style="position:relative;flex:1;min-width:0">
+          <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none;z-index:1"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="form-input cf-filter-input has-icon" id="contact-search" placeholder="Search name, email…" oninput="renderContacts()"/>
         </div>
 
         <div style="position:relative;flex:1;min-width:0">
@@ -1327,22 +1344,6 @@ table th[onclick]{transition:background .15s,color .15s}
             <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="flex-shrink:0;color:var(--text3)"><polyline points="6 9 12 15 18 9"/></svg>
           </div>
           <div class="cf-filter-dropdown" id="pipeline-filter-dropdown" style="display:none"></div>
-        </div>
-
-        <div style="position:relative;flex:1;min-width:0">
-          <div class="tag-filter-bar cf-filter-input" id="tag-filter-bar" onclick="document.getElementById('tag-filter-input').focus()" style="height:34px;min-height:34px;padding:4px 8px;cursor:text">
-            <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="color:var(--text3);flex-shrink:0"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
-            <div class="tag-filter-chips" id="tag-filter-chips" style="display:flex;flex-wrap:wrap;gap:3px;align-items:center;flex:1;min-width:0;overflow:hidden"></div>
-            <input class="tag-filter-input" id="tag-filter-input"
-              placeholder="Tag…"
-              oninput="searchTagSuggestions(this.value)"
-              onfocus="showAllTagSuggestions()"
-              onkeydown="handleTagFilterKey(event)"
-              autocomplete="off"
-              style="font-size:11px;min-width:40px;flex:1;max-width:80px"/>
-            <span class="tag-filter-clear" id="tag-filter-clear-btn" onclick="clearContactTagFilters()" style="display:none;font-size:15px" title="Clear">×</span>
-          </div>
-          <div class="tag-filter-dropdown" id="tag-filter-dropdown" style="display:none"></div>
         </div>
 
         <button class="btn btn-sm" onclick="openColumnCustomizer()" title="Customize columns" style="flex-shrink:0;height:34px;padding:0 10px;display:flex;align-items:center;gap:5px">
