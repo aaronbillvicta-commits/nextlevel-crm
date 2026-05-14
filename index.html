@@ -2714,7 +2714,14 @@ function closeModalForce(){
   window._modalLocked=false;
   document.getElementById('modal-overlay').classList.remove('open'); 
 }
-document.getElementById('modal-overlay').addEventListener('click', function(e){ if(e.target===this) closeModal(); });
+// Pop-ups close ONLY via the × button or the Esc key — clicking the dark
+// backdrop does nothing, so an accidental outside-click won't lose your work.
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    const overlay = document.getElementById('modal-overlay');
+    if(overlay && overlay.classList.contains('open')) closeModalForce();
+  }
+});
 
 // ═══════════════════════════════════════════════
 // CONTACTS
@@ -5116,6 +5123,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-14', time:'03:55', name:'Pop-ups: No Outside-Click Close',  area:'All modals',                  description:'Pop-up boxes no longer close when you click outside them. Close only via the × button or the Esc key — prevents losing work on an accidental click.', commit:'pending' },
   { date:'2026-05-14', time:'03:40', name:'Contacts: Names, Statuses, Last Activity', area:'Contacts',          description:'Split Full Name into First/Last; gear ⚙ to add/edit/remove Statuses & Sources; new Last Activity column (date+time of last call/email/SMS/profile update) beside Date Added.', commit:'f8151de' },
   { date:'2026-05-14', time:'03:10', name:'Fix Expired Call Token (root cause)', area:'Calling',                description:'Token endpoint was being browser-cached so the stale 2h token kept coming back. Added no-cache headers, cache-buster, 8h expiry, and wrapped call.start() in the retry.', commit:'dff70d1' },
   { date:'2026-05-14', time:'02:55', name:'Call Token Auto-Refresh',         area:'Calling',                     description:'Detect expired SignalWire Fabric subscriber token (authblock_is_expired) and re-init the SDK automatically — calls work indefinitely without page refresh.', commit:'bc984df' },
