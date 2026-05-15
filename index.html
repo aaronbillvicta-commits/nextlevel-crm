@@ -5495,6 +5495,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-15', time:'15:50', name:'Date picker — fix day-cell click closing the picker', area:'Calendar, Dialer', description:'Picking a date in the Call Disposition follow-up scheduler instantly closed the picker without selecting. Clicking a day re-renders the popup\'s innerHTML, which detaches the clicked cell from the DOM; the document-level outside-click handler then saw a "click outside the popup" because the original node was now orphaned. Switched that listener to capture-phase so the inside-popup check runs BEFORE the re-render. You can now click any future (or past) date freely.', commit:'pending' },
   { date:'2026-05-15', time:'15:20', name:'Date picker — fix clipping in modals + 12-hour AM/PM', area:'Calendar, Dialer', description:'Two fixes to the custom date/time picker. (1) The "Schedule a follow-up" button in the Call Disposition modal opened the picker but it was hidden — the popup was being clipped by the modal\'s scroll container. The picker is now body-anchored with fixed positioning so it can\'t be clipped by any parent, and auto-flips above the anchor when there isn\'t room below. (2) The hour selector is now a 12-hour clock with a separate AM/PM dropdown instead of a 24-hour 00–23 list.', commit:'b00f85b' },
   { date:'2026-05-15', time:'14:00', name:'Calendar — Follow-ups panel, real contact filter, US Holidays', area:'Calendar', description:'Calendar sidebar now has a dedicated "Follow-ups" section listing future Follow-up events from the Call Disposition flow (also still shown under Upcoming Events). "Filter by Contact" now actually filters the month/week/day grid plus the Follow-ups and Upcoming Events lists. Added a built-in "US Holidays" calendar source (all 11 US federal holidays, pre-populated for the previous, current and next two years) — toggle the chip to hide/show holidays on the grid.', commit:'f0dfa33' },
   { date:'2026-05-15', time:'10:45', name:'Call Disposition — schedule a follow-up', area:'Dialer, Calendar', description:'The Call Disposition pop-up now has an optional "Schedule a follow-up" date & time picker. Pick a date and a "Follow-up: <contact>" event is added to the CRM calendar (30 min, linked to the contact, with the disposition and note in the event notes).', commit:'b92aa07' },
@@ -7288,7 +7289,10 @@ function openDatePicker(targetId, initialVal, onConfirm){
   window.addEventListener('resize', positionDpPopup, true);
   window.addEventListener('scroll', positionDpPopup, true);
   anchor.classList.add('open');
-  setTimeout(()=>document.addEventListener('click', dpOutsideClick), 10);
+  // Listen during the capture phase so the popup.contains(e.target) check
+  // runs BEFORE inline onclick handlers (dpSelectDay etc.) re-render the
+  // popup's innerHTML and detach the clicked node from the DOM.
+  setTimeout(()=>document.addEventListener('click', dpOutsideClick, true), 10);
 }
 
 function positionDpPopup(){
@@ -7308,9 +7312,12 @@ function positionDpPopup(){
 
 function dpOutsideClick(e){
   const popup = document.getElementById('dp-popup');
-  if(popup && !popup.contains(e.target) && e.target.id!==_dpState.targetId && !e.target.closest('.datepicker-display')){
-    closeDatePicker();
-  }
+  if(!popup) return;
+  if(popup.contains(e.target)) return;                       // inside the popup
+  if(e.target.closest && e.target.closest('#dp-popup')) return;
+  if(e.target.id === _dpState.targetId) return;              // re-click on the trigger
+  if(e.target.closest && e.target.closest('.datepicker-display')) return;
+  closeDatePicker();
 }
 
 function closeDatePicker(){
@@ -7318,7 +7325,7 @@ function closeDatePicker(){
   if(popup) popup.remove();
   const anchor = document.getElementById(_dpState.targetId||'');
   if(anchor) anchor.classList.remove('open');
-  document.removeEventListener('click', dpOutsideClick);
+  document.removeEventListener('click', dpOutsideClick, true);
   window.removeEventListener('resize', positionDpPopup, true);
   window.removeEventListener('scroll', positionDpPopup, true);
 }
