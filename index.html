@@ -2617,6 +2617,49 @@ let users = [];
 let currentUser = null;
 
 // ═══════════════════════════════════════════════
+// PERMISSIONS — per-user feature access
+// ═══════════════════════════════════════════════
+// Each user has a `permissions` object with these boolean keys. A user's role
+// sets the defaults; an admin can then toggle any individual permission per
+// user. Admins always have full access (can't be locked out).
+const PERMISSION_DEFS = [
+  { key:'calling',  label:'Calling & SMS',         desc:'Dialer, click-to-call, send SMS' },
+  { key:'edit',     label:'Edit contacts & deals', desc:'Create and edit records' },
+  { key:'delete',   label:'Delete records',        desc:'Delete contacts, deals, pipelines' },
+  { key:'settings', label:'Settings & team',       desc:'Settings, integrations, custom fields' },
+];
+const PERMISSION_KEYS = PERMISSION_DEFS.map(p=>p.key);
+// Which page each permission gates (used by navigate() and nav hiding).
+const PAGE_PERMISSION = {
+  dialer:'calling', conversations:'calling',
+  settings:'settings', integrations:'settings', 'custom-fields':'settings',
+};
+function rolePermDefaults(role){
+  if(role==='admin')  return { calling:true,  edit:true,  delete:true,  settings:true  };
+  if(role==='viewer') return { calling:false, edit:false, delete:false, settings:false };
+  return { calling:true, edit:true, delete:false, settings:false }; // member
+}
+function getUserPerms(user){
+  const defaults = rolePermDefaults(user?.role || 'member');
+  const stored = (user && user.permissions) || {};
+  const out = {};
+  for(const k of PERMISSION_KEYS) out[k] = (typeof stored[k]==='boolean') ? stored[k] : defaults[k];
+  return out;
+}
+// can(key) — does the CURRENT user have this permission? Admins always do.
+function can(key){
+  if(!currentUser) return false;
+  if(currentUser.role==='admin') return true;
+  return getUserPerms(currentUser)[key] === true;
+}
+// requirePerm(key, msg) — guard for action functions; shows a toast if denied.
+function requirePerm(key, msg){
+  if(can(key)) return true;
+  showToast(msg || "You don't have permission to do that", 'error');
+  return false;
+}
+
+// ═══════════════════════════════════════════════
 // BOOTSTRAP — load all data from Supabase
 // ═══════════════════════════════════════════════
 async function loadAllData() {
@@ -2679,7 +2722,7 @@ async function loadAllData() {
     }));
 
     users = dbUsers.map(u => ({
-      id: u.id, name: u.name, email: u.email, role: u.role
+      id: u.id, name: u.name, email: u.email, role: u.role, permissions: u.permissions || {}
     }));
 
     conversations = dbConvs.map(r => ({
@@ -3289,6 +3332,7 @@ async function dialWithAuthRetry(dialTo){
 }
 
 async function startCall(){
+  if(!requirePerm('calling','You don\'t have permission to make calls')) return;
   // Guard — only one call at a time
   if(swCall || callTimer){
     showToast('A call is already in progress','error');
@@ -4208,6 +4252,7 @@ async function quickAddTagToContact(contactId, label, cls){
 }
 
 async function saveContact(id, tab, keepOpen=false) {
+  if(!requirePerm('edit','You have view-only access — editing is disabled')) return;
   if(tab==='info') {
     const firstName = document.getElementById('cf-first-name')?.value.trim() || '';
     const lastName  = document.getElementById('cf-last-name')?.value.trim() || '';
@@ -4537,6 +4582,7 @@ function openContactDetail(contactId, tab='info') {
 }
 
 async function saveContactDetail(contactId){
+  if(!requirePerm('edit','You have view-only access — editing is disabled')) return;
   const c = contacts.find(x=>x.id===contactId); if(!c) return;
   const firstName = document.getElementById('cd-first-name')?.value.trim() || '';
   const lastName  = document.getElementById('cd-last-name')?.value.trim() || '';
@@ -4688,6 +4734,7 @@ function cancelContactNoteEdit(contactId){
 }
 
 async function saveContactNoteEdit(contactId, noteId){
+  if(!requirePerm('edit','You have view-only access — editing is disabled')) return;
   const ta = document.getElementById('cd-note-edit-'+noteId);
   const text = (ta?.value || '').trim();
   if(!text){ showToast('Note cannot be empty — use Delete instead','error'); return; }
@@ -4706,6 +4753,7 @@ async function saveContactNoteEdit(contactId, noteId){
 }
 
 async function deleteContactNote(contactId, noteId){
+  if(!requirePerm('delete','You don\'t have permission to delete records')) return;
   const c = contacts.find(x=>x.id===contactId); if(!c) return;
   if(!confirm('Delete this note? This cannot be undone.')) return;
   c.notes = (c.notes||[]).filter(n=>n.id!==noteId);
@@ -5030,6 +5078,7 @@ function editPipelineModal(pipelineId){
 }
 
 async function savePipelineEdit(pipelineId){
+  if(!requirePerm('edit','You have view-only access — editing is disabled')) return;
   const pl = pipelines.find(p=>p.id===pipelineId); if(!pl) return;
   const name = document.getElementById('ep-name')?.value.trim();
   if(!name){ showToast('Enter a pipeline name','error'); return; }
@@ -5063,6 +5112,7 @@ function addStageRowTo(listId){
 
 // ── DELETE PIPELINE ──
 async function deletePipelineConfirm(pipelineId){
+  if(!requirePerm('delete','You don\'t have permission to delete records')) return;
   const pl = pipelines.find(p=>p.id===pipelineId); if(!pl) return;
   const dealCount = pl.deals?.length||0;
   const msg = dealCount>0
@@ -5236,6 +5286,7 @@ async function addDealTag(dealId){
   catch(e){showToast('Error adding tag','error');}
 }
 async function saveDeal(dealId){
+  if(!requirePerm('edit','You have view-only access — editing is disabled')) return;
   const pipeline=getActivePipeline();
   const deal=pipeline.deals.find(d=>d.id===dealId); if(!deal) return;
   const name=document.getElementById('dd-name').value.trim()||deal.name;
@@ -5251,6 +5302,7 @@ async function saveDeal(dealId){
   } catch(e){showToast('Error saving deal','error');console.error(e);}
 }
 async function deleteDeal(dealId){
+  if(!requirePerm('delete','You don\'t have permission to delete records')) return;
   if(!confirm('Delete this deal?')) return;
   const pipeline=getActivePipeline();
   try {
@@ -5428,6 +5480,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-15', time:'09:30', name:'Team members — reliable add + per-user permissions', area:'Settings → Team Members', description:'Adding a team member now creates a ready-to-use account instantly (no confirmation email, no rate-limit errors) via a server-side Admin API endpoint, and removing one fully revokes login access. Each non-admin user has four permission toggles — Calling & SMS, Edit contacts & deals, Delete records, Settings & team — that an admin can flip on or off any time. Blocked features are hidden from the sidebar and refuse the action with a clear message.', commit:'pending' },
   { date:'2026-05-14', time:'18:57', name:'Audio devices moved to Settings', area:'Settings, Calling',          description:'Moved microphone and speaker selection out of the floating dialer and into the main Settings page. Device choices now persist locally, with a Refresh Devices button to re-scan browser audio devices.', commit:'2009f03' },
   { date:'2026-05-14', time:'18:40', name:'Dialer - right-side lead context', area:'Dialer',          description:'Moved the Up Next tile and Contact Info panel back to the right side of the Dialer, while Calling From and Call Queue stay together on the left. The layout stacks again on narrower screens.', commit:'6ef34b0' },
   { date:'2026-05-14', time:'07:10', name:'Dialer — vertical layout + disposition notes', area:'Dialer',          description:'Dialer queue view is now a single vertical column (Calling From → Call Queue → Now Calling → Contact Info) instead of a two-column split. The disposition pop-up now has an optional notes box — what you type is saved onto the contact alongside the disposition.', commit:'340e056' },
@@ -5665,30 +5718,72 @@ function renderUsageRecommendation(data){
 
 function renderUsersList(){
   const el=document.getElementById('users-list'); if(!el) return;
-  el.innerHTML=users.map(u=>`
+  const isAdmin = currentUser?.role==='admin';
+  el.innerHTML=users.map(u=>{
+    const isSelf = u.id===currentUser?.id;
+    const isUserAdmin = u.role==='admin';
+    const perms = getUserPerms(u);
+    // Admins always have full access; toggles are locked for admin rows,
+    // and the whole permission UI is read-only unless YOU are an admin.
+    const toggles = PERMISSION_DEFS.map(p=>{
+      const on = isUserAdmin ? true : perms[p.key]===true;
+      const locked = isUserAdmin || !isAdmin;
+      return `<div style="display:flex;align-items:center;gap:7px">
+        <div class="toggle ${on?'on':''}" id="perm-${u.id}-${p.key}"
+             style="${locked?'opacity:.55;cursor:not-allowed':''};transform:scale(.85)"
+             ${locked?'':`onclick="savePermission('${u.id}','${p.key}')"`}
+             title="${p.desc}"><div class="toggle-knob"></div></div>
+        <span style="font-size:11px;color:var(--text2)">${p.label}</span>
+      </div>`;
+    }).join('');
+    return `
     <div class="user-row-set">
       <div style="width:32px;height:32px;border-radius:50%;background:var(--accent-bg);border:1px solid var(--accent-border);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:var(--accent2);flex-shrink:0;font-family:'DM Mono',monospace">
         ${u.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()}
       </div>
       <div class="user-row-info">
-        <div class="user-row-name">${u.name} ${u.id===currentUser?.id?'<span style="font-size:10px;color:var(--text3)">(you)</span>':''}</div>
+        <div class="user-row-name">${u.name} ${isSelf?'<span style="font-size:10px;color:var(--text3)">(you)</span>':''}</div>
         <div class="user-row-email">${u.email}</div>
       </div>
-      <select class="form-select" style="width:auto;padding:5px 8px;font-size:11px" onchange="changeUserRole('${u.id}',this.value)" ${u.id===currentUser?.id?'disabled':''}>
+      <select class="form-select" style="width:auto;padding:5px 8px;font-size:11px" onchange="changeUserRole('${u.id}',this.value)" ${isSelf||!isAdmin?'disabled':''}>
         <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
         <option value="member" ${u.role==='member'?'selected':''}>Member</option>
         <option value="viewer" ${u.role==='viewer'?'selected':''}>Viewer</option>
       </select>
-      ${u.id!==currentUser?.id?`<button class="btn btn-sm btn-danger" onclick="removeUser('${u.id}')">Remove</button>`:''}
-    </div>`).join('');
+      ${!isSelf&&isAdmin?`<button class="btn btn-sm btn-danger" onclick="removeUser('${u.id}')">Remove</button>`:''}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px 20px;padding:2px 0 14px 44px;margin-top:-6px;border-bottom:1px solid var(--border);margin-bottom:12px">
+      ${isUserAdmin?'<span style="font-size:11px;color:var(--text3)">Admins have full access to everything.</span>':toggles}
+    </div>`;
+  }).join('');
 }
 
 async function changeUserRole(userId,role){
   try {
     await sb.patch('users',userId,{role});
     const u=users.find(x=>x.id===userId);
-    if(u){u.role=role;showToast(`${u.name} is now ${role}`);renderUsersList();}
+    if(u){
+      u.role=role;
+      // Reset permissions to the new role's defaults so toggles reflect it
+      u.permissions=rolePermDefaults(role);
+      await sb.patch('users',userId,{permissions:u.permissions});
+      showToast(`${u.name} is now ${role}`);renderUsersList();
+    }
   } catch(e){showToast('Error updating role','error');}
+}
+
+async function savePermission(userId,key){
+  const u=users.find(x=>x.id===userId); if(!u) return;
+  const el=document.getElementById(`perm-${userId}-${key}`); if(!el) return;
+  const newVal=!el.classList.contains('on');
+  const perms={...getUserPerms(u),[key]:newVal};
+  try {
+    await sb.patch('users',userId,{permissions:perms});
+    u.permissions=perms;
+    el.classList.toggle('on',newVal);
+    const def=PERMISSION_DEFS.find(p=>p.key===key);
+    showToast(`${u.name}: ${def.label} ${newVal?'enabled':'disabled'}`);
+  } catch(e){showToast('Error updating permission','error');}
 }
 function removeUser(userId){
   const u = users.find(x => x.id === userId);
@@ -5750,7 +5845,15 @@ async function executeRemoveUser(userId){
   const btn = document.getElementById('confirm-remove-btn');
   if(btn){ btn.disabled = true; btn.textContent = 'Removing…'; }
   try {
-    await sb.del('users', userId);
+    // Server-side: deletes BOTH the profile row and the auth account, so
+    // login access is genuinely revoked (no orphaned auth account).
+    const r = await fetch('/api/delete-user', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${authToken}`},
+      body:JSON.stringify({ id:userId, email:u.email })
+    });
+    const data = await r.json();
+    if(!r.ok) throw new Error(data.error || 'unknown');
     users = users.filter(x => x.id !== userId);
     closeModal();
     renderUsersList();
@@ -5775,9 +5878,9 @@ function openInviteUser(){
           <option value="viewer">Viewer — read only</option>
         </select>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:4px;line-height:1.6">This creates a real Supabase account. They can log in immediately with these credentials.</div>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px;line-height:1.6">This creates a real, ready-to-use account — no confirmation email needed. They can log in immediately with these credentials. You can fine-tune their permissions in the team list after.</div>
     </div>
-    <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="inviteUser()">Add User</button></div>`);
+    <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" id="inv-submit-btn" onclick="inviteUser()">Add User</button></div>`);
 }
 
 async function inviteUser(){
@@ -5788,15 +5891,28 @@ async function inviteUser(){
   if(!name){showToast('Enter a name','error');return;}
   if(!email||!email.includes('@')){showToast('Enter a valid email','error');return;}
   if(!pw||pw.length<6){showToast('Password must be at least 6 characters','error');return;}
+  const btn=document.getElementById('inv-submit-btn');
+  if(btn){btn.disabled=true;btn.textContent='Adding…';}
   try {
-    // Create Supabase auth account
-    const authRes=await sb.signUp(email,pw,name);
-    if(authRes.error){showToast(authRes.error.message||'Error creating account','error');return;}
-    // Create user profile
-    const userRes=await sb.post('users',{name,email,role});
-    users.push({id:userRes[0].id,name,email,role});
-    closeModal(); renderUsersList(); showToast(`${name} invited — they can now log in!`);
-  } catch(e){showToast('Error inviting user','error');console.error(e);}
+    // Server-side: creates a pre-confirmed auth account + profile via the
+    // Supabase Admin API. The invited user can log in immediately.
+    const r=await fetch('/api/create-user',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${authToken}`},
+      body:JSON.stringify({name,email,password:pw,role,permissions:rolePermDefaults(role)})
+    });
+    const data=await r.json();
+    if(!r.ok){
+      showToast(data.error||'Error creating account','error');
+      if(btn){btn.disabled=false;btn.textContent='Add User';}
+      return;
+    }
+    users.push({id:data.user.id,name:data.user.name,email:data.user.email,role:data.user.role,permissions:data.user.permissions||{}});
+    closeModal(); renderUsersList(); showToast(`${name} added — they can log in right away!`);
+  } catch(e){
+    showToast('Error inviting user','error');console.error(e);
+    if(btn){btn.disabled=false;btn.textContent='Add User';}
+  }
 }
 
 async function saveAccount(){
@@ -5991,6 +6107,7 @@ async function enterApp(){
   syncMasterTags();
   initColumnOrder(); // initialize column order on boot
   updateSidebarUser();
+  applyPermissionUI();
   renderContacts();
   renderContactTagFilters();
   renderPipelineTabs();
@@ -6406,6 +6523,7 @@ document.addEventListener('input', e=>{
 
 // ── SIGNALWIRE SMS ──
 async function sendSMS(){
+  if(!requirePerm('calling','You don\'t have permission to send SMS')) return;
   const to   = document.getElementById('sms-to').value.trim();
   const body = document.getElementById('sms-body').value.trim();
   // Optional from-picker — falls back to primary if none chosen
@@ -10581,6 +10699,7 @@ async function executeBulkMoveToPipeline(){
 
 // ── BULK ACTION: DELETE ──
 function bulkDelete(){
+  if(!requirePerm('delete','You don\'t have permission to delete records')) return;
   const sel = getSelectedContacts();
   if(!sel.length) return;
   const expected = 'DELETE ' + sel.length;
@@ -11386,7 +11505,21 @@ const PAGE_TITLES = {
   tags:'Tags', integrations:'Integrations', 'custom-fields':'Custom Fields', settings:'Settings'
 };
 
+// Hide sidebar nav items the current user has no permission for.
+function applyPermissionUI(){
+  document.querySelectorAll('.nav-item').forEach(item=>{
+    const reqPerm = PAGE_PERMISSION[item.dataset.page];
+    item.style.display = (reqPerm && !can(reqPerm)) ? 'none' : '';
+  });
+}
+
 function navigate(page){
+  // Permission gate — block pages the current user can't access.
+  const reqPerm = PAGE_PERMISSION[page];
+  if(reqPerm && !can(reqPerm)){
+    showToast("You don't have access to that section", 'error');
+    page = 'dashboard';
+  }
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   const navEl=document.querySelector(`.nav-item[data-page="${page}"]`);
