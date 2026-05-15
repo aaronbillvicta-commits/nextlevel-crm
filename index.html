@@ -5540,6 +5540,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-15', time:'19:30', name:'Follow-ups — Google Meet 4th icon + Call Disposition Schedule button', area:'Calendar, Dialer', description:'Added a 4th type for follow-ups: 🎥 Google Meet. The DB CHECK constraint on calendar_events.followup_type was widened to accept "meet". The Call Disposition modal now has its own copy of the 4 round icon buttons (Call/SMS/Email/Meet) plus a dedicated "📅 Schedule follow-up" confirm button — you can stage and commit the follow-up directly from the disposition pop-up without having to click a disposition pill first (the disposition click still works the same way for those who prefer the one-shot flow). After clicking Schedule, the date picker area is replaced with a green confirmation panel so it\'s obvious the follow-up was saved.', commit:'pending' },
   { date:'2026-05-15', time:'19:00', name:'Follow-ups — Call/SMS/Email type picker (round monochrome icons)', area:'Calendar, Dialer, Contacts', description:'The Schedule a follow-up modal now has 3 round monochrome icon buttons — Call, SMS, Email — so you can tag what kind of follow-up it is. Tap again to clear (optional). The chosen type is persisted on the calendar_events row (new `followup_type` column) and shown as a small circular chip next to every follow-up everywhere it appears: the Calendar sidebar Follow-ups panel, the View all popup, and the contact card Activity-tab list. Icons are simple line SVGs (stroke=currentColor) — no colorful emoji.', commit:'8371714' },
   { date:'2026-05-15', time:'18:30', name:'Calendar — 5-row cap with scroll + View all popup', area:'Calendar', description:'The Follow-ups and Upcoming Events panels on the Calendar sidebar now cap height at ~5 items so the sidebar stays tidy; the panel itself scrolls if there are more. A "View all (N)" footer button appears only when count > 5 and opens a popup with the complete list in a taller scroll area. Same item rendering on both surfaces — clicking a follow-up opens the scheduler, clicking another event opens the editor.', commit:'cd327e5' },
   { date:'2026-05-15', time:'18:00', name:'Calendar — dedicated Follow-ups calendar source; Info-tab section removed', area:'Calendar, Contacts, Dialer', description:'Every scheduled follow-up now lives on a new built-in "Follow-ups" calendar (green chip, default-active) instead of mixing into the generic "CRM Events" calendar. Disposition follow-ups, contact-card scheduler, and Conversations Quick Action all route to `sourceId="followups"`. The Calendar sidebar Follow-ups panel and the contact\'s Activity-tab Follow-ups list both detect by source first, with a title-prefix fallback for any pre-migration rows. Removed the Follow-ups section from the contact card\'s Info tab — follow-ups now live solely on the Activity tab there. Existing rows in Supabase were migrated to the new source.', commit:'334c69a' },
@@ -11648,18 +11649,71 @@ function cancelDialerCountdown(callNow){
 // ── DISPOSITION (fired by endCall when a queue call ends) ──
 // Optional follow-up date/time picked in the Call Disposition modal — an ISO
 // string while a follow-up is scheduled, null otherwise. Read by applyDisposition.
-let _dispoFollowupISO = null;
+let _dispoFollowupISO  = null;
+let _dispoFollowupType = null;       // 'call' | 'sms' | 'email' | 'meet' | null
+let _dispoFollowupCommittedId = null; // event id, if user already pressed "Schedule follow-up"
 function clearDispoFollowup(){
   _dispoFollowupISO = null;
+  _dispoFollowupType = null;
   const sp = document.querySelector('#dispo-followup-picker .dp-display-val');
   if(sp){ sp.textContent = 'Pick date & time…'; sp.style.color = 'var(--text3)'; }
   const clr = document.getElementById('dispo-followup-clear');
   if(clr) clr.style.display = 'none';
+  document.querySelectorAll('#dispo-followup-types .fum-type-btn').forEach(b=>b.classList.remove('active'));
+}
+
+// Tap a Call/SMS/Email/Meet pill in the disposition modal — toggles the staged type.
+function setDispoFollowupType(t){
+  _dispoFollowupType = (_dispoFollowupType === t) ? null : t;
+  document.querySelectorAll('#dispo-followup-types .fum-type-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.type === _dispoFollowupType);
+  });
+}
+
+// Explicit "Schedule follow-up" button in the disposition modal — commits the
+// follow-up immediately (does not require clicking a disposition first) and
+// flips the area into a confirmed state. applyDisposition() will then see
+// _dispoFollowupISO=null and skip the duplicate-create path.
+async function commitDispoFollowup(contactId){
+  if(!_dispoFollowupISO){ showToast('Pick a date & time first','error'); return; }
+  if(_dispoFollowupCommittedId){ showToast('Follow-up already scheduled','error'); return; }
+  const c = contacts.find(x=>x.id===contactId);
+  const iso = _dispoFollowupISO;
+  const startISO = new Date(iso).toISOString();
+  const endISO   = new Date(new Date(iso).getTime()+30*60000).toISOString();
+  const noteFromCall = (document.getElementById('dispo-note-input')?.value || '').trim();
+  const id = 'ev_'+Date.now();
+  calEvents.push({
+    id, title:`Follow-up: ${c?.name||'Lead'}`,
+    start:startISO, end:endISO,
+    sourceId:'followups',
+    notes: noteFromCall || '',
+    contactId,
+    followupType: _dispoFollowupType,
+  });
+  saveCalEvents();
+  await _appendFollowupNote(contactId, 'create', startISO, noteFromCall);
+  _dispoFollowupCommittedId = id;
+  // Clear so applyDisposition doesn't double-create.
+  _dispoFollowupISO = null;
+  // Visually replace the picker with a confirmation panel.
+  const host = document.getElementById('dispo-followup-host');
+  if(host){
+    const label = new Date(startISO).toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    host.innerHTML = `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--green-bg);border:1px solid rgba(62,207,142,.3);border-radius:var(--radius);font-size:12px;color:var(--green)">
+      <span>✓</span>
+      <div style="flex:1;min-width:0">Follow-up scheduled for <strong>${label}</strong>${_dispoFollowupType?` · ${_dispoFollowupType}`:''}</div>
+    </div>`;
+  }
+  showToast(`Follow-up scheduled ${_fmtFollowupNoteDate(startISO)}`);
+  if(document.getElementById('page-calendar')?.classList.contains('active')) renderCalendar();
 }
 
 function showDialerDisposition(ctx){
   // ctx = { id, name, phone, seconds }
   _dispoFollowupISO = null;
+  _dispoFollowupType = null;
+  _dispoFollowupCommittedId = null;
   const c = contacts.find(x=>x.id===ctx.id) || { id:ctx.id, name:ctx.name, phone:ctx.phone };
   const m = String(Math.floor((ctx.seconds||0)/60)).padStart(2,'0');
   const s = String((ctx.seconds||0)%60).padStart(2,'0');
@@ -11688,12 +11742,21 @@ function showDialerDisposition(ctx){
       <textarea id="dispo-note-input" class="form-input" placeholder="What happened on the call…" style="width:100%;min-height:62px;resize:vertical;font-family:inherit;font-size:12px"></textarea>
       <div style="font-size:10px;color:var(--text3);margin-top:5px">Saved to ${c.name||'this contact'}'s notes along with the disposition.</div>
       <div style="font-size:12px;color:var(--text2);margin:16px 0 6px;font-weight:500">Schedule a follow-up <span style="color:var(--text3);font-weight:400">(optional)</span></div>
-      <div style="display:flex;align-items:center;gap:4px">
-        <div class="datepicker-display" id="dispo-followup-picker" data-value="" onclick="openDatePicker('dispo-followup-picker','',function(iso){_dispoFollowupISO=iso;const sp=document.querySelector('#dispo-followup-picker .dp-display-val');if(sp){sp.textContent=new Date(iso).toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});sp.style.color='var(--text)';}const clr=document.getElementById('dispo-followup-clear');if(clr)clr.style.display='inline';})">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <span class="dp-display-val" style="color:var(--text3)">Pick date & time…</span>
+      <div id="dispo-followup-host">
+        <div style="display:flex;align-items:center;gap:4px">
+          <div class="datepicker-display" id="dispo-followup-picker" data-value="" onclick="openDatePicker('dispo-followup-picker','',function(iso){_dispoFollowupISO=iso;const sp=document.querySelector('#dispo-followup-picker .dp-display-val');if(sp){sp.textContent=new Date(iso).toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});sp.style.color='var(--text)';}const clr=document.getElementById('dispo-followup-clear');if(clr)clr.style.display='inline';})">
+            <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            <span class="dp-display-val" style="color:var(--text3)">Pick date & time…</span>
+          </div>
+          <span id="dispo-followup-clear" onclick="clearDispoFollowup()" style="display:none;font-size:11px;color:var(--text3);cursor:pointer;padding:4px 6px">Clear</span>
         </div>
-        <span id="dispo-followup-clear" onclick="clearDispoFollowup()" style="display:none;font-size:11px;color:var(--text3);cursor:pointer;padding:4px 6px">Clear</span>
+        <div id="dispo-followup-types" style="display:flex;gap:8px;margin-top:10px">
+          <button type="button" class="fum-type-btn" data-type="call"  title="Call"        onclick="setDispoFollowupType('call')">${followupTypeSvg('call',  16)}</button>
+          <button type="button" class="fum-type-btn" data-type="sms"   title="SMS"         onclick="setDispoFollowupType('sms')">${followupTypeSvg('sms',   16)}</button>
+          <button type="button" class="fum-type-btn" data-type="email" title="Email"       onclick="setDispoFollowupType('email')">${followupTypeSvg('email', 16)}</button>
+          <button type="button" class="fum-type-btn" data-type="meet"  title="Google Meet" onclick="setDispoFollowupType('meet')">${followupTypeSvg('meet',  16)}</button>
+        </div>
+        <button class="btn btn-primary btn-sm" style="margin-top:10px;font-size:12px" onclick="commitDispoFollowup('${c.id}')">📅 Schedule follow-up</button>
       </div>
       <div style="font-size:10px;color:var(--text3);margin-top:5px">Adds a "Follow-up" event to your CRM calendar.</div>
     </div>
@@ -11707,6 +11770,8 @@ function showDialerDisposition(ctx){
 // Skip disposition: keep lead in queue, just close
 function dispositionSkip(){
   _dispoFollowupISO = null;
+  _dispoFollowupType = null;
+  _dispoFollowupCommittedId = null;
   closeModalForce();
   if(document.getElementById('page-dialer')?.classList.contains('active')) renderDialerPage();
 }
@@ -11717,8 +11782,11 @@ async function applyDisposition(contactId, dispoValue){
   const label = dispo?.label || dispoValue;
   // Read the optional note BEFORE closing the modal (closing destroys the field)
   const userNote = (document.getElementById('dispo-note-input')?.value || '').trim();
-  const followupISO = _dispoFollowupISO;
-  _dispoFollowupISO = null;
+  const followupISO  = _dispoFollowupISO;
+  const followupType = _dispoFollowupType;
+  _dispoFollowupISO  = null;
+  _dispoFollowupType = null;
+  _dispoFollowupCommittedId = null;
   closeModalForce();
   if(c){
     // Log as a timestamped note — disposition + the optional note, combined
@@ -11759,6 +11827,7 @@ async function applyDisposition(contactId, dispoValue){
       sourceId:'followups',
       notes:followupNote,
       contactId,
+      followupType,
     });
     saveCalEvents();
     // Write a contact-timeline note so the follow-up shows up under Notes
@@ -11803,6 +11872,8 @@ const FOLLOWUP_ICON_PATHS = {
   call:  '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
   sms:   '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
   email: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
+  // Video-camera silhouette — represents a Google Meet (or any video) call.
+  meet:  '<path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>',
 };
 function followupTypeSvg(type, px = 16){
   const inner = FOLLOWUP_ICON_PATHS[type]; if(!inner) return '';
@@ -11892,9 +11963,10 @@ function openFollowupModal(contactId, eventId){
       </div>
       <div style="font-size:12px;color:var(--text2);margin:14px 0 6px;font-weight:500">Type <span style="color:var(--text3);font-weight:400">(optional)</span></div>
       <div style="display:flex;gap:10px">
-        <button type="button" class="fum-type-btn ${_followupModalType==='call'?'active':''}"  data-type="call"  title="Call"  onclick="setFollowupType('call')">${followupTypeSvg('call',  18)}</button>
-        <button type="button" class="fum-type-btn ${_followupModalType==='sms'?'active':''}"   data-type="sms"   title="SMS"   onclick="setFollowupType('sms')">${followupTypeSvg('sms',   18)}</button>
-        <button type="button" class="fum-type-btn ${_followupModalType==='email'?'active':''}" data-type="email" title="Email" onclick="setFollowupType('email')">${followupTypeSvg('email', 18)}</button>
+        <button type="button" class="fum-type-btn ${_followupModalType==='call'?'active':''}"  data-type="call"  title="Call"        onclick="setFollowupType('call')">${followupTypeSvg('call',  18)}</button>
+        <button type="button" class="fum-type-btn ${_followupModalType==='sms'?'active':''}"   data-type="sms"   title="SMS"         onclick="setFollowupType('sms')">${followupTypeSvg('sms',   18)}</button>
+        <button type="button" class="fum-type-btn ${_followupModalType==='email'?'active':''}" data-type="email" title="Email"       onclick="setFollowupType('email')">${followupTypeSvg('email', 18)}</button>
+        <button type="button" class="fum-type-btn ${_followupModalType==='meet'?'active':''}"  data-type="meet"  title="Google Meet" onclick="setFollowupType('meet')">${followupTypeSvg('meet',  18)}</button>
       </div>
       <div style="font-size:10px;color:var(--text3);margin-top:5px">Tap again to clear.</div>
       <div style="font-size:12px;color:var(--text2);margin:16px 0 6px;font-weight:500">Note <span style="color:var(--text3);font-weight:400">(optional)</span></div>
