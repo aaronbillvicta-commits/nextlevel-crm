@@ -813,6 +813,12 @@ tbody tr:hover td{background:var(--bg3)}
 .cal-upcoming-time{font-size:10px;color:var(--text3);font-family:'DM Mono',monospace}
 .cal-upcoming-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:3px}
 
+/* Follow-up type picker (round monochrome icon buttons) + small inline chip */
+.fum-type-btn{width:38px;height:38px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text3);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:0;transition:all .15s}
+.fum-type-btn:hover{border-color:var(--border2);color:var(--text2);background:var(--bg4)}
+.fum-type-btn.active{background:var(--accent-bg);border-color:var(--accent-border);color:var(--accent2)}
+.fum-type-chip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;border:1px solid var(--border);background:var(--bg3);color:var(--text2);flex-shrink:0}
+
 /* ── EMAIL PAGE ── */
 .email-layout{display:grid;grid-template-columns:200px 320px 1fr;height:100%;overflow:hidden;flex:1;min-height:0;border-top:1px solid var(--border)}
 .email-sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:16px 12px;overflow-y:auto}
@@ -2776,7 +2782,8 @@ async function loadAllData() {
       id: r.id, title: r.title, start: r.start_time, end: r.end_time,
       sourceId: r.source_id || 'crm', notes: r.notes || '',
       contactId: r.contact_id, gcalId: r.gcal_id,
-      gcalLink: r.gcal_link, meetLink: r.meet_link
+      gcalLink: r.gcal_link, meetLink: r.meet_link,
+      followupType: r.followup_type || null
     }));
 
     campaigns = dbCampaigns.map(r => ({
@@ -4704,7 +4711,7 @@ function renderContactFollowupsHTML(contactId){
     return `<div onclick="openFollowupModal('${contactId}','${ev.id}')"
       style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:6px;transition:border-color .15s"
       onmouseenter="this.style.borderColor='var(--accent-border)'" onmouseleave="this.style.borderColor='var(--border)'">
-      <span style="font-size:14px;line-height:1.1;margin-top:1px">📅</span>
+      ${ev.followupType ? followupTypeChip(ev.followupType) : '<span style="font-size:14px;line-height:1.1;margin-top:1px">📅</span>'}
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:500;color:var(--text)">${dateStr} · ${timeStr}</div>
         ${note?`<div style="font-size:11px;color:var(--text3);margin-top:2px;white-space:pre-wrap">${note}</div>`:''}
@@ -5533,6 +5540,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-15', time:'19:00', name:'Follow-ups — Call/SMS/Email type picker (round monochrome icons)', area:'Calendar, Dialer, Contacts', description:'The Schedule a follow-up modal now has 3 round monochrome icon buttons — Call, SMS, Email — so you can tag what kind of follow-up it is. Tap again to clear (optional). The chosen type is persisted on the calendar_events row (new `followup_type` column) and shown as a small circular chip next to every follow-up everywhere it appears: the Calendar sidebar Follow-ups panel, the View all popup, and the contact card Activity-tab list. Icons are simple line SVGs (stroke=currentColor) — no colorful emoji.', commit:'pending' },
   { date:'2026-05-15', time:'18:30', name:'Calendar — 5-row cap with scroll + View all popup', area:'Calendar', description:'The Follow-ups and Upcoming Events panels on the Calendar sidebar now cap height at ~5 items so the sidebar stays tidy; the panel itself scrolls if there are more. A "View all (N)" footer button appears only when count > 5 and opens a popup with the complete list in a taller scroll area. Same item rendering on both surfaces — clicking a follow-up opens the scheduler, clicking another event opens the editor.', commit:'cd327e5' },
   { date:'2026-05-15', time:'18:00', name:'Calendar — dedicated Follow-ups calendar source; Info-tab section removed', area:'Calendar, Contacts, Dialer', description:'Every scheduled follow-up now lives on a new built-in "Follow-ups" calendar (green chip, default-active) instead of mixing into the generic "CRM Events" calendar. Disposition follow-ups, contact-card scheduler, and Conversations Quick Action all route to `sourceId="followups"`. The Calendar sidebar Follow-ups panel and the contact\'s Activity-tab Follow-ups list both detect by source first, with a title-prefix fallback for any pre-migration rows. Removed the Follow-ups section from the contact card\'s Info tab — follow-ups now live solely on the Activity tab there. Existing rows in Supabase were migrated to the new source.', commit:'334c69a' },
   { date:'2026-05-15', time:'17:15', name:'Calendar — fix missing calendar_events table (DB)', area:'Calendar, Dialer, Database', description:'Root cause for calendar events / follow-ups never persisting across page refresh: the Supabase `calendar_events` table did not exist. `saveCalEvents()` was POST-ing to a 404 and the error was being swallowed silently by a try/catch — events lived in memory only, then vanished on reload. Created the table in Supabase (id text PK, title, start_time/end_time timestamptz, source_id, notes, contact_id uuid FK→contacts with ON DELETE SET NULL, gcal_id/gcal_link/meet_link, created_at) with an RLS policy matching `public.contacts` (any authenticated user, full access). Also stopped `saveCalEvents()` from swallowing errors — failures now surface as a toast so a regression like this can\'t hide.', commit:'3996658' },
@@ -7062,7 +7070,8 @@ async function saveCalEvents(){
       id: e.id, title: e.title, start_time: e.start, end_time: e.end,
       source_id: e.sourceId||'crm', notes: e.notes||'',
       contact_id: e.contactId||null, gcal_id: e.gcalId||null,
-      gcal_link: e.gcalLink||null, meet_link: e.meetLink||null
+      gcal_link: e.gcalLink||null, meet_link: e.meetLink||null,
+      followup_type: e.followupType||null
     })), 'id');
   } catch(e){
     console.error('saveCalEvents:', e);
@@ -7294,8 +7303,11 @@ function _eventItemHTML(ev){
     <div style="display:flex;gap:8px;align-items:flex-start">
       <div class="cal-upcoming-dot" style="background:${color};margin-top:4px"></div>
       <div style="flex:1;min-width:0">
-        <div class="cal-upcoming-title">${ev.title}</div>
-        <div class="cal-upcoming-time">${dateStr} · ${timeStr}</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="cal-upcoming-title" style="margin-bottom:0">${ev.title}</div>
+          ${ev.followupType?followupTypeChip(ev.followupType):''}
+        </div>
+        <div class="cal-upcoming-time" style="margin-top:3px">${dateStr} · ${timeStr}</div>
         ${contact?`<div style="font-size:10px;color:var(--text3);margin-top:2px">👤 ${contact.name}</div>`:''}
       </div>
     </div>
@@ -11782,6 +11794,33 @@ async function applyDisposition(contactId, dispoValue){
 // new entry points consistent with that prefix so the panel stays correct.
 
 let _followupModalISO = null;
+let _followupModalType = null; // 'call' | 'sms' | 'email' | null
+
+// Monochrome line icons (stroke=currentColor) so they pick up the host's text color.
+// Same visual style as the rest of the CRM's UI icons; not the colorful emoji
+// versions used in plain action buttons.
+const FOLLOWUP_ICON_PATHS = {
+  call:  '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  sms:   '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  email: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
+};
+function followupTypeSvg(type, px = 16){
+  const inner = FOLLOWUP_ICON_PATHS[type]; if(!inner) return '';
+  return `<svg width="${px}" height="${px}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
+}
+function followupTypeChip(type){
+  if(!type) return '';
+  const label = type.charAt(0).toUpperCase()+type.slice(1);
+  return `<span class="fum-type-chip" title="${label}">${followupTypeSvg(type, 12)}</span>`;
+}
+
+function setFollowupType(t){
+  // Click again to toggle off — keeps the field optional.
+  _followupModalType = (_followupModalType === t) ? null : t;
+  document.querySelectorAll('.fum-type-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.type === _followupModalType);
+  });
+}
 
 function _fmtFollowupNoteDate(iso){
   return new Date(iso).toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -11822,7 +11861,8 @@ function openFollowupModal(contactId, eventId){
   const c = contacts.find(x=>x.id===contactId);
   if(!c){ showToast('Contact not found','error'); return; }
 
-  _followupModalISO = ev?.start || null;
+  _followupModalISO  = ev?.start || null;
+  _followupModalType = ev?.followupType || null;
   const initialISO  = ev?.start || '';
   const initialNote = ev?.notes || '';
   const isEdit = !!ev;
@@ -11850,6 +11890,13 @@ function openFollowupModal(contactId, eventId){
         <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <span class="dp-display-val" style="color:${displayColor}">${displayLabel}</span>
       </div>
+      <div style="font-size:12px;color:var(--text2);margin:14px 0 6px;font-weight:500">Type <span style="color:var(--text3);font-weight:400">(optional)</span></div>
+      <div style="display:flex;gap:10px">
+        <button type="button" class="fum-type-btn ${_followupModalType==='call'?'active':''}"  data-type="call"  title="Call"  onclick="setFollowupType('call')">${followupTypeSvg('call',  18)}</button>
+        <button type="button" class="fum-type-btn ${_followupModalType==='sms'?'active':''}"   data-type="sms"   title="SMS"   onclick="setFollowupType('sms')">${followupTypeSvg('sms',   18)}</button>
+        <button type="button" class="fum-type-btn ${_followupModalType==='email'?'active':''}" data-type="email" title="Email" onclick="setFollowupType('email')">${followupTypeSvg('email', 18)}</button>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:5px">Tap again to clear.</div>
       <div style="font-size:12px;color:var(--text2);margin:16px 0 6px;font-weight:500">Note <span style="color:var(--text3);font-weight:400">(optional)</span></div>
       <textarea class="form-input" id="fum-note" placeholder="What's this follow-up for…" style="width:100%;min-height:62px;resize:vertical;font-family:inherit;font-size:12px">${(initialNote||'').replace(/</g,'&lt;')}</textarea>
       <div style="font-size:10px;color:var(--text3);margin-top:5px">Adds a "Follow-up: ${c.name||'Lead'}" event to your CRM calendar (30 min) and writes a note on the contact's timeline.</div>
@@ -11878,6 +11925,7 @@ async function saveFollowup(contactId, eventId){
       ev.title = `Follow-up: ${c?.name||'Lead'}`;
       ev.contactId = contactId;
       ev.sourceId = 'followups';
+      ev.followupType = _followupModalType;
     }
     saveCalEvents();
     await _appendFollowupNote(contactId, 'edit', startISO, note);
@@ -11890,6 +11938,7 @@ async function saveFollowup(contactId, eventId){
       sourceId:'followups',
       notes:note,
       contactId,
+      followupType: _followupModalType,
     });
     saveCalEvents();
     await _appendFollowupNote(contactId, 'create', startISO, note);
@@ -11897,6 +11946,7 @@ async function saveFollowup(contactId, eventId){
   }
 
   _followupModalISO = null;
+  _followupModalType = null;
   closeModalForce();
   _refreshFollowupViews(contactId);
 }
@@ -11908,7 +11958,8 @@ async function deleteFollowup(eventId){
   calEvents = calEvents.filter(e=>e.id!==eventId);
   try { await sb.del('calendar_events', eventId); } catch(_){}
   await _appendFollowupNote(contactId, 'delete');
-  _followupModalISO = null;
+  _followupModalISO  = null;
+  _followupModalType = null;
   closeModalForce();
   showToast('Follow-up deleted');
   _refreshFollowupViews(contactId);
