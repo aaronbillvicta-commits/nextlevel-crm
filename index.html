@@ -1656,6 +1656,12 @@ table th[onclick]{transition:background .15s,color .15s}
       <div class="dialer-queue-layout">
         <div style="display:flex;flex-direction:column;gap:16px">
 
+          <!-- Dialing Mode -->
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px">
+            <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Dialing Mode</div>
+            <div id="dialer-mode-display"></div>
+          </div>
+
           <!-- Calling From -->
           <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px">
             <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Calling From</div>
@@ -5480,6 +5486,8 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-15', time:'10:45', name:'Call Disposition — schedule a follow-up', area:'Dialer, Calendar', description:'The Call Disposition pop-up now has an optional "Schedule a follow-up" date & time picker. Pick a date and a "Follow-up: <contact>" event is added to the CRM calendar (30 min, linked to the contact, with the disposition and note in the event notes).', commit:'pending' },
+  { date:'2026-05-15', time:'10:15', name:'Dialer — Dialing Mode tile', area:'Dialer', description:'Added a "Dialing Mode" tile at the top of the Dialer queue view, above "Calling From". It shows the current mode at a glance — Manual or Auto-advance + auto-dial (with the countdown length) — and clicking it opens the dialer settings to change it.', commit:'pending' },
   { date:'2026-05-15', time:'09:30', name:'Team members — reliable add + per-user permissions', area:'Settings → Team Members', description:'Adding a team member now creates a ready-to-use account instantly (no confirmation email, no rate-limit errors) via a server-side Admin API endpoint, and removing one fully revokes login access. Each non-admin user has four permission toggles — Calling & SMS, Edit contacts & deals, Delete records, Settings & team — that an admin can flip on or off any time. Blocked features are hidden from the sidebar and refuse the action with a clear message.', commit:'pending' },
   { date:'2026-05-14', time:'18:57', name:'Audio devices moved to Settings', area:'Settings, Calling',          description:'Moved microphone and speaker selection out of the floating dialer and into the main Settings page. Device choices now persist locally, with a Refresh Devices button to re-scan browser audio devices.', commit:'2009f03' },
   { date:'2026-05-14', time:'18:40', name:'Dialer - right-side lead context', area:'Dialer',          description:'Moved the Up Next tile and Contact Info panel back to the right side of the Dialer, while Calling From and Call Queue stay together on the left. The layout stacks again on narrower screens.', commit:'6ef34b0' },
@@ -10838,6 +10846,7 @@ function getDialerQueueContacts(){
 }
 
 function renderDialerPage(){
+  renderDialerModeDisplay();
   renderDialerNumberPicker();
   renderDialerReport();
   renderDialerQueue();
@@ -10845,6 +10854,30 @@ function renderDialerPage(){
   renderDialerContactPanel();
   renderDialerHistory();
   applyDialerView();
+}
+
+// ── DIALING MODE tile (above "Calling From") ──
+// Shows the current dialer mode — Manual vs Auto-advance + auto-dial — and
+// opens the dialer settings modal on click so it can be changed.
+function renderDialerModeDisplay(){
+  const el = document.getElementById('dialer-mode-display');
+  if(!el) return;
+  const auto = dialerSettings.autoDial;
+  const icon = auto ? '⚡' : '✋';
+  const title = auto ? 'Auto-advance + auto-dial' : 'Manual';
+  const sub = auto
+    ? `Next lead dials automatically after a ${dialerSettings.countdownSecs||3}s countdown`
+    : 'You dial each lead yourself';
+  el.innerHTML = `
+    <div onclick="openDialerSettingsModal()" title="Change dialing mode"
+         style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 12px">
+      <span style="font-size:18px;flex-shrink:0">${icon}</span>
+      <div style="min-width:0;flex:1">
+        <div style="font-size:13px;font-weight:600;color:var(--text)">${title}</div>
+        <div style="font-size:11px;color:var(--text3)">${sub}</div>
+      </div>
+      <span style="font-size:11px;color:var(--accent2);flex-shrink:0">Change</span>
+    </div>`;
 }
 
 // ── CONTACT INFO + NOTES PANEL (beside the queue) ──
@@ -11316,8 +11349,20 @@ function cancelDialerCountdown(callNow){
 }
 
 // ── DISPOSITION (fired by endCall when a queue call ends) ──
+// Optional follow-up date/time picked in the Call Disposition modal — an ISO
+// string while a follow-up is scheduled, null otherwise. Read by applyDisposition.
+let _dispoFollowupISO = null;
+function clearDispoFollowup(){
+  _dispoFollowupISO = null;
+  const sp = document.querySelector('#dispo-followup-picker .dp-display-val');
+  if(sp){ sp.textContent = 'Pick date & time…'; sp.style.color = 'var(--text3)'; }
+  const clr = document.getElementById('dispo-followup-clear');
+  if(clr) clr.style.display = 'none';
+}
+
 function showDialerDisposition(ctx){
   // ctx = { id, name, phone, seconds }
+  _dispoFollowupISO = null;
   const c = contacts.find(x=>x.id===ctx.id) || { id:ctx.id, name:ctx.name, phone:ctx.phone };
   const m = String(Math.floor((ctx.seconds||0)/60)).padStart(2,'0');
   const s = String((ctx.seconds||0)%60).padStart(2,'0');
@@ -11345,6 +11390,15 @@ function showDialerDisposition(ctx){
       <div style="font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:500">Add a note <span style="color:var(--text3);font-weight:400">(optional)</span></div>
       <textarea id="dispo-note-input" class="form-input" placeholder="What happened on the call…" style="width:100%;min-height:62px;resize:vertical;font-family:inherit;font-size:12px"></textarea>
       <div style="font-size:10px;color:var(--text3);margin-top:5px">Saved to ${c.name||'this contact'}'s notes along with the disposition.</div>
+      <div style="font-size:12px;color:var(--text2);margin:16px 0 6px;font-weight:500">Schedule a follow-up <span style="color:var(--text3);font-weight:400">(optional)</span></div>
+      <div style="display:flex;align-items:center;gap:4px">
+        <div class="datepicker-display" id="dispo-followup-picker" data-value="" onclick="openDatePicker('dispo-followup-picker','',function(iso){_dispoFollowupISO=iso;const sp=document.querySelector('#dispo-followup-picker .dp-display-val');if(sp){sp.textContent=new Date(iso).toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});sp.style.color='var(--text)';}const clr=document.getElementById('dispo-followup-clear');if(clr)clr.style.display='inline';})">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <span class="dp-display-val" style="color:var(--text3)">Pick date & time…</span>
+        </div>
+        <span id="dispo-followup-clear" onclick="clearDispoFollowup()" style="display:none;font-size:11px;color:var(--text3);cursor:pointer;padding:4px 6px">Clear</span>
+      </div>
+      <div style="font-size:10px;color:var(--text3);margin-top:5px">Adds a "Follow-up" event to your CRM calendar.</div>
     </div>
     <div class="modal-foot">
       <button class="btn btn-sm" onclick="dispositionSkip()" style="color:var(--text3)">Skip — keep lead in queue</button>
@@ -11355,6 +11409,7 @@ function showDialerDisposition(ctx){
 
 // Skip disposition: keep lead in queue, just close
 function dispositionSkip(){
+  _dispoFollowupISO = null;
   closeModalForce();
   if(document.getElementById('page-dialer')?.classList.contains('active')) renderDialerPage();
 }
@@ -11365,6 +11420,8 @@ async function applyDisposition(contactId, dispoValue){
   const label = dispo?.label || dispoValue;
   // Read the optional note BEFORE closing the modal (closing destroys the field)
   const userNote = (document.getElementById('dispo-note-input')?.value || '').trim();
+  const followupISO = _dispoFollowupISO;
+  _dispoFollowupISO = null;
   closeModalForce();
   if(c){
     // Log as a timestamped note — disposition + the optional note, combined
@@ -11393,10 +11450,28 @@ async function applyDisposition(contactId, dispoValue){
     const match = callHistory.find(ch => (ch.number||'').replace(/\D/g,'').slice(-10) === digits);
     if(match){ match.disposition = label; if(typeof saveCallHistory==='function') saveCallHistory(); }
   }
+  // Optional follow-up → add an event to the CRM calendar
+  if(followupISO){
+    const startISO = new Date(followupISO).toISOString();
+    const endISO   = new Date(new Date(followupISO).getTime()+30*60000).toISOString();
+    calEvents.push({
+      id:'ev_'+Date.now(),
+      title:`Follow-up: ${c?.name||'Lead'}`,
+      start:startISO, end:endISO,
+      sourceId:'crm',
+      notes:`Follow-up from call disposition: ${label}${userNote?` — ${userNote}`:''}`,
+      contactId,
+    });
+    saveCalEvents();
+    if(document.getElementById('page-calendar')?.classList.contains('active')) renderCalendar();
+  }
   // Remove the dispositioned lead from the queue
   dialerQueue = dialerQueue.filter(id=>id!==contactId);
   saveDialerQueue();
-  showToast(`Logged: ${label}`);
+  const followupMsg = followupISO
+    ? ` · Follow-up ${new Date(followupISO).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}`
+    : '';
+  showToast(`Logged: ${label}${followupMsg}`);
   // Advance behavior
   if(dialerSettings.autoDial && getDialerQueueContacts().length){
     startDialerCountdown();
