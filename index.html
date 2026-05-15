@@ -79,8 +79,13 @@ body.theme-light .topbar{background:#ffffff;}
 .dialer-q-x:hover{color:var(--red)}
 .dialer-search-opt{padding:8px 10px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:8px;transition:background .12s}
 .dialer-search-opt:hover{background:var(--bg3)}
-.dispo-btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:transform .1s,filter .12s}
+.dispo-btn{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;border:1px solid transparent;transition:transform .1s,filter .12s,box-shadow .12s}
 .dispo-btn:hover{filter:brightness(1.15);transform:translateY(-1px)}
+/* Active state — the disposition the user has chosen for this call.
+   Stays highlighted while the modal is open so accidental re-clicks
+   are visible and intentional changes are obvious. */
+.dispo-btn.selected{box-shadow:0 0 0 2px var(--accent);filter:brightness(1.1)}
+.dispo-btn.selected::after{content:'✓';margin-left:6px;font-weight:700}
 .dialer-queue-layout{display:grid;grid-template-columns:minmax(300px,380px) minmax(360px,1fr);gap:16px;align-items:start}
 @media (max-width:980px){.dialer-queue-layout{grid-template-columns:1fr}}
 
@@ -2945,7 +2950,14 @@ function closeModalForce(){
 document.addEventListener('keydown', function(e){
   if(e.key === 'Escape'){
     const overlay = document.getElementById('modal-overlay');
-    if(overlay && overlay.classList.contains('open')) closeModalForce();
+    if(!overlay || !overlay.classList.contains('open')) return;
+    // Disposition modal owns its own teardown so it can decide whether to
+    // remove the lead from the queue and advance the dialer.
+    if(typeof _dispositionModalOpen !== 'undefined' && _dispositionModalOpen){
+      _finishDisposition(true);
+    } else {
+      closeModalForce();
+    }
   }
 });
 
@@ -5540,6 +5552,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-15', time:'20:00', name:'Call Disposition — modal stays open on pill click', area:'Dialer', description:'The Call Disposition modal no longer closes when you click a disposition pill (HOT/INTERESTED/etc.) — clicking now records the disposition but keeps the pop-up open so accidental clicks are correctable and you can still add a note, change the disposition, or schedule a follow-up. Re-clicking a different pill updates the same log entry + contact note in place (no duplicates); the selected pill is highlighted with a ✓ check. The modal now closes only via the × button, the Skip button, the new Done button, or Esc — and outside-click is and remains disabled. If you close with a follow-up date still in the picker, it auto-commits so the work isn\'t lost.', commit:'pending' },
   { date:'2026-05-15', time:'19:30', name:'Follow-ups — Google Meet 4th icon + Call Disposition Schedule button', area:'Calendar, Dialer', description:'Added a 4th type for follow-ups: 🎥 Google Meet. The DB CHECK constraint on calendar_events.followup_type was widened to accept "meet". The Call Disposition modal now has its own copy of the 4 round icon buttons (Call/SMS/Email/Meet) plus a dedicated "📅 Schedule follow-up" confirm button — you can stage and commit the follow-up directly from the disposition pop-up without having to click a disposition pill first (the disposition click still works the same way for those who prefer the one-shot flow). After clicking Schedule, the date picker area is replaced with a green confirmation panel so it\'s obvious the follow-up was saved.', commit:'a03e416' },
   { date:'2026-05-15', time:'19:00', name:'Follow-ups — Call/SMS/Email type picker (round monochrome icons)', area:'Calendar, Dialer, Contacts', description:'The Schedule a follow-up modal now has 3 round monochrome icon buttons — Call, SMS, Email — so you can tag what kind of follow-up it is. Tap again to clear (optional). The chosen type is persisted on the calendar_events row (new `followup_type` column) and shown as a small circular chip next to every follow-up everywhere it appears: the Calendar sidebar Follow-ups panel, the View all popup, and the contact card Activity-tab list. Icons are simple line SVGs (stroke=currentColor) — no colorful emoji.', commit:'8371714' },
   { date:'2026-05-15', time:'18:30', name:'Calendar — 5-row cap with scroll + View all popup', area:'Calendar', description:'The Follow-ups and Upcoming Events panels on the Calendar sidebar now cap height at ~5 items so the sidebar stays tidy; the panel itself scrolls if there are more. A "View all (N)" footer button appears only when count > 5 and opens a popup with the complete list in a taller scroll area. Same item rendering on both surfaces — clicking a follow-up opens the scheduler, clicking another event opens the editor.', commit:'cd327e5' },
@@ -11652,6 +11665,15 @@ function cancelDialerCountdown(callNow){
 let _dispoFollowupISO  = null;
 let _dispoFollowupType = null;       // 'call' | 'sms' | 'email' | 'meet' | null
 let _dispoFollowupCommittedId = null; // event id, if user already pressed "Schedule follow-up"
+// Stays true while the Call Disposition modal is open so the keyboard Esc
+// handler can route through _finishDisposition() instead of closeModalForce().
+let _dispositionModalOpen = false;
+// Tracks in-progress disposition state inside the modal. Clicking a pill
+// records here; subsequent clicks update the same entries in place rather
+// than appending duplicates. The modal no longer closes on pill click —
+// only the × button or Skip button finalize and close it.
+let _dispoState = { contactId:null, loggedValue:null, logRef:null, noteRef:null };
+function _resetDispoState(){ _dispoState = { contactId:null, loggedValue:null, logRef:null, noteRef:null }; }
 function clearDispoFollowup(){
   _dispoFollowupISO = null;
   _dispoFollowupType = null;
@@ -11714,19 +11736,22 @@ function showDialerDisposition(ctx){
   _dispoFollowupISO = null;
   _dispoFollowupType = null;
   _dispoFollowupCommittedId = null;
+  _resetDispoState();
+  _dispoState.contactId = ctx.id;
+  _dispositionModalOpen = true;
   const c = contacts.find(x=>x.id===ctx.id) || { id:ctx.id, name:ctx.name, phone:ctx.phone };
   const m = String(Math.floor((ctx.seconds||0)/60)).padStart(2,'0');
   const s = String((ctx.seconds||0)%60).padStart(2,'0');
   const colorMap = {'pill-hot':'var(--red)','pill-active':'var(--green)','pill-new':'var(--accent2)','pill-cold':'var(--text3)','pill-done':'var(--green)'};
   const colorBgMap = {'pill-hot':'var(--red-bg)','pill-active':'var(--green-bg)','pill-new':'var(--accent-bg)','pill-cold':'var(--bg4)','pill-done':'var(--green-bg)'};
   const btns = dialerSettings.dispositions.map(d=>`
-    <button class="dispo-btn" style="background:${colorBgMap[d.color]||'var(--bg3)'};color:${colorMap[d.color]||'var(--text)'}"
+    <button class="dispo-btn" data-value="${d.value}" style="background:${colorBgMap[d.color]||'var(--bg3)'};color:${colorMap[d.color]||'var(--text)'}"
       onclick="applyDisposition('${c.id}','${d.value}')">${d.label}</button>
   `).join('');
   openModal(`
     <div class="modal-head">
       <div class="modal-title">📞 Call Disposition</div>
-      <span class="modal-close" onclick="dispositionSkip()" title="Skip">×</span>
+      <span class="modal-close" onclick="_finishDisposition()" title="Close">×</span>
     </div>
     <div class="modal-body">
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
@@ -11736,7 +11761,7 @@ function showDialerDisposition(ctx){
           <div style="font-size:11px;color:var(--text3)">${c.phone||''} · Call duration ${m}:${s}</div>
         </div>
       </div>
-      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;font-weight:500">How did the call go?</div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;font-weight:500">How did the call go? <span style="color:var(--text3);font-weight:400">(click to log — pop-up stays open)</span></div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">${btns}</div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:500">Add a note <span style="color:var(--text3);font-weight:400">(optional)</span></div>
       <textarea id="dispo-note-input" class="form-input" placeholder="What happened on the call…" style="width:100%;min-height:62px;resize:vertical;font-family:inherit;font-size:12px"></textarea>
@@ -11762,92 +11787,134 @@ function showDialerDisposition(ctx){
     </div>
     <div class="modal-foot">
       <button class="btn btn-sm" onclick="dispositionSkip()" style="color:var(--text3)">Skip — keep lead in queue</button>
+      <button class="btn btn-primary btn-sm" onclick="_finishDisposition()">Done</button>
     </div>
   `);
   setTimeout(()=>document.getElementById('dispo-note-input')?.focus(), 60);
 }
 
-// Skip disposition: keep lead in queue, just close
-function dispositionSkip(){
-  _dispoFollowupISO = null;
-  _dispoFollowupType = null;
-  _dispoFollowupCommittedId = null;
-  closeModalForce();
-  if(document.getElementById('page-dialer')?.classList.contains('active')) renderDialerPage();
-}
-
+// Log (or update) the call's disposition. The modal stays open — clicking
+// a pill no longer closes it, so the user can correct accidental clicks and
+// keep going with notes / follow-up scheduling. Re-clicking a different pill
+// updates the same log entry + note in place rather than appending duplicates.
 async function applyDisposition(contactId, dispoValue){
   const c = contacts.find(x=>x.id===contactId);
   const dispo = dialerSettings.dispositions.find(d=>d.value===dispoValue);
   const label = dispo?.label || dispoValue;
-  // Read the optional note BEFORE closing the modal (closing destroys the field)
   const userNote = (document.getElementById('dispo-note-input')?.value || '').trim();
-  const followupISO  = _dispoFollowupISO;
-  const followupType = _dispoFollowupType;
-  _dispoFollowupISO  = null;
-  _dispoFollowupType = null;
-  _dispoFollowupCommittedId = null;
-  closeModalForce();
-  if(c){
-    // Log as a timestamped note — disposition + the optional note, combined
-    if(!Array.isArray(c.notes)) c.notes = [];
-    c.notes.push({
-      id:'note_'+Date.now()+Math.random().toString(36).slice(2,6),
-      text: userNote ? `📞 Call disposition: ${label} — ${userNote}` : `📞 Call disposition: ${label}`,
-      created_at:new Date().toISOString(),
-      edited_at:null,
-    });
-    try { await sb.patch('contacts', contactId, { notes:c.notes }); } catch(_){}
-    touchContactActivity(contactId, 'call');
+  const noteText = userNote ? `📞 Call disposition: ${label} — ${userNote}` : `📞 Call disposition: ${label}`;
+  const ts = new Date().toISOString();
+
+  // No-op if user clicks the same pill twice
+  if(_dispoState.loggedValue === dispoValue){
+    showToast(`Already logged: ${label}`);
+    return;
   }
-  // Record in the disposition log (powers the Call Activity report)
-  dialerDispositionLog.unshift({
-    contactId,
-    contactName: c?.name || 'Unknown',
-    disposition: dispoValue,
-    dispoLabel: label,
-    ts: new Date().toISOString(),
-  });
-  saveDialerDispoLog();
-  // Attach the disposition to the most recent matching call-history entry
+
+  if(_dispoState.loggedValue === null){
+    // First click for this call — push fresh entries and stash refs so future
+    // clicks can edit them in place.
+    if(c){
+      if(!Array.isArray(c.notes)) c.notes = [];
+      const note = { id:'note_'+Date.now()+Math.random().toString(36).slice(2,6), text: noteText, created_at: ts, edited_at: null };
+      c.notes.push(note);
+      _dispoState.noteRef = note;
+      try { await sb.patch('contacts', contactId, { notes: c.notes }); } catch(_){}
+      touchContactActivity(contactId, 'call');
+    }
+    const logEntry = { contactId, contactName: c?.name||'Unknown', disposition: dispoValue, dispoLabel: label, ts };
+    dialerDispositionLog.unshift(logEntry);
+    _dispoState.logRef = logEntry;
+    saveDialerDispoLog();
+  } else {
+    // Disposition changed — edit the existing log + note in place.
+    if(_dispoState.logRef){
+      _dispoState.logRef.disposition = dispoValue;
+      _dispoState.logRef.dispoLabel  = label;
+      _dispoState.logRef.ts          = ts;
+      saveDialerDispoLog();
+    }
+    if(_dispoState.noteRef && c){
+      _dispoState.noteRef.text      = noteText;
+      _dispoState.noteRef.edited_at = ts;
+      try { await sb.patch('contacts', contactId, { notes: c.notes }); } catch(_){}
+    }
+  }
+
+  // Attach (or refresh) the disposition on the matching call-history entry
   if(c && c.phone && typeof callHistory!=='undefined'){
     const digits = c.phone.replace(/\D/g,'').slice(-10);
     const match = callHistory.find(ch => (ch.number||'').replace(/\D/g,'').slice(-10) === digits);
     if(match){ match.disposition = label; if(typeof saveCallHistory==='function') saveCallHistory(); }
   }
-  // Optional follow-up → add an event to the CRM calendar
-  if(followupISO){
-    const startISO = new Date(followupISO).toISOString();
-    const endISO   = new Date(new Date(followupISO).getTime()+30*60000).toISOString();
-    const followupNote = `Follow-up from call disposition: ${label}${userNote?` — ${userNote}`:''}`;
+
+  _dispoState.loggedValue = dispoValue;
+  _dispoState.contactId   = contactId;
+
+  // Highlight the chosen pill (and only the chosen one)
+  document.querySelectorAll('.dispo-btn').forEach(b => b.classList.remove('selected'));
+  document.querySelectorAll(`.dispo-btn[data-value="${dispoValue}"]`).forEach(b => b.classList.add('selected'));
+
+  showToast(`Logged: ${label}`);
+}
+
+// Close + advance handler used by the × button, the Done button, the Skip
+// button, and the Esc key. If a disposition was logged the lead is removed
+// from the queue and (optionally) auto-dial advances. Skip leaves the lead
+// in queue ONLY when no disposition was logged.
+function _finishDisposition(skip){
+  const hadDisposition = !!_dispoState.loggedValue;
+  const contactId      = _dispoState.contactId;
+
+  // If user picked a follow-up date+type but never pressed the explicit
+  // "Schedule follow-up" button, commit it now on close so the work isn't
+  // lost. The explicit button path clears _dispoFollowupISO so this won't
+  // double-create.
+  if(hadDisposition && _dispoFollowupISO && contactId){
+    const c = contacts.find(x=>x.id===contactId);
+    const startISO = new Date(_dispoFollowupISO).toISOString();
+    const endISO   = new Date(new Date(_dispoFollowupISO).getTime()+30*60000).toISOString();
+    const fNote    = _dispoState.logRef ? `Follow-up from call disposition: ${_dispoState.logRef.dispoLabel}` : '';
     calEvents.push({
       id:'ev_'+Date.now(),
       title:`Follow-up: ${c?.name||'Lead'}`,
       start:startISO, end:endISO,
       sourceId:'followups',
-      notes:followupNote,
+      notes:fNote,
       contactId,
-      followupType,
+      followupType: _dispoFollowupType,
     });
     saveCalEvents();
-    // Write a contact-timeline note so the follow-up shows up under Notes
-    // on the contact card and conversations sidebar.
-    _appendFollowupNote(contactId, 'create', startISO, followupNote);
+    _appendFollowupNote(contactId, 'create', startISO, fNote);
     if(document.getElementById('page-calendar')?.classList.contains('active')) renderCalendar();
   }
-  // Remove the dispositioned lead from the queue
-  dialerQueue = dialerQueue.filter(id=>id!==contactId);
-  saveDialerQueue();
-  const followupMsg = followupISO
-    ? ` · Follow-up ${new Date(followupISO).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}`
-    : '';
-  showToast(`Logged: ${label}${followupMsg}`);
-  // Advance behavior
-  if(dialerSettings.autoDial && getDialerQueueContacts().length){
-    startDialerCountdown();
+
+  // Reset everything
+  _dispoFollowupISO  = null;
+  _dispoFollowupType = null;
+  _dispoFollowupCommittedId = null;
+  _resetDispoState();
+  _dispositionModalOpen = false;
+  closeModalForce();
+
+  if(hadDisposition && contactId){
+    dialerQueue = dialerQueue.filter(id => id !== contactId);
+    saveDialerQueue();
+    if(dialerSettings.autoDial && getDialerQueueContacts().length){
+      startDialerCountdown();
+    } else if(document.getElementById('page-dialer')?.classList.contains('active')){
+      renderDialerPage();
+    }
   } else {
-    renderDialerPage();
+    // No disposition logged — Skip / × behavior: keep the lead in queue.
+    if(document.getElementById('page-dialer')?.classList.contains('active')) renderDialerPage();
   }
+}
+
+// Skip button — keep lead in queue if nothing was logged (legacy behavior),
+// otherwise behave like the × button (advance).
+function dispositionSkip(){
+  _finishDisposition(true);
 }
 
 // ── FOLLOW-UP SCHEDULER (reusable) ────────────────────────────────────
