@@ -4457,13 +4457,6 @@ function openContactDetail(contactId, tab='info') {
           </select></div>
       </div>
       <div class="form-group">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <label class="form-label" style="margin:0">Follow-ups</label>
-          <button class="btn btn-sm" style="font-size:11px;color:var(--accent2)" onclick="openFollowupModal('${contactId}')">+ Schedule follow-up</button>
-        </div>
-        <div id="cd-followups-list">${renderContactFollowupsHTML(contactId)}</div>
-      </div>
-      <div class="form-group">
         <label class="form-label">Notes</label>
         <div style="display:flex;gap:6px;margin-bottom:10px;align-items:flex-start">
           <textarea class="form-input" id="cd-new-note" placeholder="Write a note… (2-3 sentences)" style="flex:1;min-height:54px;resize:vertical;font-family:inherit"></textarea>
@@ -5534,6 +5527,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-15', time:'18:00', name:'Calendar — dedicated Follow-ups calendar source; Info-tab section removed', area:'Calendar, Contacts, Dialer', description:'Every scheduled follow-up now lives on a new built-in "Follow-ups" calendar (green chip, default-active) instead of mixing into the generic "CRM Events" calendar. Disposition follow-ups, contact-card scheduler, and Conversations Quick Action all route to `sourceId="followups"`. The Calendar sidebar Follow-ups panel and the contact\'s Activity-tab Follow-ups list both detect by source first, with a title-prefix fallback for any pre-migration rows. Removed the Follow-ups section from the contact card\'s Info tab — follow-ups now live solely on the Activity tab there. Existing rows in Supabase were migrated to the new source.', commit:'pending' },
   { date:'2026-05-15', time:'17:15', name:'Calendar — fix missing calendar_events table (DB)', area:'Calendar, Dialer, Database', description:'Root cause for calendar events / follow-ups never persisting across page refresh: the Supabase `calendar_events` table did not exist. `saveCalEvents()` was POST-ing to a 404 and the error was being swallowed silently by a try/catch — events lived in memory only, then vanished on reload. Created the table in Supabase (id text PK, title, start_time/end_time timestamptz, source_id, notes, contact_id uuid FK→contacts with ON DELETE SET NULL, gcal_id/gcal_link/meet_link, created_at) with an RLS policy matching `public.contacts` (any authenticated user, full access). Also stopped `saveCalEvents()` from swallowing errors — failures now surface as a toast so a regression like this can\'t hide.', commit:'3996658' },
   { date:'2026-05-15', time:'16:30', name:'Follow-ups everywhere — contact card, conversations, click-to-edit', area:'Calendar, Contacts, Conversations, Dialer', description:'A unified follow-up flow across the CRM. New "📅 Schedule Follow-up" buttons on the contact detail panel (Info + Activity tabs) and in the Conversations sidebar Quick Actions, all opening one reusable scheduler modal with the fixed 12-hour AM/PM date picker. Each contact\'s open follow-ups are listed inline on their card and on the Activity tab. Items are clickable — opens the same modal in edit mode with Save / Cancel / Delete. Scheduling, editing, or deleting a follow-up now also writes a `📅 Follow-up scheduled/rescheduled/cleared …` entry to the contact\'s notes timeline (so it surfaces wherever the contact appears). Calendar Follow-ups list now opens the dedicated scheduler instead of the generic event editor.', commit:'bc9f8ac' },
   { date:'2026-05-15', time:'15:50', name:'Date picker — fix day-cell click closing the picker', area:'Calendar, Dialer', description:'Picking a date in the Call Disposition follow-up scheduler instantly closed the picker without selecting. Clicking a day re-renders the popup\'s innerHTML, which detaches the clicked cell from the DOM; the document-level outside-click handler then saw a "click outside the popup" because the original node was now orphaned. Switched that listener to capture-phase so the inside-popup check runs BEFORE the re-render. You can now click any future (or past) date freely.', commit:'adbff7b' },
@@ -6967,10 +6961,21 @@ let calView = 'month';
 let calDate = new Date();
 let calEvents = [];
 let calSources = JSON.parse(localStorage.getItem('nlm_cal_sources')||'[{"id":"crm","name":"CRM Events","color":"#4f7ef8","active":true}]');
-// Ensure the built-in US Holidays calendar exists for existing users (migration)
-if(!calSources.find(s=>s.id==='us-holidays')){
-  calSources.push({ id:'us-holidays', name:'US Holidays', color:'#d97bba', active:true, builtin:true });
-  localStorage.setItem('nlm_cal_sources', JSON.stringify(calSources));
+// Migrations for built-in calendar sources. Existing users may already have
+// 'us-holidays' in localStorage but be missing 'followups', so check each.
+{
+  let _calSourcesChanged = false;
+  if(!calSources.find(s=>s.id==='followups')){
+    // Default destination for every scheduled follow-up. Keep it ABOVE crm in
+    // the chip row so the green "Follow-ups" pill is easy to find.
+    calSources.unshift({ id:'followups', name:'Follow-ups', color:'#3ecf8e', active:true, builtin:true });
+    _calSourcesChanged = true;
+  }
+  if(!calSources.find(s=>s.id==='us-holidays')){
+    calSources.push({ id:'us-holidays', name:'US Holidays', color:'#d97bba', active:true, builtin:true });
+    _calSourcesChanged = true;
+  }
+  if(_calSourcesChanged) localStorage.setItem('nlm_cal_sources', JSON.stringify(calSources));
 }
 
 const CAL_COLORS = ['#4f7ef8','#3ecf8e','#f59e3f','#d97bba','#f26b6b','#2dd4bf','#a78bfa'];
@@ -7263,7 +7268,9 @@ function _renderEventsList(targetId, opts = {}){
   let list = getVisibleCalEvents()
     .filter(ev=>!ev.isHoliday && new Date(ev.start)>=now);
   if(opts.followupsOnly){
-    list = list.filter(ev=>/^Follow-up:/i.test(ev.title||''));
+    // A "follow-up" is either explicitly on the built-in Follow-ups calendar
+    // OR an older row with the legacy "Follow-up: …" title prefix.
+    list = list.filter(ev => ev.sourceId === 'followups' || /^Follow-up:/i.test(ev.title||''));
   }
   list = list.sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0, opts.limit||10);
 
@@ -11679,7 +11686,7 @@ async function applyDisposition(contactId, dispoValue){
       id:'ev_'+Date.now(),
       title:`Follow-up: ${c?.name||'Lead'}`,
       start:startISO, end:endISO,
-      sourceId:'crm',
+      sourceId:'followups',
       notes:followupNote,
       contactId,
     });
@@ -11812,7 +11819,7 @@ async function saveFollowup(contactId, eventId){
       ev.notes = note;
       ev.title = `Follow-up: ${c?.name||'Lead'}`;
       ev.contactId = contactId;
-      ev.sourceId = 'crm';
+      ev.sourceId = 'followups';
     }
     saveCalEvents();
     await _appendFollowupNote(contactId, 'edit', startISO, note);
@@ -11822,7 +11829,7 @@ async function saveFollowup(contactId, eventId){
       id:'ev_'+Date.now(),
       title:`Follow-up: ${c?.name||'Lead'}`,
       start:startISO, end:endISO,
-      sourceId:'crm',
+      sourceId:'followups',
       notes:note,
       contactId,
     });
@@ -11864,11 +11871,13 @@ function _refreshFollowupViews(contactId){
 }
 
 // Future-only follow-ups (sorted ascending) for a single contact.
+// Identifies follow-ups by the built-in 'followups' source OR the legacy
+// "Follow-up: …" title prefix for backward compat with pre-migration rows.
 function getFollowupsForContact(contactId){
   const now = new Date();
   return calEvents
     .filter(ev => ev.contactId === contactId
-                  && /^Follow-up:/i.test(ev.title||'')
+                  && (ev.sourceId === 'followups' || /^Follow-up:/i.test(ev.title||''))
                   && new Date(ev.start) >= now)
     .sort((a,b) => new Date(a.start) - new Date(b.start));
 }
