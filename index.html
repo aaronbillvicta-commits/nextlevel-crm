@@ -770,8 +770,7 @@ tbody tr:hover td{background:var(--bg3)}
 .datepicker-display{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:border-color .15s;font-size:13px;color:var(--text)}
 .datepicker-display:hover{border-color:var(--border2)}
 .datepicker-display.open{border-color:var(--accent)}
-.datepicker-popup{position:absolute;top:calc(100% + 6px);left:0;z-index:1000;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.4);min-width:300px}
-.datepicker-popup.right{right:0;left:auto}
+.datepicker-popup{position:fixed;z-index:2000;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.4);min-width:300px}
 .dp-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .dp-nav-btn{width:28px;height:28px;border-radius:var(--radius);border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s}
 .dp-nav-btn:hover{background:var(--bg4);border-color:var(--border2)}
@@ -2918,13 +2917,15 @@ function openModal(html, wide=false, lg=false) {
   box.className = 'modal'+(wide?' modal-wide':'')+(lg?' modal-lg':'');
   document.getElementById('modal-overlay').classList.add('open');
 }
-function closeModal() { 
+function closeModal() {
   if(window._modalLocked) return; // don't close if locked (e.g. compose email)
-  document.getElementById('modal-overlay').classList.remove('open'); 
+  if(typeof closeDatePicker==='function') closeDatePicker(); // datepicker popup is body-anchored, close it too
+  document.getElementById('modal-overlay').classList.remove('open');
 }
-function closeModalForce(){ 
+function closeModalForce(){
   window._modalLocked=false;
-  document.getElementById('modal-overlay').classList.remove('open'); 
+  if(typeof closeDatePicker==='function') closeDatePicker();
+  document.getElementById('modal-overlay').classList.remove('open');
 }
 // Pop-ups close ONLY via the × button or the Esc key — clicking the dark
 // backdrop does nothing, so an accidental outside-click won't lose your work.
@@ -5494,6 +5495,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-15', time:'15:20', name:'Date picker — fix clipping in modals + 12-hour AM/PM', area:'Calendar, Dialer', description:'Two fixes to the custom date/time picker. (1) The "Schedule a follow-up" button in the Call Disposition modal opened the picker but it was hidden — the popup was being clipped by the modal\'s scroll container. The picker is now body-anchored with fixed positioning so it can\'t be clipped by any parent, and auto-flips above the anchor when there isn\'t room below. (2) The hour selector is now a 12-hour clock with a separate AM/PM dropdown instead of a 24-hour 00–23 list.', commit:'pending' },
   { date:'2026-05-15', time:'14:00', name:'Calendar — Follow-ups panel, real contact filter, US Holidays', area:'Calendar', description:'Calendar sidebar now has a dedicated "Follow-ups" section listing future Follow-up events from the Call Disposition flow (also still shown under Upcoming Events). "Filter by Contact" now actually filters the month/week/day grid plus the Follow-ups and Upcoming Events lists. Added a built-in "US Holidays" calendar source (all 11 US federal holidays, pre-populated for the previous, current and next two years) — toggle the chip to hide/show holidays on the grid.', commit:'f0dfa33' },
   { date:'2026-05-15', time:'10:45', name:'Call Disposition — schedule a follow-up', area:'Dialer, Calendar', description:'The Call Disposition pop-up now has an optional "Schedule a follow-up" date & time picker. Pick a date and a "Follow-up: <contact>" event is added to the CRM calendar (30 min, linked to the contact, with the disposition and note in the event notes).', commit:'b92aa07' },
   { date:'2026-05-15', time:'10:15', name:'Dialer — Dialing Mode tile', area:'Dialer', description:'Added a "Dialing Mode" tile at the top of the Dialer queue view, above "Calling From". It shows the current mode at a glance — Manual or Auto-advance + auto-dial (with the countdown length) — and clicking it opens the dialer settings to change it.', commit:'b92aa07' },
@@ -7259,7 +7261,7 @@ function renderFollowupsList(){
 // ── CUSTOM DATE PICKER ──
 let _dpState = { year: new Date().getFullYear(), month: new Date().getMonth(), selectedDate: null, selectedHour: new Date().getHours(), selectedMin: 0, targetId: null, onConfirm: null };
 
-function openDatePicker(targetId, initialVal, onConfirm, popupRight=false){
+function openDatePicker(targetId, initialVal, onConfirm){
   closeDatePicker();
   _dpState.targetId = targetId;
   _dpState.onConfirm = onConfirm;
@@ -7277,12 +7279,31 @@ function openDatePicker(targetId, initialVal, onConfirm, popupRight=false){
   const anchor = document.getElementById(targetId); if(!anchor) return;
   const popup = document.createElement('div');
   popup.id = 'dp-popup';
-  popup.className = 'datepicker-popup'+(popupRight?' right':'');
-  anchor.parentElement.style.position='relative';
-  anchor.parentElement.appendChild(popup);
+  popup.className = 'datepicker-popup';
+  // Append to body so the popup escapes any modal's overflow:auto clipping.
+  document.body.appendChild(popup);
   renderDatePickerPopup();
+  positionDpPopup();
+  // Re-position when the user scrolls or resizes (e.g. modal body scroll)
+  window.addEventListener('resize', positionDpPopup, true);
+  window.addEventListener('scroll', positionDpPopup, true);
   anchor.classList.add('open');
   setTimeout(()=>document.addEventListener('click', dpOutsideClick), 10);
+}
+
+function positionDpPopup(){
+  const anchor = document.getElementById(_dpState.targetId||'');
+  const popup = document.getElementById('dp-popup');
+  if(!anchor || !popup) return;
+  const rect = anchor.getBoundingClientRect();
+  const vh = window.innerHeight, vw = window.innerWidth;
+  const ph = popup.offsetHeight, pw = popup.offsetWidth;
+  let top = rect.bottom + 6;
+  if(top + ph > vh - 10) top = Math.max(10, rect.top - ph - 6);
+  let left = rect.left;
+  if(left + pw > vw - 10) left = Math.max(10, vw - pw - 10);
+  popup.style.top  = top + 'px';
+  popup.style.left = left + 'px';
 }
 
 function dpOutsideClick(e){
@@ -7298,6 +7319,8 @@ function closeDatePicker(){
   const anchor = document.getElementById(_dpState.targetId||'');
   if(anchor) anchor.classList.remove('open');
   document.removeEventListener('click', dpOutsideClick);
+  window.removeEventListener('resize', positionDpPopup, true);
+  window.removeEventListener('scroll', positionDpPopup, true);
 }
 
 function renderDatePickerPopup(){
@@ -7310,9 +7333,11 @@ function renderDatePickerPopup(){
   const prevDays = new Date(year,month,0).getDate();
   const today = new Date();
 
-  // Hours options
-  const hours = Array.from({length:24},(_,i)=>i);
-  const mins = [0,5,10,15,20,25,30,35,40,45,50,55];
+  // 12-hour clock — selectedHour is stored as 0-23 internally.
+  const hours12 = [12,1,2,3,4,5,6,7,8,9,10,11];
+  const mins    = [0,5,10,15,20,25,30,35,40,45,50,55];
+  const period  = selectedHour >= 12 ? 'PM' : 'AM';
+  const displayHour = (selectedHour % 12) === 0 ? 12 : (selectedHour % 12);
 
   let daysHtml = '';
   for(let i=firstDay-1;i>=0;i--) daysHtml+=`<div class="dp-day other-month">${prevDays-i}</div>`;
@@ -7334,18 +7359,24 @@ function renderDatePickerPopup(){
     <div class="dp-days">${daysHtml}</div>
     <div class="dp-time-row">
       <span class="dp-time-label">Time</span>
-      <select class="dp-time-select" id="dp-hour" onchange="dpSetHour(this.value)">
-        ${hours.map(h=>`<option value="${h}" ${h===selectedHour?'selected':''}>${String(h).padStart(2,'0')}:00</option>`).join('')}
+      <select class="dp-time-select" id="dp-hour" onchange="dpSetHour12(this.value)" style="max-width:70px">
+        ${hours12.map(h=>`<option value="${h}" ${h===displayHour?'selected':''}>${h}</option>`).join('')}
       </select>
       <span style="color:var(--text3)">:</span>
       <select class="dp-time-select" id="dp-min" onchange="dpSetMin(this.value)" style="max-width:70px">
         ${mins.map(m=>`<option value="${m}" ${m===selectedMin?'selected':''}>${String(m).padStart(2,'0')}</option>`).join('')}
+      </select>
+      <select class="dp-time-select" id="dp-period" onchange="dpSetPeriod(this.value)" style="max-width:70px">
+        <option value="AM" ${period==='AM'?'selected':''}>AM</option>
+        <option value="PM" ${period==='PM'?'selected':''}>PM</option>
       </select>
     </div>
     <div class="dp-confirm-row">
       <button class="btn btn-sm" onclick="closeDatePicker()">Cancel</button>
       <button class="btn btn-primary btn-sm" onclick="dpConfirm()">Confirm</button>
     </div>`;
+  // Popup size may change between renders (e.g. month nav); reposition.
+  positionDpPopup();
 }
 
 function dpChangeMonth(dir){
@@ -7355,7 +7386,17 @@ function dpChangeMonth(dir){
   renderDatePickerPopup();
 }
 function dpSelectDay(d){ _dpState.selectedDate=d; renderDatePickerPopup(); }
-function dpSetHour(v){ _dpState.selectedHour=parseInt(v); }
+// 12-hour hour picker — keep the AM/PM half stable when the user changes the 12-hour digit.
+function dpSetHour12(v){
+  const h12 = parseInt(v,10);                // 1..12 from the dropdown
+  const isPM = _dpState.selectedHour >= 12;
+  _dpState.selectedHour = (h12 % 12) + (isPM ? 12 : 0);  // 12 AM → 0, 12 PM → 12
+}
+function dpSetPeriod(p){
+  const cur = _dpState.selectedHour;
+  if(p === 'AM' && cur >= 12) _dpState.selectedHour = cur - 12;
+  if(p === 'PM' && cur < 12)  _dpState.selectedHour = cur + 12;
+}
 function dpSetMin(v){ _dpState.selectedMin=parseInt(v); }
 function dpConfirm(){
   if(!_dpState.selectedDate){ showToast('Select a date first','error'); return; }
