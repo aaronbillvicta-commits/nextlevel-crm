@@ -1545,6 +1545,9 @@ table th[onclick]{transition:background .15s,color .15s}
               <button class="btn btn-sm" style="font-size:10px;padding:2px 8px" onclick="renderFollowupsList()">↻</button>
             </div>
             <div id="cal-followups-list"></div>
+            <div id="cal-followups-viewall" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+              <button class="btn btn-sm" style="width:100%;font-size:11px;color:var(--accent2)" onclick="openEventsListModal({followupsOnly:true})">View all <span class="vall-count"></span></button>
+            </div>
           </div>
 
           <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;flex:1">
@@ -1553,6 +1556,9 @@ table th[onclick]{transition:background .15s,color .15s}
               <button class="btn btn-sm" style="font-size:10px;padding:2px 8px" onclick="renderUpcomingEvents()">↻</button>
             </div>
             <div id="cal-upcoming-list"></div>
+            <div id="cal-upcoming-viewall" style="display:none;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)">
+              <button class="btn btn-sm" style="width:100%;font-size:11px;color:var(--accent2)" onclick="openEventsListModal({})">View all <span class="vall-count"></span></button>
+            </div>
           </div>
 
         </div>
@@ -5527,6 +5533,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-15', time:'18:30', name:'Calendar — 5-row cap with scroll + View all popup', area:'Calendar', description:'The Follow-ups and Upcoming Events panels on the Calendar sidebar now cap height at ~5 items so the sidebar stays tidy; the panel itself scrolls if there are more. A "View all (N)" footer button appears only when count > 5 and opens a popup with the complete list in a taller scroll area. Same item rendering on both surfaces — clicking a follow-up opens the scheduler, clicking another event opens the editor.', commit:'pending' },
   { date:'2026-05-15', time:'18:00', name:'Calendar — dedicated Follow-ups calendar source; Info-tab section removed', area:'Calendar, Contacts, Dialer', description:'Every scheduled follow-up now lives on a new built-in "Follow-ups" calendar (green chip, default-active) instead of mixing into the generic "CRM Events" calendar. Disposition follow-ups, contact-card scheduler, and Conversations Quick Action all route to `sourceId="followups"`. The Calendar sidebar Follow-ups panel and the contact\'s Activity-tab Follow-ups list both detect by source first, with a title-prefix fallback for any pre-migration rows. Removed the Follow-ups section from the contact card\'s Info tab — follow-ups now live solely on the Activity tab there. Existing rows in Supabase were migrated to the new source.', commit:'334c69a' },
   { date:'2026-05-15', time:'17:15', name:'Calendar — fix missing calendar_events table (DB)', area:'Calendar, Dialer, Database', description:'Root cause for calendar events / follow-ups never persisting across page refresh: the Supabase `calendar_events` table did not exist. `saveCalEvents()` was POST-ing to a 404 and the error was being swallowed silently by a try/catch — events lived in memory only, then vanished on reload. Created the table in Supabase (id text PK, title, start_time/end_time timestamptz, source_id, notes, contact_id uuid FK→contacts with ON DELETE SET NULL, gcal_id/gcal_link/meet_link, created_at) with an RLS policy matching `public.contacts` (any authenticated user, full access). Also stopped `saveCalEvents()` from swallowing errors — failures now surface as a toast so a regression like this can\'t hide.', commit:'3996658' },
   { date:'2026-05-15', time:'16:30', name:'Follow-ups everywhere — contact card, conversations, click-to-edit', area:'Calendar, Contacts, Conversations, Dialer', description:'A unified follow-up flow across the CRM. New "📅 Schedule Follow-up" buttons on the contact detail panel (Info + Activity tabs) and in the Conversations sidebar Quick Actions, all opening one reusable scheduler modal with the fixed 12-hour AM/PM date picker. Each contact\'s open follow-ups are listed inline on their card and on the Activity tab. Items are clickable — opens the same modal in edit mode with Save / Cancel / Delete. Scheduling, editing, or deleting a follow-up now also writes a `📅 Follow-up scheduled/rescheduled/cleared …` entry to the contact\'s notes timeline (so it surfaces wherever the contact appears). Calendar Follow-ups list now opens the dedicated scheduler instead of the generic event editor.', commit:'bc9f8ac' },
@@ -7258,65 +7265,116 @@ function getCalEventsForDay(year, month, d){
   });
 }
 
-// ── UPCOMING EVENTS LIST ──
-// Renders a list of upcoming events; `opts.followupsOnly` restricts to
-// follow-up events created from the Call Disposition modal.
-function _renderEventsList(targetId, opts = {}){
-  const el = document.getElementById(targetId); if(!el) return [];
+// ── UPCOMING EVENTS / FOLLOW-UPS LIST ──
+// Shared filter: future, non-holiday, optionally follow-ups only.
+function _getUpcomingFiltered(opts = {}){
   const now = new Date();
-  // Holidays are virtual reference markers — they don't belong in user task lists.
-  let list = getVisibleCalEvents()
-    .filter(ev=>!ev.isHoliday && new Date(ev.start)>=now);
+  let list = getVisibleCalEvents().filter(ev => !ev.isHoliday && new Date(ev.start) >= now);
   if(opts.followupsOnly){
-    // A "follow-up" is either explicitly on the built-in Follow-ups calendar
-    // OR an older row with the legacy "Follow-up: …" title prefix.
     list = list.filter(ev => ev.sourceId === 'followups' || /^Follow-up:/i.test(ev.title||''));
   }
-  list = list.sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0, opts.limit||10);
+  return list.sort((a,b) => new Date(a.start) - new Date(b.start));
+}
+
+// Shared item rendering for both the sidebar panel and the "View all" modal.
+function _eventItemHTML(ev){
+  const src = calSources.find(s => s.id === (ev.sourceId||'crm'));
+  const color = src?.color || 'var(--accent)';
+  const d = new Date(ev.start);
+  const dateStr = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
+  const timeStr = d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const contact = ev.contactId ? contacts.find(c => c.id === ev.contactId) : null;
+  // Follow-ups open the dedicated follow-up scheduler (delete/reschedule).
+  // Other events still go through the generic Event editor.
+  const isFollowup = (ev.sourceId === 'followups' || /^Follow-up:/i.test(ev.title||'')) && ev.contactId;
+  const click = isFollowup
+    ? `openFollowupModal('${ev.contactId}','${ev.id}')`
+    : `editCalEvent('${ev.id}')`;
+  return `<div class="cal-upcoming-item" onclick="${click}">
+    <div style="display:flex;gap:8px;align-items:flex-start">
+      <div class="cal-upcoming-dot" style="background:${color};margin-top:4px"></div>
+      <div style="flex:1;min-width:0">
+        <div class="cal-upcoming-title">${ev.title}</div>
+        <div class="cal-upcoming-time">${dateStr} · ${timeStr}</div>
+        ${contact?`<div style="font-size:10px;color:var(--text3);margin-top:2px">👤 ${contact.name}</div>`:''}
+      </div>
+    </div>
+  </div>`;
+}
+
+// Render an in-panel list capped at 5 visible rows. The container itself
+// is `overflow-y:auto` so item 6+ are reachable by scrolling, and the
+// caller's "View all" button is shown/hidden based on the returned count.
+function _renderEventsList(targetId, opts = {}){
+  const el = document.getElementById(targetId); if(!el) return 0;
+  const list = _getUpcomingFiltered(opts);
 
   if(!list.length){
-    el.innerHTML=`<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">${opts.emptyMessage||'No upcoming events'}</div>`;
-    return [];
+    el.style.maxHeight = ''; el.style.overflowY = '';
+    el.innerHTML = `<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">${opts.emptyMessage||'No upcoming events'}</div>`;
+    return 0;
   }
-  el.innerHTML = list.map(ev=>{
-    const src = calSources.find(s=>s.id===(ev.sourceId||'crm'));
-    const color = src?.color||'var(--accent)';
-    const d = new Date(ev.start);
-    const dateStr = d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
-    const timeStr = d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-    const contact = ev.contactId ? contacts.find(c=>c.id===ev.contactId) : null;
-    // Follow-ups open the dedicated follow-up scheduler (delete/reschedule).
-    // Other events still go through the generic Event editor.
-    const isFollowup = /^Follow-up:/i.test(ev.title||'') && ev.contactId;
-    const click = isFollowup
-      ? `openFollowupModal('${ev.contactId}','${ev.id}')`
-      : `editCalEvent('${ev.id}')`;
-    return `<div class="cal-upcoming-item" onclick="${click}">
-      <div style="display:flex;gap:8px;align-items:flex-start">
-        <div class="cal-upcoming-dot" style="background:${color};margin-top:4px"></div>
-        <div style="flex:1;min-width:0">
-          <div class="cal-upcoming-title">${ev.title}</div>
-          <div class="cal-upcoming-time">${dateStr} · ${timeStr}</div>
-          ${contact?`<div style="font-size:10px;color:var(--text3);margin-top:2px">👤 ${contact.name}</div>`:''}
-        </div>
+
+  // ~5 items × ~56px each. The exact height isn't critical — overflow:auto
+  // handles overflow regardless. The cap just keeps the sidebar tidy.
+  el.style.maxHeight = '290px';
+  el.style.overflowY = 'auto';
+  el.innerHTML = list.map(_eventItemHTML).join('');
+  return list.length;
+}
+
+// "View all" popup — same filter, no row cap, taller scroll area.
+function openEventsListModal(opts = {}){
+  const list = _getUpcomingFiltered(opts);
+  const title = opts.title || (opts.followupsOnly ? 'All Scheduled Follow-ups' : 'All Upcoming Events');
+  const body = list.length
+    ? `<div style="max-height:60vh;overflow-y:auto">${list.map(_eventItemHTML).join('')}</div>`
+    : `<div style="font-size:13px;color:var(--text3);text-align:center;padding:28px 0">${opts.emptyMessage||'No upcoming events'}</div>`;
+  openModal(`
+    <div class="modal-head">
+      <div>
+        <div class="modal-title">${title}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">${list.length} item${list.length===1?'':'s'}</div>
       </div>
-    </div>`;
-  }).join('');
-  return list;
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body" style="padding:14px 18px">${body}</div>
+    <div class="modal-foot"><button class="btn btn-primary" onclick="closeModal()">Done</button></div>
+  `);
+}
+
+// Show/hide the "View all (N)" button in the sidebar based on the
+// rendered list count. The button lives in a stable DOM node next to
+// the scrollable list (see HTML in #page-calendar sidebar).
+function _setViewAllVisibility(footerId, count){
+  const f = document.getElementById(footerId);
+  if(!f) return;
+  if(count > 5){
+    f.style.display = 'block';
+    const btn = f.querySelector('button');
+    if(btn){
+      // Only the count text changes — re-grab to keep onclick attached.
+      const txt = btn.querySelector('.vall-count');
+      if(txt) txt.textContent = `(${count})`;
+    }
+  } else {
+    f.style.display = 'none';
+  }
 }
 
 function renderUpcomingEvents(){
-  _renderEventsList('cal-upcoming-list', { limit:10 });
+  const n = _renderEventsList('cal-upcoming-list', {});
+  _setViewAllVisibility('cal-upcoming-viewall', n);
 }
 
 function renderFollowupsList(){
-  const list = _renderEventsList('cal-followups-list', {
+  const n = _renderEventsList('cal-followups-list', {
     followupsOnly: true,
-    limit: 10,
     emptyMessage: 'No follow-ups scheduled'
   });
+  _setViewAllVisibility('cal-followups-viewall', n);
   const countEl = document.getElementById('cal-followups-count');
-  if(countEl) countEl.textContent = list.length ? `(${list.length})` : '';
+  if(countEl) countEl.textContent = n ? `(${n})` : '';
 }
 
 // ── CUSTOM DATE PICKER ──
