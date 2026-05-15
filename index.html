@@ -4739,12 +4739,15 @@ function renderContactNotes(contactId){
   const c = contacts.find(x=>x.id===contactId);
   if(!c) return;
   if(!Array.isArray(c.notes)) c.notes = [];
-  if(c.notes.length === 0){
+  // Hide legacy auto-notes ("📅 Follow-up …"). Follow-ups now live solely on
+  // the Activity tab's Follow-ups section.
+  const visibleNotes = c.notes.filter(n => !_isFollowupAutoNote(n.text));
+  if(visibleNotes.length === 0){
     el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;text-align:center">No notes yet — add the first one above.</div>';
     return;
   }
   // Newest first
-  const sorted = [...c.notes].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  const sorted = [...visibleNotes].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
   el.innerHTML = sorted.map((n, i)=>{
     const safeText = (n.text||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
     const isEditing = el.dataset.editing === n.id;
@@ -5552,6 +5555,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-15', time:'20:30', name:'Follow-up info consolidated to the Activity tab', area:'Contacts, Dialer', description:'Scheduling, editing, or deleting a follow-up no longer pushes a "📅 Follow-up scheduled …" entry into the contact\'s Notes timeline. The Activity tab\'s Follow-ups section is now the single source of truth — the Notes list is for user-typed notes only. Existing auto-generated entries from earlier sessions are filtered out of the contact-modal Notes list and the dialer\'s right-side contact panel; they\'re still in the database (harmless) but hidden from view. last_activity is still bumped on follow-up actions so list-view recency stays accurate.', commit:'pending' },
   { date:'2026-05-15', time:'20:00', name:'Call Disposition — modal stays open on pill click', area:'Dialer', description:'The Call Disposition modal no longer closes when you click a disposition pill (HOT/INTERESTED/etc.) — clicking now records the disposition but keeps the pop-up open so accidental clicks are correctable and you can still add a note, change the disposition, or schedule a follow-up. Re-clicking a different pill updates the same log entry + contact note in place (no duplicates); the selected pill is highlighted with a ✓ check. The modal now closes only via the × button, the Skip button, the new Done button, or Esc — and outside-click is and remains disabled. If you close with a follow-up date still in the picker, it auto-commits so the work isn\'t lost.', commit:'34eb7d5' },
   { date:'2026-05-15', time:'19:30', name:'Follow-ups — Google Meet 4th icon + Call Disposition Schedule button', area:'Calendar, Dialer', description:'Added a 4th type for follow-ups: 🎥 Google Meet. The DB CHECK constraint on calendar_events.followup_type was widened to accept "meet". The Call Disposition modal now has its own copy of the 4 round icon buttons (Call/SMS/Email/Meet) plus a dedicated "📅 Schedule follow-up" confirm button — you can stage and commit the follow-up directly from the disposition pop-up without having to click a disposition pill first (the disposition click still works the same way for those who prefer the one-shot flow). After clicking Schedule, the date picker area is replaced with a green confirmation panel so it\'s obvious the follow-up was saved.', commit:'a03e416' },
   { date:'2026-05-15', time:'19:00', name:'Follow-ups — Call/SMS/Email type picker (round monochrome icons)', area:'Calendar, Dialer, Contacts', description:'The Schedule a follow-up modal now has 3 round monochrome icon buttons — Call, SMS, Email — so you can tag what kind of follow-up it is. Tap again to clear (optional). The chosen type is persisted on the calendar_events row (new `followup_type` column) and shown as a small circular chip next to every follow-up everywhere it appears: the Calendar sidebar Follow-ups panel, the View all popup, and the contact card Activity-tab list. Icons are simple line SVGs (stroke=currentColor) — no colorful emoji.', commit:'8371714' },
@@ -11211,7 +11215,11 @@ function renderDialerContactPanel(force){
   const stMeta = (typeof getStatusMeta==='function') ? getStatusMeta(c.status) : {label:c.status||'New',color:'pill-cold'};
   const lastAct = c.last_activity ? (typeof fmtLastActivity==='function' ? fmtLastActivity(c.last_activity) : '') : '';
   const tagsHtml = (c.tags||[]).map(t=>`<span class="tag ${t.cls}" style="font-size:9px">${t.label}</span>`).join('');
-  const notes = Array.isArray(c.notes) ? [...c.notes].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)) : [];
+  const notes = Array.isArray(c.notes)
+    ? [...c.notes]
+        .filter(n => typeof _isFollowupAutoNote==='function' ? !_isFollowupAutoNote(n.text) : true)
+        .sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
+    : [];
   const recent = notes.slice(0,5);
   const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
@@ -11964,27 +11972,26 @@ function _fmtFollowupNoteDate(iso){
   return new Date(iso).toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
-async function _appendFollowupNote(contactId, action, iso, extraNote){
+// Used to write a "📅 Follow-up scheduled/rescheduled/cleared …" entry into
+// the contact's notes timeline so the follow-up surfaced wherever notes were
+// shown (contact card Info tab, dialer right-side panel, etc.). That was
+// duplicated information — the Activity tab's Follow-ups section already
+// shows live follow-up state — and it polluted the user-typed Notes list.
+// The function now only bumps last_activity so the contact's list-view
+// recency timestamp still updates. Existing auto-notes from older sessions
+// are filtered out of display by _isFollowupAutoNote() below.
+async function _appendFollowupNote(contactId, action /*, iso, extraNote */){
   if(!contactId) return;
-  const c = contacts.find(x=>x.id===contactId); if(!c) return;
-  if(!Array.isArray(c.notes)) c.notes = [];
-  const when = iso ? _fmtFollowupNoteDate(iso) : '';
-  const verb = { create:'scheduled', edit:'rescheduled to', delete:'cleared' }[action] || 'updated';
-  const body = action === 'delete'
-    ? `📅 Follow-up cleared`
-    : `📅 Follow-up ${verb} ${when}${extraNote?` — ${extraNote}`:''}`;
-  c.notes.push({
-    id:'note_'+Date.now()+Math.random().toString(36).slice(2,6),
-    text: body,
-    created_at: new Date().toISOString(),
-    edited_at: null,
-  });
-  try { await sb.patch('contacts', contactId, { notes:c.notes }); } catch(_){}
-  touchContactActivity(contactId, 'update');
-  // Refresh in-place if the contact's detail panel is open
-  if(typeof renderContactNotes==='function' && document.getElementById('cd-notes-list')){
-    renderContactNotes(contactId);
-  }
+  if(typeof touchContactActivity === 'function') touchContactActivity(contactId, 'update');
+}
+
+// Legacy auto-notes look like "📅 Follow-up scheduled Wed May 22, 3:00 PM"
+// or "📅 Follow-up rescheduled to …" or "📅 Follow-up cleared". They're
+// hidden from the Notes list so all follow-up info lives in one place
+// (the Activity tab). Real user-typed notes that happen to start with the
+// 📅 emoji are unaffected — the prefix requires "Follow-up" after it.
+function _isFollowupAutoNote(text){
+  return /^📅\s*Follow-up\s+(scheduled|rescheduled|cleared)/i.test(String(text||''));
 }
 
 // Open the follow-up modal. Pass eventId to edit an existing follow-up,
