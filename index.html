@@ -1540,6 +1540,14 @@ table th[onclick]{transition:background .15s,color .15s}
             <div id="cal-contact-filter-active" style="margin-top:6px"></div>
           </div>
 
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px">
+            <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
+              <span>Follow-ups <span id="cal-followups-count" style="color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0"></span></span>
+              <button class="btn btn-sm" style="font-size:10px;padding:2px 8px" onclick="renderFollowupsList()">↻</button>
+            </div>
+            <div id="cal-followups-list"></div>
+          </div>
+
           <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;flex:1">
             <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
               Upcoming Events
@@ -5486,6 +5494,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-15', time:'14:00', name:'Calendar — Follow-ups panel, real contact filter, US Holidays', area:'Calendar', description:'Calendar sidebar now has a dedicated "Follow-ups" section listing future Follow-up events from the Call Disposition flow (also still shown under Upcoming Events). "Filter by Contact" now actually filters the month/week/day grid plus the Follow-ups and Upcoming Events lists. Added a built-in "US Holidays" calendar source (all 11 US federal holidays, pre-populated for the previous, current and next two years) — toggle the chip to hide/show holidays on the grid.', commit:'pending' },
   { date:'2026-05-15', time:'10:45', name:'Call Disposition — schedule a follow-up', area:'Dialer, Calendar', description:'The Call Disposition pop-up now has an optional "Schedule a follow-up" date & time picker. Pick a date and a "Follow-up: <contact>" event is added to the CRM calendar (30 min, linked to the contact, with the disposition and note in the event notes).', commit:'b92aa07' },
   { date:'2026-05-15', time:'10:15', name:'Dialer — Dialing Mode tile', area:'Dialer', description:'Added a "Dialing Mode" tile at the top of the Dialer queue view, above "Calling From". It shows the current mode at a glance — Manual or Auto-advance + auto-dial (with the countdown length) — and clicking it opens the dialer settings to change it.', commit:'b92aa07' },
   { date:'2026-05-15', time:'09:30', name:'Team members — reliable add + per-user permissions', area:'Settings → Team Members', description:'Adding a team member now creates a ready-to-use account instantly (no confirmation email, no rate-limit errors) via a server-side Admin API endpoint, and removing one fully revokes login access. Each non-admin user has four permission toggles — Calling & SMS, Edit contacts & deals, Delete records, Settings & team — that an admin can flip on or off any time. Blocked features are hidden from the sidebar and refuse the action with a clear message.', commit:'b835dc7' },
@@ -6914,10 +6923,81 @@ let calView = 'month';
 let calDate = new Date();
 let calEvents = [];
 let calSources = JSON.parse(localStorage.getItem('nlm_cal_sources')||'[{"id":"crm","name":"CRM Events","color":"#4f7ef8","active":true}]');
+// Ensure the built-in US Holidays calendar exists for existing users (migration)
+if(!calSources.find(s=>s.id==='us-holidays')){
+  calSources.push({ id:'us-holidays', name:'US Holidays', color:'#d97bba', active:true, builtin:true });
+  localStorage.setItem('nlm_cal_sources', JSON.stringify(calSources));
+}
 
 const CAL_COLORS = ['#4f7ef8','#3ecf8e','#f59e3f','#d97bba','#f26b6b','#2dd4bf','#a78bfa'];
 const CAL_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const CAL_DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+// ── US FEDERAL HOLIDAYS ──
+function _nthWeekday(year, month, weekday, n){
+  const first = new Date(year, month, 1);
+  const offset = (weekday - first.getDay() + 7) % 7;
+  return new Date(year, month, 1 + offset + (n-1)*7);
+}
+function _lastWeekday(year, month, weekday){
+  const last = new Date(year, month+1, 0);
+  const offset = (last.getDay() - weekday + 7) % 7;
+  return new Date(year, month, last.getDate() - offset);
+}
+function _ymd(d){
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function getUsHolidaysForYear(year){
+  return [
+    { date: `${year}-01-01`,                   name: "New Year's Day" },
+    { date: _ymd(_nthWeekday(year, 0, 1, 3)),  name: "Martin Luther King Jr. Day" },
+    { date: _ymd(_nthWeekday(year, 1, 1, 3)),  name: "Presidents' Day" },
+    { date: _ymd(_lastWeekday(year, 4, 1)),    name: "Memorial Day" },
+    { date: `${year}-06-19`,                   name: "Juneteenth" },
+    { date: `${year}-07-04`,                   name: "Independence Day" },
+    { date: _ymd(_nthWeekday(year, 8, 1, 1)),  name: "Labor Day" },
+    { date: _ymd(_nthWeekday(year, 9, 1, 2)),  name: "Columbus Day" },
+    { date: `${year}-11-11`,                   name: "Veterans Day" },
+    { date: _ymd(_nthWeekday(year, 10, 4, 4)), name: "Thanksgiving Day" },
+    { date: `${year}-12-25`,                   name: "Christmas Day" },
+  ];
+}
+function getUsHolidayEvents(){
+  const src = calSources.find(s=>s.id==='us-holidays');
+  if(!src || !src.active) return [];
+  const thisYear = (new Date()).getFullYear();
+  const out = [];
+  for(let y=thisYear-1; y<=thisYear+2; y++){
+    for(const h of getUsHolidaysForYear(y)){
+      out.push({
+        id: `hol_${h.date}`,
+        title: h.name,
+        start: `${h.date}T12:00:00`,
+        end:   `${h.date}T13:00:00`,
+        sourceId: 'us-holidays',
+        notes: 'US federal holiday',
+        contactId: null,
+        isHoliday: true,
+      });
+    }
+  }
+  return out;
+}
+
+// Merged event source — real CRM events + virtual holiday events when active.
+// Applies the active-calendar filter and (optionally) the contact filter.
+function getVisibleCalEvents({ applyContactFilter = true } = {}){
+  const activeSourceIds = calSources.filter(s=>s.active).map(s=>s.id);
+  const all = [...calEvents, ...getUsHolidayEvents()];
+  return all.filter(ev=>{
+    if(!activeSourceIds.includes(ev.sourceId||'crm')) return false;
+    if(applyContactFilter && calContactFilter && !ev.isHoliday && ev.contactId!==calContactFilter) return false;
+    return true;
+  });
+}
 
 async function saveCalEvents(){
   if(!calEvents.length) return;
@@ -6938,6 +7018,7 @@ function renderCalendar(){
   if(calView==='month') renderMonthGrid();
   else if(calView==='week') renderWeekGrid();
   else renderDayGrid();
+  renderFollowupsList();
   renderUpcomingEvents();
 }
 
@@ -6968,26 +7049,31 @@ function renderMonthGrid(){
   const firstDay = new Date(year,month,1).getDay();
   const daysInMonth = new Date(year,month+1,0).getDate();
   const today = new Date();
-  const activeSourceIds = calSources.filter(s=>s.active).map(s=>s.id);
+  const visible = getVisibleCalEvents();
 
   let html = `<div class="cal-day-headers">${CAL_DAYS.map(d=>`<div class="cal-day-hdr">${d}</div>`).join('')}</div><div class="cal-days">`;
-  
+
   // Prev month padding
   const prevDays = new Date(year,month,0).getDate();
   for(let i=firstDay-1;i>=0;i--){
     html += `<div class="cal-cell other-month"><div class="cal-date">${prevDays-i}</div></div>`;
   }
-  
+
   for(let d=1;d<=daysInMonth;d++){
     const isToday = d===today.getDate()&&month===today.getMonth()&&year===today.getFullYear();
-    const dayEvents = calEvents.filter(ev=>{
+    const dayEvents = visible.filter(ev=>{
       const ed = new Date(ev.start);
-      return ed.getDate()===d&&ed.getMonth()===month&&ed.getFullYear()===year&&activeSourceIds.includes(ev.sourceId||'crm');
+      return ed.getDate()===d&&ed.getMonth()===month&&ed.getFullYear()===year;
     });
-    const colorClass = {blue:'cal-ev-blue',green:'cal-ev-green',amber:'cal-ev-amber',pink:'cal-ev-pink',red:'cal-ev-red'};
     html += `<div class="cal-cell ${isToday?'today':''}" onclick="openEventModal(new Date(${year},${month},${d}))">
       <div class="cal-date">${d}</div>
-      ${dayEvents.slice(0,3).map(ev=>`<div class="cal-event cal-ev-blue" onclick="event.stopPropagation();editCalEvent('${ev.id}')" title="${ev.title}">${ev.title}</div>`).join('')}
+      ${dayEvents.slice(0,3).map(ev=>{
+        const src = calSources.find(s=>s.id===(ev.sourceId||'crm'));
+        const color = src?.color || '#4f7ef8';
+        const click = ev.isHoliday ? '' : `onclick="event.stopPropagation();editCalEvent('${ev.id}')"`;
+        const style = `background:${color}22;color:${color};border-left:2px solid ${color}`;
+        return `<div class="cal-event" style="${style}" ${click} title="${ev.title}">${ev.title}</div>`;
+      }).join('')}
       ${dayEvents.length>3?`<div style="font-size:10px;color:var(--text3)">+${dayEvents.length-3} more</div>`:''}
     </div>`;
   }
@@ -7004,7 +7090,7 @@ function renderWeekGrid(){
   const grid = document.getElementById('cal-grid'); if(!grid) return;
   const start = new Date(calDate); start.setDate(calDate.getDate()-calDate.getDay());
   const today = new Date();
-  const activeSourceIds = calSources.filter(s=>s.active).map(s=>s.id);
+  const visible = getVisibleCalEvents();
   let html = `<div class="cal-day-headers">`;
   for(let i=0;i<7;i++){
     const d = new Date(start); d.setDate(start.getDate()+i);
@@ -7015,12 +7101,18 @@ function renderWeekGrid(){
   for(let i=0;i<7;i++){
     const d = new Date(start); d.setDate(start.getDate()+i);
     const isToday = d.toDateString()===today.toDateString();
-    const dayEvents = calEvents.filter(ev=>{
+    const dayEvents = visible.filter(ev=>{
       const ed = new Date(ev.start);
-      return ed.toDateString()===d.toDateString()&&activeSourceIds.includes(ev.sourceId||'crm');
+      return ed.toDateString()===d.toDateString();
     });
     html += `<div class="cal-cell ${isToday?'today':''}" style="min-height:200px" onclick="openEventModal(new Date('${d.toISOString()}'))">
-      ${dayEvents.map(ev=>`<div class="cal-event cal-ev-blue" onclick="event.stopPropagation();editCalEvent('${ev.id}')">${ev.title}</div>`).join('')}
+      ${dayEvents.map(ev=>{
+        const src = calSources.find(s=>s.id===(ev.sourceId||'crm'));
+        const color = src?.color || '#4f7ef8';
+        const click = ev.isHoliday ? '' : `onclick="event.stopPropagation();editCalEvent('${ev.id}')"`;
+        const style = `background:${color}22;color:${color};border-left:2px solid ${color}`;
+        return `<div class="cal-event" style="${style}" ${click} title="${ev.title}">${ev.title}</div>`;
+      }).join('')}
     </div>`;
   }
   html += '</div>';
@@ -7029,17 +7121,22 @@ function renderWeekGrid(){
 
 function renderDayGrid(){
   const grid = document.getElementById('cal-grid'); if(!grid) return;
-  const activeSourceIds = calSources.filter(s=>s.active).map(s=>s.id);
-  const dayEvents = calEvents.filter(ev=>{
+  const dayEvents = getVisibleCalEvents().filter(ev=>{
     const ed = new Date(ev.start);
-    return ed.toDateString()===calDate.toDateString()&&activeSourceIds.includes(ev.sourceId||'crm');
+    return ed.toDateString()===calDate.toDateString();
   });
   grid.innerHTML = `<div style="padding:16px">
     ${dayEvents.length===0?'<div style="color:var(--text3);font-size:13px;text-align:center;padding:40px">No events today. Click + New Event to add one.</div>':''}
-    ${dayEvents.map(ev=>`<div class="cal-event cal-ev-blue" style="padding:10px 14px;margin-bottom:8px;border-radius:var(--radius);font-size:13px" onclick="editCalEvent('${ev.id}')">
-      <div style="font-weight:600;margin-bottom:2px">${ev.title}</div>
-      <div style="font-size:11px;opacity:.7">${ev.start?new Date(ev.start).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):''} ${ev.notes?'· '+ev.notes:''}</div>
-    </div>`).join('')}
+    ${dayEvents.map(ev=>{
+      const src = calSources.find(s=>s.id===(ev.sourceId||'crm'));
+      const color = src?.color || '#4f7ef8';
+      const click = ev.isHoliday ? '' : `onclick="editCalEvent('${ev.id}')"`;
+      const style = `background:${color}22;color:${color};border-left:3px solid ${color};padding:10px 14px;margin-bottom:8px;border-radius:var(--radius);font-size:13px`;
+      return `<div class="cal-event" style="${style}" ${click}>
+        <div style="font-weight:600;margin-bottom:2px">${ev.title}</div>
+        <div style="font-size:11px;opacity:.7">${ev.isHoliday?'All day':(ev.start?new Date(ev.start).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'')} ${ev.notes?'· '+ev.notes:''}</div>
+      </div>`;
+    }).join('')}
   </div>`;
 }
 
@@ -7107,19 +7204,24 @@ function getCalEventsForDay(year, month, d){
 }
 
 // ── UPCOMING EVENTS LIST ──
-function renderUpcomingEvents(){
-  const el = document.getElementById('cal-upcoming-list'); if(!el) return;
+// Renders a list of upcoming events; `opts.followupsOnly` restricts to
+// follow-up events created from the Call Disposition modal.
+function _renderEventsList(targetId, opts = {}){
+  const el = document.getElementById(targetId); if(!el) return [];
   const now = new Date();
-  const upcoming = calEvents
-    .filter(ev=>new Date(ev.start)>=now)
-    .sort((a,b)=>new Date(a.start)-new Date(b.start))
-    .slice(0,10);
-
-  if(!upcoming.length){
-    el.innerHTML=`<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">No upcoming events</div>`;
-    return;
+  // Holidays are virtual reference markers — they don't belong in user task lists.
+  let list = getVisibleCalEvents()
+    .filter(ev=>!ev.isHoliday && new Date(ev.start)>=now);
+  if(opts.followupsOnly){
+    list = list.filter(ev=>/^Follow-up:/i.test(ev.title||''));
   }
-  el.innerHTML = upcoming.map(ev=>{
+  list = list.sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0, opts.limit||10);
+
+  if(!list.length){
+    el.innerHTML=`<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">${opts.emptyMessage||'No upcoming events'}</div>`;
+    return [];
+  }
+  el.innerHTML = list.map(ev=>{
     const src = calSources.find(s=>s.id===(ev.sourceId||'crm'));
     const color = src?.color||'var(--accent)';
     const d = new Date(ev.start);
@@ -7137,6 +7239,21 @@ function renderUpcomingEvents(){
       </div>
     </div>`;
   }).join('');
+  return list;
+}
+
+function renderUpcomingEvents(){
+  _renderEventsList('cal-upcoming-list', { limit:10 });
+}
+
+function renderFollowupsList(){
+  const list = _renderEventsList('cal-followups-list', {
+    followupsOnly: true,
+    limit: 10,
+    emptyMessage: 'No follow-ups scheduled'
+  });
+  const countEl = document.getElementById('cal-followups-count');
+  if(countEl) countEl.textContent = list.length ? `(${list.length})` : '';
 }
 
 // ── CUSTOM DATE PICKER ──
@@ -7266,7 +7383,7 @@ function openEventModal(date){
   d.setMinutes(0,0,0);
   if(!date) d.setHours(d.getHours()+1);
 
-  const sourceOpts = calSources.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  const sourceOpts = calSources.filter(s=>!s.builtin).map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
   const contactOpts = `<option value="">— none —</option>`+contacts.map(c=>`<option value="${c.id}" data-email="${c.email||''}">${c.name}</option>`).join('');
   const gcalConnected = gcalIsConnected();
 
@@ -7503,7 +7620,7 @@ function editCalEvent(id){
         </div>
       </div>
       <div class="form-group"><label class="form-label">Calendar</label>
-        <select class="form-select" id="ev-source">${calSources.map(s=>`<option value="${s.id}" ${s.id===ev.sourceId?'selected':''}>${s.name}</option>`).join('')}</select>
+        <select class="form-select" id="ev-source">${calSources.filter(s=>!s.builtin).map(s=>`<option value="${s.id}" ${s.id===ev.sourceId?'selected':''}>${s.name}</option>`).join('')}</select>
       </div>
       <div class="form-group"><label class="form-label">Notes</label><textarea class="form-textarea" id="ev-notes">${ev.notes||''}</textarea></div>
       ${ev.gcalLink?`<div style="margin-top:8px"><a href="${ev.gcalLink}" target="_blank" class="btn btn-sm" style="color:var(--green)">Open in Google Calendar →</a>${ev.meetLink?` <a href="${ev.meetLink}" target="_blank" class="btn btn-sm" style="color:var(--accent2)">Join Meet →</a>`:''}</div>`:''}
@@ -7547,6 +7664,7 @@ function renderCalSources(){
 function removeCalSource(id){
   if(calSources.length<=1){ showToast("Can't remove the only calendar",'error'); return; }
   const src = calSources.find(s=>s.id===id);
+  if(src?.builtin){ showToast(`"${src.name}" is built-in — toggle it off instead`,'error'); return; }
   if(!confirm(`Remove calendar "${src?.name}"?`)) return;
   calSources = calSources.filter(s=>s.id!==id);
   saveCalSources(); renderCalendar(); showToast(`Calendar removed`);
