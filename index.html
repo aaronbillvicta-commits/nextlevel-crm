@@ -3245,11 +3245,17 @@ function renderCallHistory(){
     const statusColor = c.status==='missed'||c.status==='failed' ? 'var(--red)' : 'var(--text3)';
     const detail = c.status==='missed'?'Missed':c.status==='failed'?'Failed':fmtDuration(c.duration);
     const phoneFmt = fmtPhoneDisplay(c.number);
+    const contact = (typeof findContactByPhone==='function') ? findContactByPhone(c.number) : null;
     // If contactName equals the raw number (unmatched caller), don't repeat it
     const showsName = c.contactName && c.contactName.replace(/\D/g,'') !== (c.number||'').replace(/\D/g,'');
-    const title = showsName ? c.contactName : (phoneFmt || c.number || 'Unknown');
-    const sub   = showsName && phoneFmt ? `${phoneFmt} · ${fmtCallTime(c.ts)}` : fmtCallTime(c.ts);
-    return `<div class="call-hist-item" onclick="dialpadSetNumber('${c.number}')" title="Click to redial">
+    const title = contact?.name || (showsName ? c.contactName : (phoneFmt || c.number || 'Unknown'));
+    const sub   = (contact || showsName) && phoneFmt ? `${phoneFmt} · ${fmtCallTime(c.ts)}` : fmtCallTime(c.ts);
+    const numStr = (c.number||'').replace(/'/g,'');
+    const onClick = contact
+      ? `openContactDetail('${contact.id}')`
+      : `openUnknownNumberDetail('${numStr}')`;
+    const titleAttr = contact ? 'Open contact' : 'Open caller details';
+    return `<div class="call-hist-item" onclick="${onClick}" title="${titleAttr}">
       <span style="font-size:14px;width:16px;text-align:center;flex-shrink:0">${icon}</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:11px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${title}</div>
@@ -4938,6 +4944,115 @@ async function addContactToPipeline(contactId){
 }
 
 function closeDetail(){ document.getElementById('detail-panel').classList.remove('open'); }
+
+// Right-side detail drawer for a phone number that's NOT in contacts yet.
+// Same panel UI as openContactDetail() so the click-from-call-history flow
+// feels consistent whether the caller is saved or not.
+function openUnknownNumberDetail(rawNumber){
+  const number = String(rawNumber || '').trim();
+  if(!number){ showToast('No number on this entry','error'); return; }
+  // If the contact got added since the call landed in history, route to the
+  // real detail drawer instead.
+  const existing = (typeof findContactByPhone === 'function') ? findContactByPhone(number) : null;
+  if(existing){ openContactDetail(existing.id); return; }
+
+  const phoneFmt = (typeof fmtPhoneDisplay === 'function') ? fmtPhoneDisplay(number) : number;
+  const escNum = number.replace(/'/g, "\\'");
+  // Past calls with this number (last-10-digit match, same convention as findContactByPhone)
+  const tail = number.replace(/\D/g,'').slice(-10);
+  const past = (callHistory || []).filter(c => (c.number||'').replace(/\D/g,'').endsWith(tail));
+  const totalSecs = past.reduce((s,c)=> s + (c.duration||0), 0);
+  const inCount  = past.filter(c=>c.direction==='inbound').length;
+  const outCount = past.filter(c=>c.direction==='outbound').length;
+  const tm = Math.floor(totalSecs/60), ts = totalSecs%60;
+  const talkStr = totalSecs ? (tm>=60 ? `${Math.floor(tm/60)}h ${tm%60}m` : `${tm}m ${ts}s`) : '0s';
+
+  const historyRows = past.length
+    ? past.slice(0, 20).map(c => {
+        const isIn = c.direction === 'inbound';
+        const icon = isIn
+          ? (c.status==='missed' ? '<span style="color:var(--red)">↙</span>' : '<span style="color:var(--green)">↙</span>')
+          : (c.status==='failed' ? '<span style="color:var(--red)">↗</span>' : '<span style="color:var(--accent2)">↗</span>');
+        const detail = c.status==='missed' ? 'Missed' : c.status==='failed' ? 'Failed' : (c.duration ? fmtDuration(c.duration) : 'Connected');
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px">
+          <span style="width:16px;text-align:center;flex-shrink:0;font-size:14px">${icon}</span>
+          <div style="flex:1;min-width:0">
+            <div style="color:var(--text)">${isIn?'Inbound':'Outbound'}</div>
+            <div style="font-size:10px;color:var(--text3)">${fmtCallTime(c.ts)}</div>
+          </div>
+          <div style="font-size:11px;color:var(--text3);flex-shrink:0">${detail}</div>
+        </div>`;
+      }).join('')
+    : `<div style="padding:16px;text-align:center;color:var(--text3);font-size:12px">No prior calls with this number.</div>`;
+
+  document.getElementById('detail-drawer').innerHTML = `
+    <div class="detail-head" style="flex-shrink:0">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="detail-avatar" style="background:var(--bg4);color:var(--text3)">☎</div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--text)">${phoneFmt}</div>
+          <div style="font-size:12px;color:var(--text3)">Not in your contacts</div>
+        </div>
+      </div>
+      <span style="cursor:pointer;font-size:22px;color:var(--text3);line-height:1" onclick="closeDetail()">×</span>
+    </div>
+    <div style="padding:16px;overflow-y:auto;flex:1;min-height:0">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">
+        <div style="background:var(--bg3);border-radius:var(--radius);padding:10px;text-align:center">
+          <div style="font-size:18px;font-weight:700;color:var(--text)">${past.length}</div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Calls</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--radius);padding:10px;text-align:center">
+          <div style="font-size:18px;font-weight:700;color:var(--text)">${inCount} / ${outCount}</div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">In / Out</div>
+        </div>
+        <div style="background:var(--bg3);border-radius:var(--radius);padding:10px;text-align:center">
+          <div style="font-size:18px;font-weight:700;color:var(--text)">${talkStr}</div>
+          <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Talk Time</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px">
+        <button class="btn btn-primary" onclick="addUnknownNumberToContacts('${escNum}')">+ Add to Contacts</button>
+        <button class="btn btn-sm" style="color:var(--green)" onclick="callBackUnknownNumber('${escNum}')">📞 Call Back</button>
+        <button class="btn btn-sm" style="color:var(--accent2)" onclick="smsUnknownNumber('${escNum}')">💬 Send SMS</button>
+      </div>
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Call History</div>
+      <div style="border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">${historyRows}</div>
+      <div style="margin-top:14px;font-size:11px;color:var(--text3);line-height:1.6">
+        Saving this number as a contact will retroactively link all ${past.length} prior call${past.length===1?'':'s'} to that contact.
+      </div>
+    </div>`;
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+function addUnknownNumberToContacts(number){
+  closeDetail();
+  openContactModal();
+  // Pre-fill the phone field once the modal is in the DOM
+  setTimeout(()=>{
+    const phoneInput = document.getElementById('cf-phone');
+    if(phoneInput){ phoneInput.value = number; phoneInput.focus(); }
+    const firstNameInput = document.getElementById('cf-first-name');
+    if(firstNameInput) firstNameInput.focus();
+  }, 50);
+}
+
+function callBackUnknownNumber(number){
+  closeDetail();
+  dialpadSetNumber(number);
+  openDialpad();
+  if(typeof startCall === 'function') startCall();
+}
+
+function smsUnknownNumber(number){
+  closeDetail();
+  // The Conversations area is keyed on contact id; without one we just open
+  // the dialpad with the number prefilled so the user can add+message manually.
+  // (A future improvement: a one-off SMS composer for unknown numbers.)
+  showToast('Add this number to your contacts to send SMS','error');
+  dialpadSetNumber(number);
+  openDialpad();
+}
 
 // ═══════════════════════════════════════════════
 // CONTACT NOTES — timestamped, editable, with separators
@@ -11611,7 +11726,7 @@ function dialerHistRowHTML(c){
   const numStr = (c.number||'').replace(/'/g,'');
   const onClick = contact
     ? `openContactDetail('${contact.id}')`
-    : `dialpadSetNumber('${numStr}');openDialpad()`;
+    : `openUnknownNumberDetail('${numStr}')`;
   return `<div class="dialer-hist-row" onclick="${onClick}" title="${contact?'Open contact':'Redial '+numStr}">
     <span style="font-size:15px;color:${iconColor};width:16px;text-align:center;flex-shrink:0">${icon}</span>
     ${av}
