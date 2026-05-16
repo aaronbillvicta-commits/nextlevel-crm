@@ -3438,18 +3438,71 @@ function attachCallTeardown(call){
   });
 }
 
+// Strip SignalWire's SIP URI wrapper from caller IDs. Fabric inbound calls
+// often surface the From as e.g. "sip:+18325832601@sip.signalwire.com" — we
+// only want the bare E.164. Handles tel: too. Idempotent on clean numbers.
+function cleanCallerNumber(raw){
+  if(!raw) return '';
+  let s = String(raw).trim();
+  // <sip:...> angle-bracketed form
+  if(s.startsWith('<') && s.endsWith('>')) s = s.slice(1, -1);
+  if(s.toLowerCase().startsWith('sip:')) s = s.slice(4);
+  if(s.toLowerCase().startsWith('sips:')) s = s.slice(5);
+  if(s.toLowerCase().startsWith('tel:')) s = s.slice(4);
+  const at = s.indexOf('@');
+  if(at !== -1) s = s.slice(0, at);
+  // semicolon params (e.g. ";user=phone")
+  const semi = s.indexOf(';');
+  if(semi !== -1) s = s.slice(0, semi);
+  return s.trim();
+}
+
+// One-shot cleanup for SIP URIs that leaked into saved data before
+// cleanCallerNumber() was added. Scrubs contacts.phone (persisted to
+// Supabase) and callHistory[].number / .contactName (persisted to
+// localStorage). Idempotent — no-op once nothing matches /^sip[s]?:/i.
+async function migrateSipUriPhones(){
+  let dirtyContacts = 0, dirtyHist = 0;
+  if(Array.isArray(contacts)){
+    for(const c of contacts){
+      if(c?.phone && /^sip[s]?:/i.test(c.phone)){
+        const clean = cleanCallerNumber(c.phone);
+        try {
+          await sb.patch('contacts', c.id, { phone: clean });
+          c.phone = clean;
+          dirtyContacts++;
+        } catch(e){ logError('migrate_sip_phone', e.message, e.stack, { contactId: c.id }); }
+      }
+    }
+  }
+  if(Array.isArray(callHistory)){
+    callHistory.forEach(h => {
+      let changed = false;
+      if(h?.number && /^sip[s]?:/i.test(h.number)){ h.number = cleanCallerNumber(h.number); changed = true; }
+      if(h?.contactName && /^sip[s]?:/i.test(h.contactName)){ h.contactName = cleanCallerNumber(h.contactName); changed = true; }
+      if(changed) dirtyHist++;
+    });
+    if(dirtyHist) saveCallHistory();
+  }
+  if(dirtyContacts || dirtyHist){
+    logError('migrate_sip_phone_done', `cleaned ${dirtyContacts} contacts, ${dirtyHist} history rows`, null, {});
+  }
+}
+
 // Format a phone string for display: "+13058458883" → "(305) 845-8883".
-// Falls back to the raw string for non-US / unformattable numbers.
+// Cleans SIP URIs first so legacy history rows with dirty data still render
+// cleanly. Falls back to the raw string for non-US / unformattable numbers.
 function fmtPhoneDisplay(raw){
   if(!raw) return '';
-  const digits = String(raw).replace(/\D/g,'');
+  const cleaned = cleanCallerNumber(raw);
+  const digits = cleaned.replace(/\D/g,'');
   if(digits.length === 11 && digits.startsWith('1')){
     return `(${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
   }
   if(digits.length === 10){
     return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
   }
-  return String(raw);
+  return cleaned || String(raw);
 }
 
 // Circular-safe stringify so we can dump the SDK's notification object into
@@ -3483,11 +3536,13 @@ function handleIncomingInvite(notification){
     // Try every plausible path: top-level invite, nested invite, details, params
     const details = invite?.details || invite?.invite?.details || notification?.details || {};
     const params  = details?.params || invite?.params || {};
-    const from =
+    const fromRaw =
       details.caller_id_number || details.from_number || details.from ||
       params.caller_id_number  || params.from_number  || params.from  ||
       invite.from              || invite.fromNumber   ||
       notification.from        || '';
+    // Strip the SIP URI wrapper Fabric emits — sip:+18325832601@sip.signalwire.com → +18325832601
+    const from = cleanCallerNumber(fromRaw);
     const callerName =
       details.caller_id_name || details.from_name ||
       params.caller_id_name  || params.from_name  ||
@@ -3551,9 +3606,10 @@ async function acceptIncomingCall(){
   // Pull caller info before invite is consumed (prefer the resolved values we
   // stashed in handleIncomingInvite, which already tried every field shape)
   const details = invite?.details || {};
-  const from = invite._resolvedFrom ||
+  const fromRaw = invite._resolvedFrom ||
     details.caller_id_number || details.from || details.from_number ||
     details.params?.caller_id_number || details.params?.from || '';
+  const from = cleanCallerNumber(fromRaw);
   const matched = (typeof findContactByPhone === 'function') ? findContactByPhone(from) : null;
   const displayName = matched?.name || invite._resolvedName ||
     details.caller_id_name || details.params?.caller_id_name || from || 'Incoming';
@@ -3590,8 +3646,9 @@ async function declineIncomingCall(){
   if(invite){
     try { await invite.reject(); } catch(e){ logError('declineIncomingCall', e.message, e.stack, {}); }
     const details = invite?.details || {};
-    const from = invite._resolvedFrom ||
+    const fromRaw = invite._resolvedFrom ||
       details.caller_id_number || details.from || details.from_number || '';
+    const from = cleanCallerNumber(fromRaw);
     const matched = (typeof findContactByPhone === 'function') ? findContactByPhone(from) : null;
     const displayName = matched?.name || invite._resolvedName ||
       details.caller_id_name || from || 'Unknown';
@@ -5026,12 +5083,13 @@ function openUnknownNumberDetail(rawNumber){
 }
 
 function addUnknownNumberToContacts(number){
+  const clean = cleanCallerNumber(number);
   closeDetail();
   openContactModal();
   // Pre-fill the phone field once the modal is in the DOM
   setTimeout(()=>{
     const phoneInput = document.getElementById('cf-phone');
-    if(phoneInput){ phoneInput.value = number; phoneInput.focus(); }
+    if(phoneInput){ phoneInput.value = clean; phoneInput.focus(); }
     const firstNameInput = document.getElementById('cf-first-name');
     if(firstNameInput) firstNameInput.focus();
   }, 50);
@@ -5039,7 +5097,7 @@ function addUnknownNumberToContacts(number){
 
 function callBackUnknownNumber(number){
   closeDetail();
-  dialpadSetNumber(number);
+  dialpadSetNumber(cleanCallerNumber(number));
   openDialpad();
   if(typeof startCall === 'function') startCall();
 }
@@ -5050,7 +5108,7 @@ function smsUnknownNumber(number){
   // the dialpad with the number prefilled so the user can add+message manually.
   // (A future improvement: a one-off SMS composer for unknown numbers.)
   showToast('Add this number to your contacts to send SMS','error');
-  dialpadSetNumber(number);
+  dialpadSetNumber(cleanCallerNumber(number));
   openDialpad();
 }
 
@@ -6568,6 +6626,10 @@ async function enterApp(){
   document.getElementById('login-screen').style.display='none';
   await loadAllData();
   await loadIntegrations();
+  // Strip SIP URI wrappers ("sip:+1...@sip.signalwire.com") from any contact
+  // phones / call-history rows that were saved before the cleanup landed.
+  // Idempotent; only writes back the dirty rows.
+  migrateSipUriPhones().catch(e => logError('migrate_sip_phone_outer', e.message, e.stack, {}));
   syncMasterTags();
   initColumnOrder(); // initialize column order on boot
   updateSidebarUser();
