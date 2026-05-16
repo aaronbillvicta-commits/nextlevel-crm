@@ -2505,6 +2505,29 @@ table th[onclick]{transition:background .15s,color .15s}
           </div>
         </div>
 
+        <div class="settings-card">
+          <div class="settings-card-head">
+            <div>
+              <div class="settings-card-title">Currency</div>
+              <div class="settings-card-sub">Symbol used for deal values, pipeline totals, and revenue across the CRM</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="theme-option" id="currency-opt-USD" onclick="setCurrency('USD')" style="min-width:120px">
+              <div class="theme-swatch" style="background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--text)">$</div>
+              <div class="theme-opt-label">US Dollar <span style="color:var(--text3);font-weight:400">(USD)</span></div>
+            </button>
+            <button class="theme-option" id="currency-opt-PHP" onclick="setCurrency('PHP')" style="min-width:120px">
+              <div class="theme-swatch" style="background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--text)">₱</div>
+              <div class="theme-opt-label">Philippine Peso <span style="color:var(--text3);font-weight:400">(PHP)</span></div>
+            </button>
+            <button class="theme-option" id="currency-opt-EUR" onclick="setCurrency('EUR')" style="min-width:120px">
+              <div class="theme-swatch" style="background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--text)">€</div>
+              <div class="theme-opt-label">Euro <span style="color:var(--text3);font-weight:400">(EUR)</span></div>
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -5051,7 +5074,7 @@ function openContactDetail(contactId, tab='info') {
               <div style="font-size:13px;font-weight:500;color:var(--text)">${d.name}</div>
               <div style="font-size:11px;color:var(--text3)">${d.pipelineName} → <span style="color:var(--accent2)">${d.stageName}</span></div>
             </div>
-            <div style="font-size:12px;color:var(--green);font-weight:600">₱${(d.value||0).toLocaleString()}</div>
+            <div style="font-size:12px;color:var(--green);font-weight:600">${formatCurrency(d.value||0)}</div>
           </div>`).join('')}
         <div style="border-top:1px solid var(--border);margin:14px 0"></div>
       ` : '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">No pipeline deals yet for this contact.</div>'}
@@ -5069,7 +5092,7 @@ function openContactDetail(contactId, tab='info') {
       <div class="form-row">
         <div class="form-group"><label class="form-label">Deal Name</label>
           <input class="form-input" id="cd-deal-name" value="${c.name}" placeholder="Deal name…"/></div>
-        <div class="form-group"><label class="form-label">Value (₱)</label>
+        <div class="form-group"><label class="form-label">Value (${getCurrencySymbol()})</label>
           <input class="form-input" id="cd-deal-value" type="number" placeholder="0" value="0"/></div>
       </div>
       <button class="btn btn-primary" onclick="addContactToPipeline('${contactId}')">+ Add to Pipeline</button>`;
@@ -5506,7 +5529,7 @@ function renderPipelineTabs(){
         <div class="pl-pipeline-name">${p.name}</div>
         <div class="pl-pipeline-meta">
           ${p.stages?.length||0} stages &nbsp;·&nbsp; ${totalDeals} deal${totalDeals!==1?'s':''}
-          ${totalValue>0?`<br>₱${totalValue.toLocaleString()} total`:''}
+          ${totalValue>0?`<br>${formatCurrency(totalValue)} total`:''}
         </div>
         <!-- Stage progress pills -->
         <div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:6px">
@@ -5543,7 +5566,7 @@ function switchPipeline(id){
   if(pl && nameEl) nameEl.textContent = pl.name;
   if(pl && statsEl){
     const totalVal = pl.deals?.reduce((s,d)=>s+(d.value||0),0)||0;
-    statsEl.textContent = `${pl.deals?.length||0} deals · ₱${totalVal.toLocaleString()} total value`;
+    statsEl.textContent = `${pl.deals?.length||0} deals · ${formatCurrency(totalVal)} total value`;
   }
 }
 
@@ -5563,7 +5586,7 @@ function renderBoard(){
         <div class="deal-drop-zone">
           ${deals.map(deal=>renderDealCard(deal)).join('')}
         </div>
-        <div class="col-total">${deals.length===0?'No deals yet':`Total · ₱${total.toLocaleString()}/mo`}</div>
+        <div class="col-total">${deals.length===0?'No deals yet':`Total · ${formatCurrency(total)}/mo`}</div>
       </div>`;
   }).join('');
 }
@@ -5585,7 +5608,7 @@ function renderDealCard(deal){
       <div class="deal-name">${deal.name}</div>
       <div class="deal-co">${deal.company||''}</div>
       ${contactBadge}
-      <div class="deal-val">₱${(deal.value||0).toLocaleString()}/mo</div>
+      <div class="deal-val">${formatCurrency(deal.value||0)}/mo</div>
       <div class="deal-tags">${(deal.tags||[]).map(t=>`<span class="tag ${t.cls}">${t.label}</span>`).join('')}</div>
       ${preview?`<div class="deal-custom-preview">${preview}</div>`:''}
     </div>`;
@@ -5665,7 +5688,7 @@ function updateAllColumns(){
     const cnt=col.querySelector('.col-cnt');
     const total=col.querySelector('.col-total');
     if(cnt) cnt.textContent=deals.length;
-    if(total){ let sum=0; deals.forEach(d=>sum+=parseInt(d.dataset.value||0)); total.textContent=deals.length===0?'No deals yet':`Total · ₱${sum.toLocaleString()}/mo`; }
+    if(total){ let sum=0; deals.forEach(d=>sum+=parseInt(d.dataset.value||0)); total.textContent=deals.length===0?'No deals yet':`Total · ${formatCurrency(sum)}/mo`; }
   });
 }
 
@@ -5676,7 +5699,7 @@ function refreshPipelineHeader(){
   if(nameEl) nameEl.textContent = pl.name;
   if(statsEl){
     const totalVal = pl.deals?.reduce((s,d)=>s+(d.value||0),0)||0;
-    statsEl.textContent = `${pl.deals?.length||0} deals · ₱${totalVal.toLocaleString()} total value`;
+    statsEl.textContent = `${pl.deals?.length||0} deals · ${formatCurrency(totalVal)} total value`;
   }
   // Also refresh left panel counts
   renderPipelineTabs();
@@ -5948,7 +5971,7 @@ function openDealDetail(dealId){
           <div class="form-group"><label class="form-label">Company</label><input class="form-input" id="dd-company" value="${deal.company||''}"/></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Value (₱)</label><input class="form-input" id="dd-value" type="number" value="${deal.value}"/></div>
+          <div class="form-group"><label class="form-label">Value (${getCurrencySymbol()})</label><input class="form-input" id="dd-value" type="number" value="${deal.value}"/></div>
           <div class="form-group"><label class="form-label">Stage</label><select class="form-select" id="dd-stage">${stageOpts}</select></div>
         </div>
       </div>
@@ -6703,7 +6726,7 @@ function buildWidgetContent(wid,def){
   const pipeline=getActivePipeline();
   if(wid==='stat-leads') return statWidget('👥','Total Leads',contacts.length,contacts.length+' contacts in CRM','up');
   if(wid==='stat-deals'){const cnt=pipelines.reduce((s,p)=>s+p.deals.length,0);return statWidget('🤝','Active Deals',cnt,'across all pipelines','up');}
-  if(wid==='stat-revenue'){const total=pipelines.reduce((s,p)=>s+p.deals.reduce((a,d)=>a+d.value,0),0);return statWidget('💰','Est. Revenue','₱'+total.toLocaleString()+'/mo','total pipeline value','up');}
+  if(wid==='stat-revenue'){const total=pipelines.reduce((s,p)=>s+p.deals.reduce((a,d)=>a+d.value,0),0);return statWidget('💰','Est. Revenue',formatCurrency(total)+'/mo','total pipeline value','up');}
   if(wid==='stat-emails'){const sent=emailStore.filter(e=>e.status==='sent'||e.status==='delivered').length;return statWidget('📧','Emails Sent',sent,sent+' emails sent so far','up');}
 
   if(wid==='activity'){
@@ -10334,7 +10357,7 @@ function renderConvInfoPanel(contact, conv){
         :deals.map(d=>`<div class="conv-deal-card" onclick="navigate('pipeline')">
           <div class="conv-deal-name">${d.name}</div>
           <div class="conv-deal-stage">${d.pipelineName} · ${d.stageName}</div>
-          <div class="conv-deal-val">₱${(d.value||0).toLocaleString()}/mo</div>
+          <div class="conv-deal-val">${formatCurrency(d.value||0)}/mo</div>
         </div>`).join('')}
     </div>
 
@@ -12955,6 +12978,8 @@ document.querySelectorAll('.nav-item').forEach(item=>{
   // Apply saved theme on load
   const savedTheme = localStorage.getItem('crm-theme') || 'default';
   setTheme(savedTheme);
+  // Apply saved currency (PHP default for back-compat with the original symbol)
+  setCurrency(getCurrencyCode());
   // Restore saved logo
   const savedLogo = localStorage.getItem('crm-logo');
   if(savedLogo) applyLogo(savedLogo);
@@ -13002,6 +13027,48 @@ function setTheme(name){
     const el = document.getElementById('theme-opt-'+t);
     if(el) el.classList.toggle('active', t === name);
   });
+}
+
+// ─── CURRENCY ─────────────────────────────────────────────────────────────
+// Single source of truth for the currency symbol used CRM-wide (deal values,
+// pipeline totals, revenue widgets, etc.). Choose between USD ($), PHP (₱)
+// and EUR (€) under Settings → Currency.
+const CURRENCIES = {
+  USD: { symbol: '$', label: 'US Dollar' },
+  PHP: { symbol: '₱', label: 'Philippine Peso' },
+  EUR: { symbol: '€', label: 'Euro' }
+};
+function getCurrencyCode(){
+  const c = localStorage.getItem('crm-currency') || 'PHP';
+  return CURRENCIES[c] ? c : 'PHP';
+}
+function getCurrencySymbol(){
+  return CURRENCIES[getCurrencyCode()].symbol;
+}
+function formatCurrency(value){
+  const n = Number(value) || 0;
+  return getCurrencySymbol() + n.toLocaleString();
+}
+function setCurrency(code){
+  if(!CURRENCIES[code]) code = 'PHP';
+  localStorage.setItem('crm-currency', code);
+  // Update the active state on the Settings buttons
+  Object.keys(CURRENCIES).forEach(k => {
+    const el = document.getElementById('currency-opt-'+k);
+    if(el) el.classList.toggle('active', k === code);
+  });
+  // Re-render every surface that prints money so the change is instant
+  try { if(typeof renderBoard === 'function') renderBoard(); } catch(_){}
+  try { if(typeof renderPipelineTabs === 'function') renderPipelineTabs(); } catch(_){}
+  try { if(typeof renderContacts === 'function') renderContacts(); } catch(_){}
+  try { if(typeof renderConversations === 'function') renderConversations(); } catch(_){}
+  try { if(typeof renderDashboard === 'function') renderDashboard(); } catch(_){}
+  try { if(typeof renderSettingsPipeline === 'function') renderSettingsPipeline(); } catch(_){}
+  // Refresh any open contact-detail Pipeline tab so the (currency) label updates
+  const detailOpen = document.getElementById('detail-panel')?.classList.contains('open');
+  if(detailOpen && typeof activeContactDetailId !== 'undefined' && activeContactDetailId && typeof openContactDetail === 'function'){
+    openContactDetail(activeContactDetailId);
+  }
 }
 </script>
 <audio id="remote-audio" autoplay style="display:none"></audio>
