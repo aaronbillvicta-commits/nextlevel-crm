@@ -5060,13 +5060,7 @@ function openContactDetail(contactId, tab='info') {
         <button class="btn btn-sm" style="color:var(--green);display:inline-flex;align-items:center;gap:6px" onclick="openComposeEmail('${contactId}')">${icon('mail')} Email</button>
         <button class="btn btn-sm" style="color:var(--accent2);display:inline-flex;align-items:center;gap:6px" onclick="openConvWithContact('${contactId}');closeDetail()">${icon('message')} Message</button>
         ${c.phone?`<button class="btn btn-sm" style="color:var(--green);display:inline-flex;align-items:center;gap:6px" onclick="initiateCall('${contactId}','${c.phone.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')">${icon('phone')} Call</button>`:''}
-      </div>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
-        <button class="btn btn-sm" id="ai-score-btn" onclick="aiScoreLead('${contactId}')" style="color:var(--accent2);display:inline-flex;align-items:center;gap:6px">${icon('target')} AI Score</button>
-        <button class="btn btn-sm" id="ai-next-btn" onclick="aiNextAction('${contactId}')" style="color:var(--accent2);display:inline-flex;align-items:center;gap:6px">${icon('bulb')} Next Action</button>
-      </div>
-      <div id="ai-score-result" style="display:none;margin-top:8px;padding:8px 10px;background:var(--bg3);border-radius:var(--radius);font-size:13px"></div>
-      <div id="ai-next-result" style="display:none;margin-top:6px;padding:8px 10px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);font-size:13px;color:var(--accent2)"></div>`;
+      </div>`;
 
   } else if(tab==='pipeline'){
     // Find existing deals for this contact
@@ -11227,54 +11221,6 @@ async function aiDraftReply(channel) {
   if (!result) return;
   bodyEl.value = result;
   if (channel === 'sms') updateConvSmsCount();
-}
-
-async function aiScoreLead(contactId) {
-  const c = contacts.find(x => x.id === contactId); if (!c) return;
-  const btn = document.getElementById('ai-score-btn');
-  if (btn) { btn.textContent = '⏳ Scoring…'; btn.disabled = true; }
-  const conv = conversations.find(cv => cv.contactId === contactId);
-  const result = await callAI('score_lead', {
-    name: c.name, company: c.company, email: c.email, phone: c.phone,
-    source: c.source, status: c.status,
-    tags: (c.tags||[]).map(t=>t.label),
-    notes: (Array.isArray(c.notes)?c.notes.map(n=>n.text):[]).join(' | ') || (c.customFields||{})['__notes__'] || '',
-    messageCount: conv?.messages?.length || 0
-  });
-  if (btn) { btn.textContent = '🎯 AI Score'; btn.disabled = false; }
-  if (!result) return;
-  try {
-    const clean = result.replace(/```json|```/g,'').trim();
-    const parsed = JSON.parse(clean);
-    const scoreEl = document.getElementById('ai-score-result');
-    if (scoreEl) {
-      const color = parsed.score >= 7 ? 'var(--green)' : parsed.score >= 4 ? 'var(--amber)' : 'var(--red)';
-      scoreEl.innerHTML = `<span style="font-weight:700;color:${color};font-size:16px">${parsed.score}/10</span> <span style="font-size:12px;color:var(--text3)">${parsed.reason}</span>`;
-      scoreEl.style.display = 'block';
-    }
-  } catch(e) {
-    const scoreEl = document.getElementById('ai-score-result');
-    if (scoreEl) { scoreEl.textContent = result; scoreEl.style.display = 'block'; }
-  }
-}
-
-async function aiNextAction(contactId) {
-  const c = contacts.find(x => x.id === contactId); if (!c) return;
-  const btn = document.getElementById('ai-next-btn');
-  if (btn) { btn.textContent = '⏳ Thinking…'; btn.disabled = true; }
-  const conv = conversations.find(cv => cv.contactId === contactId);
-  const lastMsg = conv?.messages?.slice(-1)[0];
-  const result = await callAI('next_action', {
-    name: c.name, company: c.company, status: c.status, source: c.source,
-    tags: (c.tags||[]).map(t=>t.label),
-    notes: (Array.isArray(c.notes)?c.notes.map(n=>n.text):[]).join(' | ') || (c.customFields||{})['__notes__'] || '',
-    lastMessage: lastMsg?.body || null,
-    lastMessageDir: lastMsg?.dir || null
-  });
-  if (btn) { btn.textContent = '💡 Next Action'; btn.disabled = false; }
-  if (!result) return;
-  const el = document.getElementById('ai-next-result');
-  if (el) { el.textContent = result; el.style.display = 'block'; }
 }
 
 function sanitizeText(str){

@@ -17,14 +17,6 @@ Recent conversation:
 ${(context?.messages || []).slice(-4).map(m => `[${m.dir === 'outbound' ? 'Us' : 'Them'}]: ${m.body}`).join('\n')}
 Write ONLY the reply message body. If SMS: keep under 160 characters. If email: 2-3 sentences max. No greeting, no sign-off.`,
 
-    score_lead: `You are a lead scoring expert for a digital marketing agency. Score this lead and return valid JSON only.
-Contact: ${JSON.stringify(context || {})}
-Return exactly this JSON (no markdown, no explanation): {"score": <number 1-10>, "reason": "<one sentence>"}`,
-
-    next_action: `You are a CRM assistant for a digital marketing agency. Suggest the single best next action for this contact.
-Contact: ${JSON.stringify(context || {})}
-Return one short sentence (under 20 words). Be specific and actionable. No explanation.`,
-
     summarize_contact: `Summarize this contact's profile for a marketing agency sales rep. 2-3 sentences max.
 Contact: ${JSON.stringify(context || {})}`,
 
