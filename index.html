@@ -3244,11 +3244,16 @@ function renderCallHistory(){
       : (c.status==='failed'?'<span style="color:var(--red)">↗</span>':'<span style="color:var(--accent2)">↗</span>');
     const statusColor = c.status==='missed'||c.status==='failed' ? 'var(--red)' : 'var(--text3)';
     const detail = c.status==='missed'?'Missed':c.status==='failed'?'Failed':fmtDuration(c.duration);
+    const phoneFmt = fmtPhoneDisplay(c.number);
+    // If contactName equals the raw number (unmatched caller), don't repeat it
+    const showsName = c.contactName && c.contactName.replace(/\D/g,'') !== (c.number||'').replace(/\D/g,'');
+    const title = showsName ? c.contactName : (phoneFmt || c.number || 'Unknown');
+    const sub   = showsName && phoneFmt ? `${phoneFmt} · ${fmtCallTime(c.ts)}` : fmtCallTime(c.ts);
     return `<div class="call-hist-item" onclick="dialpadSetNumber('${c.number}')" title="Click to redial">
       <span style="font-size:14px;width:16px;text-align:center;flex-shrink:0">${icon}</span>
       <div style="flex:1;min-width:0">
-        <div style="font-size:11px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.contactName}</div>
-        <div style="font-size:10px;color:var(--text3)">${fmtCallTime(c.ts)}</div>
+        <div style="font-size:11px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${title}</div>
+        <div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sub}</div>
       </div>
       <div style="font-size:10px;color:${statusColor};flex-shrink:0">${detail}</div>
     </div>`;
@@ -3401,6 +3406,46 @@ async function enableIncomingCalls(){
   }
 }
 
+// Attach teardown listeners to a SignalWire Call object. Shared by outbound
+// (startCall) and inbound (acceptIncomingCall). The 'destroy' / 'room.left'
+// events fire reliably on outbound, but on inbound calls that were bridged
+// through an SWML `connect` handler the remote PSTN hangup sometimes only
+// surfaces as a `call.state` transition to 'ending' / 'ended' — so we listen
+// for that too and act on terminal states. All paths route to endCall().
+function attachCallTeardown(call){
+  if(!call || !call.on) return;
+  const teardown = (reason) => {
+    if(swCall !== call) return; // a newer call has already taken over
+    logError('sw_call_teardown', reason, null, {});
+    swCall = null;
+    if(callTimer) endCall();
+  };
+  call.on('destroy',    () => teardown('destroy'));
+  call.on('room.left',  () => teardown('room.left'));
+  call.on('call.ended', () => teardown('call.ended'));
+  call.on('call.state', ev => {
+    const state = String(ev?.call_state ?? ev?.state ?? '').toLowerCase();
+    logError('sw_call_state', state || _safeStringify(ev,300), null, {});
+    if(state === 'ended' || state === 'ending' || state === 'destroy' || state === 'done' || state === 'hangup'){
+      teardown('call.state:'+state);
+    }
+  });
+}
+
+// Format a phone string for display: "+13058458883" → "(305) 845-8883".
+// Falls back to the raw string for non-US / unformattable numbers.
+function fmtPhoneDisplay(raw){
+  if(!raw) return '';
+  const digits = String(raw).replace(/\D/g,'');
+  if(digits.length === 11 && digits.startsWith('1')){
+    return `(${digits.slice(1,4)}) ${digits.slice(4,7)}-${digits.slice(7)}`;
+  }
+  if(digits.length === 10){
+    return `(${digits.slice(0,3)}) ${digits.slice(3,6)}-${digits.slice(6)}`;
+  }
+  return String(raw);
+}
+
 // Circular-safe stringify so we can dump the SDK's notification object into
 // error_logs and inspect the actual shape. Used by handleIncomingInvite.
 function _safeStringify(obj, maxLen){
@@ -3517,9 +3562,7 @@ async function acceptIncomingCall(){
       rootElement: document.getElementById('sw-root-element'),
       audio: true, video: false
     });
-    swCall.on('call.state', ev => logError('sw_call_state', ev.call_state || JSON.stringify(ev), null, {}));
-    swCall.on('destroy', () => { logError('sw_call_destroy','',null,{}); swCall=null; if(callTimer) endCall(); });
-    swCall.on('room.left', () => { logError('sw_room_left','',null,{}); swCall=null; if(callTimer) endCall(); });
+    attachCallTeardown(swCall);
     if(activeCallContact?.id){
       let conv=conversations.find(c=>c.contactId===activeCallContact.id);
       if(!conv){conv={id:'conv_'+Date.now(),contactId:activeCallContact.id,messages:[]};conversations.push(conv);}
@@ -3635,9 +3678,7 @@ async function startCall(){
     // Wrapper handles dial + start + expired-token refresh/retry
     swCall = await dialWithAuthRetry(dialTo);
 
-    swCall.on('call.state', ev => logError('sw_call_state', ev.call_state || JSON.stringify(ev), null, {}));
-    swCall.on('destroy', () => { logError('sw_call_destroy','',null,{}); swCall=null; if(callTimer) endCall(); });
-    swCall.on('room.left', () => { logError('sw_room_left','',null,{}); swCall=null; if(callTimer) endCall(); });
+    attachCallTeardown(swCall);
 
     if(activeCallContact?.id){
       let conv=conversations.find(c=>c.contactId===activeCallContact.id);
@@ -11541,7 +11582,12 @@ function dialerHistoryThisMonth(){
 
 function dialerHistRowHTML(c){
   const contact = (typeof findContactByPhone==='function') ? findContactByPhone(c.number) : null;
-  const displayName = contact?.name || c.contactName || c.number || 'Unknown';
+  const phoneFmt = (typeof fmtPhoneDisplay==='function') ? fmtPhoneDisplay(c.number) : (c.number||'');
+  // Prefer a real name over the raw phone string for the title. If contactName
+  // is just the number (unmatched caller), use the formatted phone instead so
+  // it doesn't look like a bare E.164 string.
+  const hasName = contact?.name || (c.contactName && c.contactName.replace(/\D/g,'') !== (c.number||'').replace(/\D/g,''));
+  const displayName = contact?.name || (hasName ? c.contactName : (phoneFmt || c.number)) || 'Unknown';
   const time = new Date(c.ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
   let icon, iconColor;
   if(c.direction === 'inbound'){
@@ -11570,7 +11616,7 @@ function dialerHistRowHTML(c){
     ${av}
     <div style="flex:1;min-width:0">
       <div style="font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${displayName}${dispoPill}</div>
-      <div style="font-size:11px;color:var(--text3)">${contact?(c.number+' · '):''}${statusText}${!contact?' · not in contacts':''}</div>
+      <div style="font-size:11px;color:var(--text3)">${(contact||hasName)?(phoneFmt+' · '):''}${statusText}${!contact?' · not in contacts':''}</div>
     </div>
     <div style="font-size:11px;color:var(--text3);flex-shrink:0">${time}</div>
   </div>`;
