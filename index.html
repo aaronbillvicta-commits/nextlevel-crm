@@ -3080,6 +3080,10 @@ let activeCallContact = null;
 let dialpadOpen = false;
 let swClient = null;
 let swCall   = null;
+let activeCallDirection = 'outbound';   // set to 'inbound' when accepting an incoming Fabric call; read by endCall() / logCall()
+let pendingInvite = null;               // SignalWire Call Fabric invite object while the incoming-call UI is on screen
+let incomingCallsRegistered = false;    // true once client.online({...}) has succeeded on the current swClient
+let _ringCtx = null, _ringOsc = null, _ringGain = null, _ringInterval = null;
 let preferredInputDevice = localStorage.getItem('crm-audio-input') || '';
 let preferredOutputDevice = localStorage.getItem('crm-audio-output') || '';
 
@@ -3320,6 +3324,7 @@ async function initSWClient(force = false){
   if(force && swClient){
     try { await swClient.disconnect?.(); } catch(_) {}
     swClient = null;
+    incomingCallsRegistered = false;   // a new client = need to re-register inbound
   }
   // Cache-buster + no-store so we never reuse a stale (expired) token
   const r = await fetch('/api/call-token?_=' + Date.now(), { cache: 'no-store' });
@@ -3328,6 +3333,9 @@ async function initSWClient(force = false){
 
   const SW = (window.SignalWire && window.SignalWire.SignalWire) || window.SignalWire;
   swClient = await SW({ token: data.token, logLevel: 'debug' });
+  // Re-register the inbound handler on every fresh client (silent if the user
+  // doesn't have calling perm or hasn't connected SignalWire)
+  enableIncomingCalls().catch(e => logError('sw_inbound_register', e.message, e.stack, {}));
   return swClient;
 }
 
@@ -3371,6 +3379,168 @@ async function dialWithAuthRetry(dialTo){
   throw new Error('Call setup failed after token refresh');
 }
 
+// ─── INCOMING CALL HANDLING (SignalWire Call Fabric subscriber) ───────────
+// Bring the subscriber online so SignalWire can route inbound calls (from the
+// SWML handler bound to the PSTN number) here. Idempotent + best-effort: if
+// SignalWire isn't configured, the user lacks calling perm, or the SDK build
+// doesn't expose online(), this is a no-op.
+async function enableIncomingCalls(){
+  if(!swClient) return;
+  if(incomingCallsRegistered) return;
+  if(typeof getPrimarySwPhone === 'function' && !getPrimarySwPhone()) return;
+  if(typeof can === 'function' && !can('calling')) return;
+  if(typeof swClient.online !== 'function') return; // older SDK build w/o subscriber registration
+  try {
+    await swClient.online({
+      incomingCallHandlers: { all: handleIncomingInvite }
+    });
+    incomingCallsRegistered = true;
+    logError('sw_inbound_register','online() succeeded',null,{});
+  } catch(e){
+    logError('sw_inbound_register_failed', e.message, e.stack, {});
+  }
+}
+
+function handleIncomingInvite(notification){
+  try {
+    const invite = notification?.invite || notification;
+    const details = invite?.details || invite?.invite?.details || {};
+    const from = details.caller_id_number || details.from || details.from_number || details.callerId || '';
+    const callerName = details.caller_id_name || details.from_name || '';
+    const matched = (typeof findContactByPhone === 'function') ? findContactByPhone(from) : null;
+    const displayName = (matched && matched.name) || callerName || from || 'Unknown caller';
+    pendingInvite = invite;
+    showIncomingCallUI(displayName, from, matched);
+    startRingtone();
+  } catch(e){
+    logError('sw_inbound_handle', e.message, e.stack, {});
+  }
+}
+
+function showIncomingCallUI(name, number, matched){
+  let host = document.getElementById('incoming-call-host');
+  if(!host){
+    host = document.createElement('div');
+    host.id = 'incoming-call-host';
+    host.style.cssText = 'position:fixed;top:24px;right:24px;z-index:99999;width:320px;background:var(--bg1);border:1px solid var(--border);border-radius:14px;box-shadow:0 24px 56px rgba(0,0,0,.45);padding:18px;font-family:inherit';
+    document.body.appendChild(host);
+  }
+  const safeName = String(name).replace(/[<>&"]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[s]));
+  const safeNum  = String(number||'').replace(/[<>&"]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[s]));
+  const subline  = matched ? (matched.company || safeNum || '') : safeNum;
+  host.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div style="font-size:22px;animation:pulse 1s infinite">📞</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Incoming call</div>
+        <div style="font-size:15px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${safeName}</div>
+        ${subline ? `<div style="font-size:12px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${subline}</div>` : ''}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" style="flex:1;background:var(--red);color:#fff;border-color:var(--red)" onclick="declineIncomingCall()">Decline</button>
+      <button class="btn btn-primary" style="flex:1;background:var(--green);color:#fff;border-color:var(--green)" onclick="acceptIncomingCall()">Accept</button>
+    </div>`;
+  host.style.display = 'block';
+}
+
+function hideIncomingCallUI(){
+  const host = document.getElementById('incoming-call-host');
+  if(host) host.style.display = 'none';
+}
+
+async function acceptIncomingCall(){
+  if(!requirePerm('calling','You don\'t have permission to take calls')){
+    declineIncomingCall();
+    return;
+  }
+  if(!pendingInvite){ hideIncomingCallUI(); stopRingtone(); return; }
+  const invite = pendingInvite;
+  pendingInvite = null;
+  stopRingtone();
+  hideIncomingCallUI();
+  // Pull caller info before invite is consumed
+  const details = invite?.details || {};
+  const from = details.caller_id_number || details.from || details.from_number || '';
+  const matched = (typeof findContactByPhone === 'function') ? findContactByPhone(from) : null;
+  const displayName = matched?.name || details.caller_id_name || from || 'Incoming';
+  if(matched) activeCallContact = { id: matched.id, name: matched.name, phone: from };
+  else activeCallContact = { id: null, name: displayName, phone: from };
+  activeCallDirection = 'inbound';
+  openDialpad();
+  setCallActive(displayName, from);
+  try {
+    showToast('📞 Connecting…');
+    swCall = await invite.accept({
+      rootElement: document.getElementById('sw-root-element'),
+      audio: true, video: false
+    });
+    swCall.on('call.state', ev => logError('sw_call_state', ev.call_state || JSON.stringify(ev), null, {}));
+    swCall.on('destroy', () => { logError('sw_call_destroy','',null,{}); swCall=null; if(callTimer) endCall(); });
+    swCall.on('room.left', () => { logError('sw_room_left','',null,{}); swCall=null; if(callTimer) endCall(); });
+    if(activeCallContact?.id){
+      let conv=conversations.find(c=>c.contactId===activeCallContact.id);
+      if(!conv){conv={id:'conv_'+Date.now(),contactId:activeCallContact.id,messages:[]};conversations.push(conv);}
+      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'inbound',body:`📞 Inbound call from ${from||'unknown'}`,ts:new Date().toISOString(),status:'received'});
+      saveConversations();
+    }
+  } catch(e){
+    logError('acceptIncomingCall', e.message, e.stack, { from });
+    showToast('Could not connect call: '+(e.message||'unknown error'),'error');
+    endCall();
+  }
+}
+
+async function declineIncomingCall(){
+  const invite = pendingInvite;
+  pendingInvite = null;
+  stopRingtone();
+  hideIncomingCallUI();
+  if(invite){
+    try { await invite.reject(); } catch(e){ logError('declineIncomingCall', e.message, e.stack, {}); }
+    const details = invite?.details || {};
+    const from = details.caller_id_number || details.from || details.from_number || '';
+    const matched = (typeof findContactByPhone === 'function') ? findContactByPhone(from) : null;
+    const displayName = matched?.name || details.caller_id_name || from || 'Unknown';
+    logCall('inbound', from, displayName, 0, 'missed');
+  }
+}
+
+// Simple WebAudio ringtone — 1s on / 1s off sine pattern. Quiet (~0.15 gain).
+// Requires a prior user gesture (the login click counts) before audio can play.
+function startRingtone(){
+  if(_ringInterval) return;
+  try {
+    _ringCtx = new (window.AudioContext || window.webkitAudioContext)();
+    _ringGain = _ringCtx.createGain();
+    _ringGain.gain.value = 0.0;
+    _ringGain.connect(_ringCtx.destination);
+    _ringOsc = _ringCtx.createOscillator();
+    _ringOsc.type = 'sine';
+    _ringOsc.frequency.value = 480;
+    _ringOsc.connect(_ringGain);
+    _ringOsc.start();
+    let on = false;
+    const tick = () => {
+      on = !on;
+      if(!_ringGain) return;
+      _ringGain.gain.cancelScheduledValues(_ringCtx.currentTime);
+      _ringGain.gain.setValueAtTime(on ? 0.15 : 0.0, _ringCtx.currentTime);
+    };
+    tick();
+    _ringInterval = setInterval(tick, 1000);
+  } catch(e){ logError('ringtone_start', e.message, e.stack, {}); }
+}
+
+function stopRingtone(){
+  try {
+    if(_ringInterval){ clearInterval(_ringInterval); _ringInterval = null; }
+    if(_ringOsc){ try{ _ringOsc.stop(); }catch(_){}; try{ _ringOsc.disconnect(); }catch(_){}; _ringOsc = null; }
+    if(_ringGain){ try{ _ringGain.disconnect(); }catch(_){}; _ringGain = null; }
+    if(_ringCtx){ try{ _ringCtx.close(); }catch(_){}; _ringCtx = null; }
+  } catch(_) {}
+}
+
 async function startCall(){
   if(!requirePerm('calling','You don\'t have permission to make calls')) return;
   // Guard — only one call at a time
@@ -3410,6 +3580,7 @@ async function startCall(){
   const dialTo = number.startsWith('+') ? number : '+1'+number.replace(/\D/g,'');
 
   // Show in-call UI immediately so drop button + keypad are visible during "Connecting…"
+  activeCallDirection = 'outbound';
   openDialpad();
   setCallActive(contactName, number);
 
@@ -3433,7 +3604,7 @@ async function startCall(){
   } catch(e){
     if(swCall){ try{ await swCall.leave(); }catch(_){} swCall=null; }
     // If we somehow still got an auth error here (e.g. start() threw), force-refresh next time
-    if(isExpiredTokenError(e)){ swClient = null; }
+    if(isExpiredTokenError(e)){ swClient = null; incomingCallsRegistered = false; }
     logCall('outbound', dialTo, activeCallContact?.name||'', 0, 'failed');
     showToast('Call failed: '+(e.message||'Unknown error'),'error');
     logError('startCall', e.message, e.stack, { to: dialTo, contact: activeCallContact?.name });
@@ -3479,7 +3650,8 @@ function endCall(){
   const s=String(callSeconds%60).padStart(2,'0');
   // Log to call history
   const calledNumber = activeCallContact?.phone || document.getElementById('call-dial-number')?.value || '';
-  logCall('outbound', calledNumber, activeCallContact?.name||'', callSeconds, callSeconds>0?'completed':'missed');
+  const dir = activeCallDirection || 'outbound';
+  logCall(dir, calledNumber, activeCallContact?.name||'', callSeconds, callSeconds>0?'completed':'missed');
   if(activeCallContact?.id){
     let conv=conversations.find(c=>c.contactId===activeCallContact.id);
     if(conv){
@@ -3504,6 +3676,7 @@ function endCall(){
   const input=document.getElementById('call-dial-number');
   if(input) input.value='';
   activeCallContact=null;
+  activeCallDirection = 'outbound';
   showToast(`Call ended — ${m}:${s}`);
 
   // Dialer: a queue call just ended — prompt for a disposition
@@ -5555,6 +5728,7 @@ function renderSettingsPage(){
 // To add a new entry: prepend to APP_VERSIONS *and* update CHANGELOG.md in the repo root
 // ═══════════════════════════════════════════════
 const APP_VERSIONS = [
+  { date:'2026-05-15', time:'22:00', name:'Incoming calls — ring the browser', area:'Calling', description:'PSTN calls to a connected SignalWire number now ring the CRM in the browser. On app load (after login), the SignalWire Call Fabric subscriber is brought online via client.online({ incomingCallHandlers }); when an inbound call arrives, a fixed-position "Incoming call from <name or number>" card appears in the top-right with Accept (green) / Decline (red) buttons and a soft 1s on/off WebAudio ringtone (matches caller to a CRM contact when possible). Accept routes the call into the existing dialpad UI (timer + mute + drop) and writes an "📞 Inbound call from …" entry into the contact\'s conversation. Decline rejects the invite and logs a missed inbound call to the call history. activeCallDirection is now tracked so endCall() / logCall() record inbound vs outbound correctly. Token-refresh path re-registers the subscriber automatically. Requires the calling permission. Requires a SignalWire dashboard SWML inbound handler on the number — see CONTINUE-HERE.md.', commit:'pending' },
   { date:'2026-05-15', time:'20:30', name:'Follow-up info consolidated to the Activity tab', area:'Contacts, Dialer', description:'Scheduling, editing, or deleting a follow-up no longer pushes a "📅 Follow-up scheduled …" entry into the contact\'s Notes timeline. The Activity tab\'s Follow-ups section is now the single source of truth — the Notes list is for user-typed notes only. Existing auto-generated entries from earlier sessions are filtered out of the contact-modal Notes list and the dialer\'s right-side contact panel; they\'re still in the database (harmless) but hidden from view. last_activity is still bumped on follow-up actions so list-view recency stays accurate.', commit:'7ad83f0' },
   { date:'2026-05-15', time:'20:00', name:'Call Disposition — modal stays open on pill click', area:'Dialer', description:'The Call Disposition modal no longer closes when you click a disposition pill (HOT/INTERESTED/etc.) — clicking now records the disposition but keeps the pop-up open so accidental clicks are correctable and you can still add a note, change the disposition, or schedule a follow-up. Re-clicking a different pill updates the same log entry + contact note in place (no duplicates); the selected pill is highlighted with a ✓ check. The modal now closes only via the × button, the Skip button, the new Done button, or Esc — and outside-click is and remains disabled. If you close with a follow-up date still in the picker, it auto-commits so the work isn\'t lost.', commit:'34eb7d5' },
   { date:'2026-05-15', time:'19:30', name:'Follow-ups — Google Meet 4th icon + Call Disposition Schedule button', area:'Calendar, Dialer', description:'Added a 4th type for follow-ups: 🎥 Google Meet. The DB CHECK constraint on calendar_events.followup_type was widened to accept "meet". The Call Disposition modal now has its own copy of the 4 round icon buttons (Call/SMS/Email/Meet) plus a dedicated "📅 Schedule follow-up" confirm button — you can stage and commit the follow-up directly from the disposition pop-up without having to click a disposition pill first (the disposition click still works the same way for those who prefer the one-shot flow). After clicking Schedule, the date picker area is replaced with a green confirmation panel so it\'s obvious the follow-up was saved.', commit:'a03e416' },
@@ -6203,6 +6377,14 @@ async function enterApp(){
   renderCustomFieldsPage();
   renderSettingsPage();
   renderDashboard();
+
+  // Bring the SignalWire subscriber online so PSTN calls to the configured
+  // number can ring the browser. Best-effort — silent failure if SignalWire
+  // isn't configured, the user lacks calling perm, or the network is down.
+  // Token auto-refresh in initSWClient() keeps the registration alive.
+  if(typeof getPrimarySwPhone === 'function' && getPrimarySwPhone() && can('calling')){
+    initSWClient().catch(e => logError('sw_inbound_boot', e.message, e.stack, {}));
+  }
 
   // Poll for inbound SMS every 30 seconds
   setInterval(async()=>{
