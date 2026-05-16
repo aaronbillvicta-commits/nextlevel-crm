@@ -3401,15 +3401,53 @@ async function enableIncomingCalls(){
   }
 }
 
+// Circular-safe stringify so we can dump the SDK's notification object into
+// error_logs and inspect the actual shape. Used by handleIncomingInvite.
+function _safeStringify(obj, maxLen){
+  try {
+    const seen = new WeakSet();
+    const s = JSON.stringify(obj, (k,v) => {
+      if(typeof v === 'function') return '[fn]';
+      if(v && typeof v === 'object'){
+        if(seen.has(v)) return '[circular]';
+        seen.add(v);
+      }
+      return v;
+    });
+    return s && s.length > (maxLen||4000) ? s.slice(0, maxLen||4000) + '…[truncated]' : s;
+  } catch(e){ return '[stringify-failed: '+e.message+']'; }
+}
+
 function handleIncomingInvite(notification){
   try {
+    // Dump the raw notification once so we can see the actual field shape in
+    // error_logs. Cheap insurance — invites are rare events.
+    logError('sw_inbound_invite_raw', 'inbound invite received', null, {
+      notificationKeys: Object.keys(notification||{}),
+      inviteKeys: Object.keys(notification?.invite||{}),
+      detailsKeys: Object.keys(notification?.invite?.details||notification?.details||{}),
+      raw: _safeStringify(notification, 3000)
+    });
     const invite = notification?.invite || notification;
-    const details = invite?.details || invite?.invite?.details || {};
-    const from = details.caller_id_number || details.from || details.from_number || details.callerId || '';
-    const callerName = details.caller_id_name || details.from_name || '';
+    // Try every plausible path: top-level invite, nested invite, details, params
+    const details = invite?.details || invite?.invite?.details || notification?.details || {};
+    const params  = details?.params || invite?.params || {};
+    const from =
+      details.caller_id_number || details.from_number || details.from ||
+      params.caller_id_number  || params.from_number  || params.from  ||
+      invite.from              || invite.fromNumber   ||
+      notification.from        || '';
+    const callerName =
+      details.caller_id_name || details.from_name ||
+      params.caller_id_name  || params.from_name  ||
+      invite.fromName        || '';
     const matched = (typeof findContactByPhone === 'function') ? findContactByPhone(from) : null;
     const displayName = (matched && matched.name) || callerName || from || 'Unknown caller';
     pendingInvite = invite;
+    // Stash the resolved metadata on the invite so acceptIncomingCall() doesn't
+    // have to re-derive (the SDK clears .details after accept on some builds)
+    invite._resolvedFrom = from;
+    invite._resolvedName = displayName;
     showIncomingCallUI(displayName, from, matched);
     startRingtone();
   } catch(e){
@@ -3459,11 +3497,15 @@ async function acceptIncomingCall(){
   pendingInvite = null;
   stopRingtone();
   hideIncomingCallUI();
-  // Pull caller info before invite is consumed
+  // Pull caller info before invite is consumed (prefer the resolved values we
+  // stashed in handleIncomingInvite, which already tried every field shape)
   const details = invite?.details || {};
-  const from = details.caller_id_number || details.from || details.from_number || '';
+  const from = invite._resolvedFrom ||
+    details.caller_id_number || details.from || details.from_number ||
+    details.params?.caller_id_number || details.params?.from || '';
   const matched = (typeof findContactByPhone === 'function') ? findContactByPhone(from) : null;
-  const displayName = matched?.name || details.caller_id_name || from || 'Incoming';
+  const displayName = matched?.name || invite._resolvedName ||
+    details.caller_id_name || details.params?.caller_id_name || from || 'Incoming';
   if(matched) activeCallContact = { id: matched.id, name: matched.name, phone: from };
   else activeCallContact = { id: null, name: displayName, phone: from };
   activeCallDirection = 'inbound';
@@ -3499,9 +3541,11 @@ async function declineIncomingCall(){
   if(invite){
     try { await invite.reject(); } catch(e){ logError('declineIncomingCall', e.message, e.stack, {}); }
     const details = invite?.details || {};
-    const from = details.caller_id_number || details.from || details.from_number || '';
+    const from = invite._resolvedFrom ||
+      details.caller_id_number || details.from || details.from_number || '';
     const matched = (typeof findContactByPhone === 'function') ? findContactByPhone(from) : null;
-    const displayName = matched?.name || details.caller_id_name || from || 'Unknown';
+    const displayName = matched?.name || invite._resolvedName ||
+      details.caller_id_name || from || 'Unknown';
     logCall('inbound', from, displayName, 0, 'missed');
   }
 }
