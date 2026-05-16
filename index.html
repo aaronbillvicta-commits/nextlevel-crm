@@ -3333,8 +3333,15 @@ function updateCallWidgetVisibility(page){
 }
 
 function toggleDialpad(){
-  if(dialpadOpen) closeDialpad();
-  else openDialpad();
+  if(dialpadOpen){
+    // Closing via the X button: end any active call first so the user isn't
+    // left with a hidden call still running silently in the background.
+    // (closeDialpad alone just hides the panel — it doesn't touch the SDK.)
+    if(swCall || callTimer) endCall();
+    closeDialpad();
+  } else {
+    openDialpad();
+  }
 }
 
 function openDialpad(){
@@ -3674,10 +3681,19 @@ function attachCallTeardown(call){
   call.on('destroy',    () => teardown('destroy'));
   call.on('room.left',  () => teardown('room.left'));
   call.on('call.ended', () => teardown('call.ended'));
+  // Widened terminal-state set: covers SDK variants that emit `terminated`,
+  // `completed`, `disconnected`, `destroyed`, `gone`, `aborted` instead of the
+  // five originally matched. None of these are valid intermediate states, so
+  // adding them is purely defensive — without them, those SDK paths leave the
+  // "On Call" UI stuck until the user manually drops.
+  const TERMINAL_CALL_STATES = new Set([
+    'ended','ending','destroy','destroyed','done','hangup',
+    'terminated','completed','disconnected','gone','aborted'
+  ]);
   call.on('call.state', ev => {
     const state = String(ev?.call_state ?? ev?.state ?? '').toLowerCase();
     logError('sw_call_state', state || _safeStringify(ev,300), null, {});
-    if(state === 'ended' || state === 'ending' || state === 'destroy' || state === 'done' || state === 'hangup'){
+    if(TERMINAL_CALL_STATES.has(state)){
       teardown('call.state:'+state);
     }
   });
