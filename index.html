@@ -3764,7 +3764,7 @@ function showIncomingCallUI(name, number, matched){
   if(!host){
     host = document.createElement('div');
     host.id = 'incoming-call-host';
-    host.style.cssText = 'position:fixed;top:24px;right:24px;z-index:99999;width:320px;background:var(--bg1);border:1px solid var(--border);border-radius:14px;box-shadow:0 24px 56px rgba(0,0,0,.45);padding:18px;font-family:inherit';
+    host.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:99999;width:340px;max-width:calc(100vw - 32px);background:var(--bg1);border:1px solid var(--border);border-radius:14px;box-shadow:0 24px 56px rgba(0,0,0,.45);padding:18px;font-family:inherit';
     document.body.appendChild(host);
   }
   const safeName = String(name).replace(/[<>&"]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[s]));
