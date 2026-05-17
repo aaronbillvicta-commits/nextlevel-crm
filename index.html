@@ -21,6 +21,7 @@
 <script type="module" src="src/contacts/filters.js?v=2026-05-16-11"></script>
 <script type="module" src="src/contacts/selection.js?v=2026-05-16-12"></script>
 <script type="module" src="src/contacts/column-customizer.js?v=2026-05-16-13"></script>
+<script type="module" src="src/contacts/index.js?v=2026-05-17-1"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -13084,6 +13085,10 @@ Object.defineProperty(window, 'calView',                 { get:()=>calView,     
 Object.defineProperty(window, 'calDate',                 { get:()=>calDate,                 set:v=>{calDate=v;},                 configurable:true });
 Object.defineProperty(window, 'calEvents',               { get:()=>calEvents,               set:v=>{calEvents=v;},               configurable:true });
 Object.defineProperty(window, 'calSources',              { get:()=>calSources,              set:v=>{calSources=v;},              configurable:true });
+Object.defineProperty(window, 'contactCustomFields',     { get:()=>contactCustomFields,     set:v=>{contactCustomFields=v;},     configurable:true });
+Object.defineProperty(window, 'TAG_COLORS',              { get:()=>TAG_COLORS,                                                   configurable:true });
+Object.defineProperty(window, 'conversations',           { get:()=>conversations,           set:v=>{conversations=v;},           configurable:true });
+Object.defineProperty(window, 'emailStore',              { get:()=>emailStore,              set:v=>{emailStore=v;},              configurable:true });
 window.__nlmStateMirrorLoaded = true;
 </script>
 <audio id="remote-audio" autoplay style="display:none"></audio>
