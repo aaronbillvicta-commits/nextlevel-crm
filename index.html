@@ -262,6 +262,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-size:14px;line
 .pill-new{background:var(--accent-bg);color:var(--accent2)}
 .pill-cold{background:rgba(255,255,255,.05);color:var(--text3)}
 .pill-done{background:var(--green-bg);color:var(--green)}
+.pill-orange{background:var(--orange-bg);color:var(--orange)}
+.pill-yellow{background:var(--yellow-bg);color:var(--yellow)}
+.pill-indigo{background:var(--indigo-bg);color:var(--indigo)}
+.pill-violet{background:var(--violet-bg);color:var(--violet)}
+.pill-amber{background:var(--amber-bg);color:var(--amber)}
+.pill-pink{background:var(--pink-bg);color:var(--pink)}
+.pill-purple{background:var(--purple-bg);color:var(--purple)}
 
 /* ── TABLE ── */
 .tbl-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden}
@@ -4969,11 +4976,21 @@ async function saveContact(id, tab, keepOpen=false) {
 // CONTACT SETTINGS — manage Statuses & Sources
 // ═══════════════════════════════════════════════
 const STATUS_COLORS = [
-  {cls:'pill-new',    name:'Blue'},
-  {cls:'pill-active', name:'Green'},
+  // Rainbow first (R-O-Y-G-B-I-V), then the original extras (Amber, Pink,
+  // Purple, Teal/Done, Gray/Cold). Matches the TAG_COLORS palette so the
+  // two color choosers feel consistent.
   {cls:'pill-hot',    name:'Red'},
-  {cls:'pill-cold',   name:'Gray'},
+  {cls:'pill-orange', name:'Orange'},
+  {cls:'pill-yellow', name:'Yellow'},
+  {cls:'pill-active', name:'Green'},
+  {cls:'pill-new',    name:'Blue'},
+  {cls:'pill-indigo', name:'Indigo'},
+  {cls:'pill-violet', name:'Violet'},
+  {cls:'pill-amber',  name:'Amber'},
+  {cls:'pill-pink',   name:'Pink'},
+  {cls:'pill-purple', name:'Purple'},
   {cls:'pill-done',   name:'Teal'},
+  {cls:'pill-cold',   name:'Gray'},
 ];
 
 function csStatusRowHTML(s){
@@ -12188,7 +12205,7 @@ function renderDialerReport(){
       const counts = {};
       dispos.forEach(d => { counts[d.dispoLabel] = (counts[d.dispoLabel]||0)+1; });
       const total = dispos.length;
-      const colorMap = {'pill-hot':'var(--red)','pill-active':'var(--green)','pill-new':'var(--accent2)','pill-cold':'var(--text3)','pill-done':'var(--green)'};
+      const colorMap = {'pill-hot':'var(--red)','pill-active':'var(--green)','pill-new':'var(--accent2)','pill-cold':'var(--text3)','pill-done':'var(--green)','pill-orange':'var(--orange)','pill-yellow':'var(--yellow)','pill-indigo':'var(--indigo)','pill-violet':'var(--violet)','pill-amber':'var(--amber)','pill-pink':'var(--pink)','pill-purple':'var(--purple)'};
       // Resolve each label's color from settings
       const labelColor = {};
       dialerSettings.dispositions.forEach(d => { labelColor[d.label] = colorMap[d.color] || 'var(--text3)'; });
@@ -12467,8 +12484,8 @@ function showDialerDisposition(ctx){
   const c = contacts.find(x=>x.id===ctx.id) || { id:ctx.id, name:ctx.name, phone:ctx.phone };
   const m = String(Math.floor((ctx.seconds||0)/60)).padStart(2,'0');
   const s = String((ctx.seconds||0)%60).padStart(2,'0');
-  const colorMap = {'pill-hot':'var(--red)','pill-active':'var(--green)','pill-new':'var(--accent2)','pill-cold':'var(--text3)','pill-done':'var(--green)'};
-  const colorBgMap = {'pill-hot':'var(--red-bg)','pill-active':'var(--green-bg)','pill-new':'var(--accent-bg)','pill-cold':'var(--bg4)','pill-done':'var(--green-bg)'};
+  const colorMap = {'pill-hot':'var(--red)','pill-active':'var(--green)','pill-new':'var(--accent2)','pill-cold':'var(--text3)','pill-done':'var(--green)','pill-orange':'var(--orange)','pill-yellow':'var(--yellow)','pill-indigo':'var(--indigo)','pill-violet':'var(--violet)','pill-amber':'var(--amber)','pill-pink':'var(--pink)','pill-purple':'var(--purple)'};
+  const colorBgMap = {'pill-hot':'var(--red-bg)','pill-active':'var(--green-bg)','pill-new':'var(--accent-bg)','pill-cold':'var(--bg4)','pill-done':'var(--green-bg)','pill-orange':'var(--orange-bg)','pill-yellow':'var(--yellow-bg)','pill-indigo':'var(--indigo-bg)','pill-violet':'var(--violet-bg)','pill-amber':'var(--amber-bg)','pill-pink':'var(--pink-bg)','pill-purple':'var(--purple-bg)'};
   const btns = dialerSettings.dispositions.map(d=>`
     <button class="dispo-btn" data-value="${d.value}" style="background:${colorBgMap[d.color]||'var(--bg3)'};color:${colorMap[d.color]||'var(--text)'}"
       onclick="applyDisposition('${c.id}','${d.value}')">${d.label}</button>
