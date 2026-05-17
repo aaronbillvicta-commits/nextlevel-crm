@@ -7,6 +7,44 @@
 <link id="app-favicon" rel="icon" type="image/png" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2300d2ff'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' dominant-baseline='middle' fill='%230d1225' font-family='sans-serif' font-weight='700' font-size='14'%3ENL%3C/text%3E%3C/svg%3E"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://accounts.google.com/gsi/client" async></script>
+<script>
+// CRITICAL: this MUST run before @signalwire/js loads so we intercept the
+// native RTCPeerConnection reference before the SDK captures it. Routes the
+// remote audio track from any peer connection into <audio id="remote-audio">.
+(function(){
+  const _Orig = window.RTCPeerConnection;
+  if(!_Orig) return;
+  function PatchedPC(){
+    const pc = new _Orig(...arguments);
+    pc.addEventListener('track', function(ev){
+      try {
+        if(!ev.track || ev.track.kind !== 'audio') return;
+        const stream = (ev.streams && ev.streams[0]) || new MediaStream([ev.track]);
+        var audioEl = document.getElementById('remote-audio');
+        if(!audioEl){
+          audioEl = document.createElement('audio');
+          audioEl.id = 'remote-audio';
+          audioEl.autoplay = true;
+          audioEl.style.cssText = 'position:absolute;left:-9999px;top:-9999px;width:1px;height:1px';
+          document.body.appendChild(audioEl);
+        }
+        if(audioEl.srcObject !== stream){
+          audioEl.srcObject = stream;
+          audioEl.play().catch(function(e){ console.warn('[crm-audio] play() failed:', e.message); });
+          console.info('[crm-audio] Remote audio stream attached');
+        }
+      } catch(e){ console.error('[crm-audio] ontrack error:', e); }
+    });
+    return pc;
+  }
+  PatchedPC.prototype = _Orig.prototype;
+  Object.setPrototypeOf(PatchedPC, _Orig);
+  window.RTCPeerConnection = PatchedPC;
+  // Also patch webkit-prefixed variant if present (older Safari)
+  if(window.webkitRTCPeerConnection) window.webkitRTCPeerConnection = PatchedPC;
+  console.info('[crm-audio] RTCPeerConnection patched for audio routing');
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@signalwire/js@^3/dist/index.umd.min.js"></script>
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
@@ -3232,34 +3270,6 @@ let callSeconds = 0;
 let callMuted = false;
 let activeCallContact = null;
 let dialpadOpen = false;
-// Patch RTCPeerConnection at the native level so we capture the remote audio
-// stream regardless of which internal property path the SignalWire SDK uses.
-// This runs once at startup, before the SDK ever creates a peer connection.
-(function patchRTCForAudio(){
-  const _Orig = window.RTCPeerConnection;
-  if(!_Orig) return;
-  function PatchedPC(...args){
-    const pc = new _Orig(...args);
-    pc.addEventListener('track', ev => {
-      if(ev.track?.kind !== 'audio') return;
-      const stream = ev.streams?.[0] || (ev.track ? new MediaStream([ev.track]) : null);
-      if(!stream) return;
-      const audioEl = document.getElementById('remote-audio');
-      if(audioEl && audioEl.srcObject !== stream){
-        audioEl.srcObject = stream;
-        audioEl.play().catch(e => logError('rtc_audio_play', e.message, null, {}));
-        if(preferredOutputDevice && audioEl.setSinkId)
-          audioEl.setSinkId(preferredOutputDevice).catch(()=>{});
-        logError('rtc_audio_attached', 'Remote audio stream attached via RTCPeerConnection patch', null, {});
-      }
-    });
-    return pc;
-  }
-  PatchedPC.prototype = _Orig.prototype;
-  Object.setPrototypeOf(PatchedPC, _Orig);
-  window.RTCPeerConnection = PatchedPC;
-})();
-
 let swClient = null;
 let swCall   = null;
 let activeCallDirection = 'outbound';   // set to 'inbound' when accepting an incoming Fabric call; read by endCall() / logCall()
