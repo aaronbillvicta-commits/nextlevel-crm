@@ -13035,6 +13035,51 @@ function setCurrency(code){
     openContactDetail(activeContactDetailId);
   }
 }
+
+// ═══════════════════════════════════════════════
+// STATE MIRROR FOR ES MODULES (step 8d-prep)
+// ═══════════════════════════════════════════════
+// Inline `let`/`const` declarations do NOT become properties of `window` —
+// only `function` and `var` declarations do. ES modules loaded via
+// `<script type="module">` live in their own scope and CANNOT see inline
+// `let`/`const` bindings via lexical scoping, only via `window.*`.
+//
+// Object.defineProperty with a getter (and an optional setter) bridges each
+// module-consumed state var: the getter closes over the inline binding so
+// `window.contacts` always returns the CURRENT inline `contacts`, and the
+// setter reassigns the inline binding so `window.contacts = newArr` works.
+//
+// Mutation through the returned reference (e.g. `window.contacts.push(x)`,
+// `window.activeSourceFilters.add(s)`) targets the same object inline holds
+// — no separate copies, no drift. Vars that are Set/object instances and
+// only ever mutated in place don't need a setter.
+//
+// Adding a new bridge: when a new ES module needs an inline state var, add
+// one line here with the same name. Required because every module so far
+// (helpers, notes, import-export, plus calendar 7b/7c, plus the contacts
+// extraction in progress) references `window.<state>` and would throw
+// `TypeError` on first use without this layer.
+Object.defineProperty(window, 'contacts',                { get:()=>contacts,                set:v=>{contacts=v;},                configurable:true });
+Object.defineProperty(window, 'pipelines',               { get:()=>pipelines,               set:v=>{pipelines=v;},               configurable:true });
+Object.defineProperty(window, 'sb',                      { get:()=>sb,                                                            configurable:true });
+Object.defineProperty(window, 'currentUser',             { get:()=>currentUser,             set:v=>{currentUser=v;},             configurable:true });
+Object.defineProperty(window, 'masterTags',              { get:()=>masterTags,              set:v=>{masterTags=v;},              configurable:true });
+Object.defineProperty(window, 'activeContactTagFilters', { get:()=>activeContactTagFilters,                                       configurable:true });
+Object.defineProperty(window, 'activeSourceFilters',     { get:()=>activeSourceFilters,                                           configurable:true });
+Object.defineProperty(window, 'activePipelineFilter',    { get:()=>activePipelineFilter,    set:v=>{activePipelineFilter=v;},    configurable:true });
+Object.defineProperty(window, 'contactSort',             { get:()=>contactSort,             set:v=>{contactSort=v;},             configurable:true });
+Object.defineProperty(window, 'contactSources',          { get:()=>contactSources,          set:v=>{contactSources=v;},          configurable:true });
+Object.defineProperty(window, 'contactStatuses',         { get:()=>contactStatuses,         set:v=>{contactStatuses=v;},         configurable:true });
+Object.defineProperty(window, 'customColumns',           { get:()=>customColumns,           set:v=>{customColumns=v;},           configurable:true });
+Object.defineProperty(window, 'visibleColumns',          { get:()=>visibleColumns,          set:v=>{visibleColumns=v;},          configurable:true });
+Object.defineProperty(window, 'columnOrder',             { get:()=>columnOrder,             set:v=>{columnOrder=v;},             configurable:true });
+Object.defineProperty(window, 'selectedContactIds',      { get:()=>selectedContactIds,                                            configurable:true });
+Object.defineProperty(window, 'gcalAccessToken',         { get:()=>gcalAccessToken,         set:v=>{gcalAccessToken=v;},         configurable:true });
+Object.defineProperty(window, 'calView',                 { get:()=>calView,                 set:v=>{calView=v;},                 configurable:true });
+Object.defineProperty(window, 'calDate',                 { get:()=>calDate,                 set:v=>{calDate=v;},                 configurable:true });
+Object.defineProperty(window, 'calEvents',               { get:()=>calEvents,               set:v=>{calEvents=v;},               configurable:true });
+Object.defineProperty(window, 'calSources',              { get:()=>calSources,              set:v=>{calSources=v;},              configurable:true });
+window.__nlmStateMirrorLoaded = true;
 </script>
 <audio id="remote-audio" autoplay style="display:none"></audio>
 <div id="sw-root-element" style="position:absolute;width:1px;height:1px;overflow:hidden"></div>
