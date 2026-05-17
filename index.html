@@ -2759,6 +2759,15 @@ function pEmail(email){
   if(email.length<=4) return email;
   return `${email.slice(0,4)}<span class="pblur">${email.slice(4)}</span>`;
 }
+function pCompany(company){
+  if(!privacyMode||!company) return company||'';
+  if(company.length<=3) return company;
+  return `${company.slice(0,3)}<span class="pblur">${company.slice(3)}</span>`;
+}
+function pTag(label){
+  if(!privacyMode||!label) return label||'';
+  return `<span class="pblur">${label}</span>`;
+}
 function togglePrivacyMode(){
   privacyMode=!privacyMode;
   localStorage.setItem('nlm_privacy', privacyMode?'1':'0');
@@ -4794,11 +4803,11 @@ function renderContacts(){
     });
     const cm={
       name:`<td><div class="td-name" onclick="openContactDetail('${c.id}')" style="cursor:pointer" title="View ${c.name}"><div class="av-sm ${getAv(c.id)}">${initials(c.name)}</div><span style="color:var(--text);font-weight:500">${pName(c.name)}</span></div></td>`,
-      company:`<td style="color:var(--text2)">${c.company||"-"}</td>`,
+      company:`<td style="color:var(--text2)">${c.company?pCompany(c.company):'-'}</td>`,
       email:`<td><div style="display:flex;align-items:center;gap:5px"><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.email?pEmail(c.email):'—'}</span>${c.email?`<button class="btn-email-inline" onclick="openComposeEmail('${c.id}')" title="Email ${c.name}"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>`:''}</div></td>`,
       phone:`<td><div style="display:flex;align-items:center;gap:5px"><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.phone?pPhone(c.phone):'—'}</span>${c.phone?`<button class="btn-call-inline" onclick="initiateCall('${c.id}','${c.phone.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>`:''}</div></td>`,
       source:`<td><span class="tag tag-blue" style="font-size:10px">${c.source||"Other"}</span></td>`,
-      tags:`<td><div class="tags-cell">${(c.tags||[]).map(t=>`<span class="tag ${t.cls}">${t.label}</span>`).join("")}<span class="tag-add-inline" onclick="openContactModal('${c.id}','tags')">+</span></div></td>`,
+      tags:`<td><div class="tags-cell">${(c.tags||[]).map(t=>`<span class="tag ${t.cls}">${pTag(t.label)}</span>`).join("")}<span class="tag-add-inline" onclick="openContactModal('${c.id}','tags')">+</span></div></td>`,
       status:`<td><span class="pill ${stMeta.color}">${stMeta.label}</span></td>`,
       pipeline:`<td>${pipelineCell}</td>`,
       created:`<td style="font-size:11px;color:var(--text3)">${created}</td>`,
@@ -5259,7 +5268,7 @@ function openContactDetail(contactId, tab='info') {
     body = `
       <div class="modal-section-title" style="margin-bottom:8px">Current Tags</div>
       <div class="tags-manager" id="cd-tags-box" style="min-height:36px;margin-bottom:16px">
-        ${(c.tags||[]).map((t,i)=>`<span class="tag ${t.cls}">${t.label}<span class="tag-remove" onclick="removeTagFromContact('${contactId}',${i});openContactDetail('${contactId}','tags')">×</span></span>`).join('')}
+        ${(c.tags||[]).map((t,i)=>`<span class="tag ${t.cls}">${pTag(t.label)}<span class="tag-remove" onclick="removeTagFromContact('${contactId}',${i});openContactDetail('${contactId}','tags')">×</span></span>`).join('')}
         ${(!c.tags||!c.tags.length)?'<span style="font-size:12px;color:var(--text3)">No tags yet</span>':''}
       </div>
       <div class="modal-section-title" style="margin-bottom:8px">Add from master list</div>
@@ -5316,7 +5325,7 @@ function openContactDetail(contactId, tab='info') {
         <div class="detail-avatar" style="background:${avBg};color:${avClr}">${initials(c.name)}</div>
         <div>
           <div style="font-size:16px;font-weight:700;color:var(--text)">${pName(c.name)}</div>
-          <div style="font-size:12px;color:var(--text3)">${c.company||''} ${c.source?'· '+c.source:''}</div>
+          <div style="font-size:12px;color:var(--text3)">${c.company?pCompany(c.company):''} ${c.source?'· '+c.source:''}</div>
         </div>
       </div>
       <span style="cursor:pointer;font-size:22px;color:var(--text3);line-height:1" onclick="closeDetail()">×</span>
@@ -10389,7 +10398,7 @@ function openConversation(contactId){
     <div class="conv-thread-av" style="background:${avBg};color:${avClr}">${initials(contact.name)}</div>
     <div style="flex:1">
       <div class="conv-thread-name">${pName(contact.name)}</div>
-      <div class="conv-thread-sub">${contact.company||''} ${contact.phone?'· '+pPhone(contact.phone):''} ${contact.email?'· '+pEmail(contact.email):''}</div>
+      <div class="conv-thread-sub">${contact.company?pCompany(contact.company):''} ${contact.phone?'· '+pPhone(contact.phone):''} ${contact.email?'· '+pEmail(contact.email):''}</div>
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-sm" onclick="openContactDetail('${contactId}')">View Contact</button>
@@ -10496,7 +10505,7 @@ function renderConvInfoPanel(contact, conv){
         <div class="conv-thread-av" style="width:42px;height:42px;background:${{'av-pink':'var(--pink-bg)','av-blue':'var(--accent-bg)','av-amber':'var(--amber-bg)','av-green':'var(--green-bg)','av-purple':'var(--purple-bg)'}[getAv(contact.id)]||'var(--accent-bg)'};color:${{'av-pink':'var(--pink)','av-blue':'var(--accent2)','av-amber':'var(--amber)','av-green':'var(--green)','av-purple':'var(--purple)'}[getAv(contact.id)]||'var(--accent2)'};font-size:13px">${initials(contact.name)}</div>
         <div>
           <div style="font-size:13px;font-weight:600;color:var(--text)">${pName(contact.name)}</div>
-          <div style="font-size:11px;color:var(--text3)">${contact.company||'—'}</div>
+          <div style="font-size:11px;color:var(--text3)">${contact.company?pCompany(contact.company):'—'}</div>
         </div>
       </div>
       <span class="pill ${_stMeta.color}" style="margin-bottom:10px;display:inline-block">${_stMeta.label}</span>
@@ -10512,7 +10521,7 @@ function renderConvInfoPanel(contact, conv){
         <button class="btn btn-sm" style="font-size:10px;padding:2px 8px" onclick="closeDetail();openContactModal('${contact.id}','tags')">Manage</button>
       </div>
       <div class="conv-info-tags">
-        ${(contact.tags||[]).map(t=>`<span class="tag ${t.cls}">${t.label}</span>`).join('')}
+        ${(contact.tags||[]).map(t=>`<span class="tag ${t.cls}">${pTag(t.label)}</span>`).join('')}
         ${(!contact.tags||contact.tags.length===0)?'<span style="font-size:11px;color:var(--text3)">No tags</span>':''}
       </div>
     </div>
@@ -12022,7 +12031,7 @@ function renderDialerContactPanel(force){
 
   const stMeta = (typeof getStatusMeta==='function') ? getStatusMeta(c.status) : {label:c.status||'New',color:'pill-cold'};
   const lastAct = c.last_activity ? (typeof fmtLastActivity==='function' ? fmtLastActivity(c.last_activity) : '') : '';
-  const tagsHtml = (c.tags||[]).map(t=>`<span class="tag ${t.cls}" style="font-size:9px">${t.label}</span>`).join('');
+  const tagsHtml = (c.tags||[]).map(t=>`<span class="tag ${t.cls}" style="font-size:9px">${pTag(t.label)}</span>`).join('');
   const notes = Array.isArray(c.notes)
     ? [...c.notes]
         .filter(n => typeof _isFollowupAutoNote==='function' ? !_isFollowupAutoNote(n.text) : true)
@@ -12040,7 +12049,7 @@ function renderDialerContactPanel(force){
       <div class="av-sm ${getAv(c.id)}" style="width:38px;height:38px;font-size:14px;flex-shrink:0">${initials(c.name)}</div>
       <div style="min-width:0">
         <div style="font-size:14px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)||'Unknown'}</div>
-        <div style="font-size:11px;color:var(--text3)">${esc(c.company)||'—'} ${c.status?`· <span class="pill ${stMeta.color}" style="font-size:9px">${stMeta.label}</span>`:''}</div>
+        <div style="font-size:11px;color:var(--text3)">${c.company?pCompany(esc(c.company)):'—'} ${c.status?`· <span class="pill ${stMeta.color}" style="font-size:9px">${stMeta.label}</span>`:''}</div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text2);margin-bottom:${tagsHtml||lastAct?'8px':'12px'}">
