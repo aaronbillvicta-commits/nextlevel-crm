@@ -3276,14 +3276,21 @@ function saveCallHistory(){
 }
 
 function logCall(direction, number, contactName, durationSecs, status){
+  const id = 'ch_'+Date.now();
   callHistory.unshift({
-    id:'ch_'+Date.now(), direction, number,
+    id, direction, number,
     contactName: contactName||number,
     duration: durationSecs,
     status, // 'completed'|'missed'|'failed'
     ts: new Date().toISOString()
   });
   saveCallHistory();
+  // Persist to Supabase so /api/v1/calls can serve it (fire-and-forget)
+  if(sb) sb.post('call_history', {
+    id, direction, number,
+    contact_name: contactName||number,
+    duration_secs: durationSecs||0, status
+  }).catch(()=>{});
   renderCallHistory();
   // Stamp last activity on the matching contact
   const matched = typeof findContactByPhone === 'function' ? findContactByPhone(number) : null;
@@ -3643,10 +3650,16 @@ async function initSWClient(force = false){
 
 // Fabric subscriber tokens have a TTL — when one expires the next dial() returns
 // 422 authblock_is_expired. This helper detects that, refreshes the client, and
-// retries the dial exactly once.
+// retries the dial exactly once. Also catches "Requester validation failed"
+// (BUG-014): SignalWire emits this when the cached subscriber client gets
+// invalidated mid-session (subscriber session expired, project rotated, etc.).
+// Same fix path as auth-expired — tear down the cached client and re-init with
+// a fresh token. Verified self-healing in the wild: error spike on 2026-05-16
+// 22:11-22:12 cleared itself on the next click pre-fix; this widening makes
+// the recovery automatic instead of requiring a manual retry.
 function isExpiredTokenError(e){
   const msg = String(e?.message || e);
-  return /authblock_is_expired|authblock|expires_at|authentication|unauthorized|invalid_token|401\b|422\b/i.test(msg);
+  return /authblock_is_expired|authblock|expires_at|authentication|unauthorized|invalid_token|requester[\s_-]*validation[\s_-]*failed|401\b|422\b/i.test(msg);
 }
 
 async function dialWithAuthRetry(dialTo){
