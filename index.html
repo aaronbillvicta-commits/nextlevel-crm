@@ -4265,7 +4265,46 @@ function endCall(){
     ? { id:activeCallContact.id, name:activeCallContact.name, phone:activeCallContact.phone, seconds:callSeconds }
     : null;
 
-  if(swCall){ try{ swCall.leave(); }catch(e){} swCall=null; }
+  // Tear down the SignalWire call. Prefer hangup() — for Call Fabric v3 PSTN
+  // dials, leave() only signals the local subscriber departing the room and
+  // (depending on SWML / SDK build) does NOT terminate the remote leg, so the
+  // PSTN call keeps ringing/talking after the user hits Drop. hangup() is the
+  // explicit "end this call" verb. Fall back to leave() for older SDK builds.
+  // We ALSO force-close the underlying RTCPeerConnection and detach the audio
+  // element synchronously — that kills the local media path immediately so the
+  // user never hears lingering audio even if the SDK's hangup is slow.
+  if(swCall){
+    const _call = swCall;
+    swCall = null;
+    // 1. Synchronous local teardown — don't wait on the SDK round-trip
+    const audioEl = document.getElementById('remote-audio');
+    if(audioEl){
+      try { audioEl.pause(); } catch(_){}
+      try { audioEl.srcObject = null; } catch(_){}
+    }
+    const pc = _call?.peer?.instance || _call?.peer?.peerConnection || _call?.peerConnection;
+    if(pc && typeof pc.close === 'function'){
+      try { pc.getSenders?.().forEach(s => { try{ s.track?.stop(); }catch(_){} }); } catch(_){}
+      try { pc.getReceivers?.().forEach(r => { try{ r.track?.stop(); }catch(_){} }); } catch(_){}
+      try { pc.close(); } catch(_){}
+    }
+    // 2. Tell SignalWire to end the call — hangup() first, leave() as fallback
+    (async () => {
+      try {
+        if(typeof _call.hangup === 'function'){
+          await _call.hangup();
+          logError('sw_call_end_method','hangup',null,{});
+        } else if(typeof _call.leave === 'function'){
+          await _call.leave();
+          logError('sw_call_end_method','leave',null,{});
+        } else {
+          logError('sw_call_end_method','none_available',null,{
+            keys: Object.getOwnPropertyNames(Object.getPrototypeOf(_call)||{}).slice(0,40).join(',')
+          });
+        }
+      } catch(e){ logError('sw_call_end_error', e.message, e.stack, {}); }
+    })();
+  }
   clearInterval(callTimer); callTimer=null;
   const m=String(Math.floor(callSeconds/60)).padStart(2,'0');
   const s=String(callSeconds%60).padStart(2,'0');
