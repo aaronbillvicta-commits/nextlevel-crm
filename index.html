@@ -3232,6 +3232,34 @@ let callSeconds = 0;
 let callMuted = false;
 let activeCallContact = null;
 let dialpadOpen = false;
+// Patch RTCPeerConnection at the native level so we capture the remote audio
+// stream regardless of which internal property path the SignalWire SDK uses.
+// This runs once at startup, before the SDK ever creates a peer connection.
+(function patchRTCForAudio(){
+  const _Orig = window.RTCPeerConnection;
+  if(!_Orig) return;
+  function PatchedPC(...args){
+    const pc = new _Orig(...args);
+    pc.addEventListener('track', ev => {
+      if(ev.track?.kind !== 'audio') return;
+      const stream = ev.streams?.[0] || (ev.track ? new MediaStream([ev.track]) : null);
+      if(!stream) return;
+      const audioEl = document.getElementById('remote-audio');
+      if(audioEl && audioEl.srcObject !== stream){
+        audioEl.srcObject = stream;
+        audioEl.play().catch(e => logError('rtc_audio_play', e.message, null, {}));
+        if(preferredOutputDevice && audioEl.setSinkId)
+          audioEl.setSinkId(preferredOutputDevice).catch(()=>{});
+        logError('rtc_audio_attached', 'Remote audio stream attached via RTCPeerConnection patch', null, {});
+      }
+    });
+    return pc;
+  }
+  PatchedPC.prototype = _Orig.prototype;
+  Object.setPrototypeOf(PatchedPC, _Orig);
+  window.RTCPeerConnection = PatchedPC;
+})();
+
 let swClient = null;
 let swCall   = null;
 let activeCallDirection = 'outbound';   // set to 'inbound' when accepting an incoming Fabric call; read by endCall() / logCall()
@@ -3749,6 +3777,11 @@ async function dialWithAuthRetry(dialTo){
       // an expired token caught here triggers the refresh
       await call.start();
       attachCallAudio(call);
+      // Diagnostic: log call object shape so we can see what the SDK exposes
+      try {
+        const keys = Object.getOwnPropertyNames(Object.getPrototypeOf(call)||{}).concat(Object.keys(call||{}));
+        logError('sw_call_keys', keys.slice(0,60).join(','), null, { hasRemoteStream: !!call.remoteStream, hasPeer: !!call.peer });
+      } catch(_) {}
       logError('startCall_step', '4_call_started', null, { attempt });
       return call;
     } catch(e){
