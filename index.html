@@ -64,6 +64,7 @@
 <script type="module" src="src/pipelines/board.js?v=2026-05-17-3"></script>
 <script type="module" src="src/pipelines/admin.js?v=2026-05-17-4"></script>
 <script type="module" src="src/conversations/index.js?v=2026-05-17-5"></script>
+<script type="module" src="src/clients/index.js?v=2026-05-17-6"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1286,6 +1287,10 @@ table th[onclick]{transition:background .15s,color .15s}
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
       Campaigns
     </div>
+    <div class="nav-item" data-page="clients">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+      Active Clients
+    </div>
     <div class="nav-sec">Settings</div>
     <div class="nav-item" data-page="tags">
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
@@ -2114,6 +2119,40 @@ table th[onclick]{transition:background .15s,color .15s}
       </div>
     </div>
 
+    <div class="page" id="page-clients">
+      <div class="sec-head">
+        <div>
+          <div class="sec-title">Active Clients <span id="clients-count-label" style="color:var(--text3);font-weight:400;font-size:14px"></span></div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Contacts marked as Client — track deposit, billing cadence, and assigned VA</div>
+        </div>
+      </div>
+
+      <div style="position:relative;max-width:320px;margin-bottom:14px">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-input" id="clients-search" type="search" style="padding-left:32px" placeholder="Search active clients…" oninput="renderClientsPage()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" name="crm-search-clients"/>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Company</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Tags</th>
+              <th>Deposit</th>
+              <th>Payment</th>
+              <th>Assigned VA</th>
+              <th>Last Activity</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="clients-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="page" id="page-social">
 
       <div class="sec-head" style="margin-bottom:14px">
@@ -2910,6 +2949,9 @@ async function loadAllData() {
       customFields: c.custom_fields || {},
       notes: Array.isArray(c.notes) ? c.notes : [],
       last_activity: c.last_activity || null,
+      deposit: c.deposit ?? null,
+      payment_structure: c.payment_structure || '',
+      assigned_va: c.assigned_va || '',
       created_at: c.created_at
     }));
 
@@ -5324,6 +5366,25 @@ function openContactDetail(contactId, tab='info') {
             ${contactStatuses.map(s=>`<option value="${s.value}" ${c.status===s.value?'selected':''}>${s.label}</option>`).join('')}
           </select></div>
       </div>
+      ${c.status === 'done' ? `
+      <div style="margin:14px 0 6px 0;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)">
+        <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Client Details</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Deposit (${getCurrencySymbol()})</label>
+            <input class="form-input" id="cd-deposit" type="number" step="0.01" min="0" value="${c.deposit ?? ''}" placeholder="0.00"/></div>
+          <div class="form-group"><label class="form-label">Payment Structure</label>
+            <select class="form-select" id="cd-payment-structure">
+              <option value="" ${!c.payment_structure?'selected':''}>—</option>
+              <option value="weekly" ${c.payment_structure==='weekly'?'selected':''}>Weekly</option>
+              <option value="bi-weekly" ${c.payment_structure==='bi-weekly'?'selected':''}>Bi-weekly</option>
+              <option value="monthly" ${c.payment_structure==='monthly'?'selected':''}>Monthly</option>
+            </select></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Assigned VA</label>
+          <input class="form-input" id="cd-assigned-va" value="${(c.assigned_va||'').replace(/"/g,'&quot;')}" placeholder="e.g. Maria Cruz"/>
+        </div>
+      </div>` : ''}
       <div class="form-group">
         <label class="form-label">Notes</label>
         <div style="display:flex;gap:6px;margin-bottom:10px;align-items:flex-start">
@@ -5478,11 +5539,26 @@ async function saveContactDetail(contactId){
   if(!firstName && !lastName){ showToast('First or last name is required','error'); return; }
   if(!c.customFields) c.customFields={};
   const lastAct = { ts:new Date().toISOString(), type:'update' };
+  // Client-only fields — only present in the DOM when status === 'done'
+  const depositEl = document.getElementById('cd-deposit');
+  const paymentEl = document.getElementById('cd-payment-structure');
+  const vaEl      = document.getElementById('cd-assigned-va');
+  const clientPatch = {};
+  if(depositEl){
+    const dv = depositEl.value.trim();
+    clientPatch.deposit = dv === '' ? null : Number(dv);
+  }
+  if(paymentEl){
+    const pv = paymentEl.value;
+    clientPatch.payment_structure = pv === '' ? null : pv;
+  }
+  if(vaEl){ clientPatch.assigned_va = vaEl.value.trim() || null; }
   try {
-    await sb.patch('contacts', contactId, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct});
-    Object.assign(c, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct});
+    await sb.patch('contacts', contactId, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct,...clientPatch});
+    Object.assign(c, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct,...clientPatch});
     showToast('Contact saved! ✅');
     renderContacts();
+    if(typeof renderClientsPage === 'function') renderClientsPage();
     openContactDetail(contactId,'info'); // refresh drawer
   } catch(e){ showToast('Error saving contact','error'); }
 }
@@ -10058,6 +10134,120 @@ function renderCampaignsPage(){
   renderCampList();
 }
 
+// ═══════════════════════════════════════════════
+// ACTIVE CLIENTS — filtered view of contacts where status === 'done'
+// ═══════════════════════════════════════════════
+// Mirrors the Contacts table minimally but auto-scoped to clients, with
+// three client-specific click-to-edit cells: deposit (numeric, currency-
+// formatted), payment_structure (weekly/bi-weekly/monthly dropdown), and
+// assigned_va (free text). Edits PATCH to public.contacts via saveClientField()
+// and update the in-memory contact in place so the next render shows the new
+// value without a reload.
+function renderClientsPage(){
+  const tbody = document.getElementById('clients-tbody'); if(!tbody) return;
+  const q = (document.getElementById('clients-search')?.value || '').toLowerCase();
+  const all = contacts.filter(c => c.status === 'done');
+  const filtered = all.filter(c => !q
+    || (c.name||'').toLowerCase().includes(q)
+    || (c.company||'').toLowerCase().includes(q)
+    || (c.email||'').toLowerCase().includes(q)
+    || (c.phone||'').toLowerCase().includes(q)
+    || (c.assigned_va||'').toLowerCase().includes(q)
+  );
+  const countEl = document.getElementById('clients-count-label');
+  if(countEl) countEl.textContent = `(${filtered.length}${q ? ' of ' + all.length : ''})`;
+  if(filtered.length === 0){
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:32px">${q ? 'No active clients match your search' : 'No active clients yet — mark a contact\'s status as "Client" to see them here.'}</td></tr>`;
+    return;
+  }
+  const sym = (typeof getCurrencySymbol === 'function') ? getCurrencySymbol() : '$';
+  tbody.innerHTML = filtered.map(c => {
+    const depositTxt = (c.deposit != null && c.deposit !== '') ? `${sym}${Number(c.deposit).toLocaleString()}` : '<span style="opacity:.4">—</span>';
+    const paymentTxt = c.payment_structure ? c.payment_structure.charAt(0).toUpperCase() + c.payment_structure.slice(1) : '<span style="opacity:.4">—</span>';
+    const vaTxt = c.assigned_va ? c.assigned_va : '<span style="opacity:.4">—</span>';
+    const lastAct = c.last_activity ? fmtLastActivity(c.last_activity) : '<span style="opacity:.4">—</span>';
+    return `<tr>
+      <td><div class="td-name" onclick="openContactDetail('${c.id}')" style="cursor:pointer"><div class="av-sm ${getAv(c.id)}">${initials(c.name)}</div><span style="color:var(--text);font-weight:500">${pName(c.name)}</span></div></td>
+      <td style="color:var(--text2)">${c.company ? pCompany(c.company) : '-'}</td>
+      <td><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.email ? pEmail(c.email) : '—'}</span></td>
+      <td><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.phone ? pPhone(c.phone) : '—'}</span></td>
+      <td><div class="tags-cell">${(c.tags||[]).map(t=>`<span class="tag ${t.cls}">${pTag(t.label)}</span>`).join('')}</div></td>
+      <td onclick="editClientCell('${c.id}','deposit')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit deposit">${depositTxt}</td>
+      <td onclick="editClientCell('${c.id}','payment_structure')" style="cursor:pointer;font-size:12px" title="Click to set payment cadence">${paymentTxt}</td>
+      <td onclick="editClientCell('${c.id}','assigned_va')" style="cursor:pointer;font-size:12px" title="Click to assign VA">${vaTxt}</td>
+      <td style="font-size:11px;color:var(--text3)">${lastAct}</td>
+      <td style="white-space:nowrap"><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">💬</button></td>
+    </tr>`;
+  }).join('');
+}
+
+// Swap a client-table cell to an input/select, save on blur/Enter, cancel on Escape.
+function editClientCell(contactId, field){
+  if(typeof requirePerm === 'function' && !requirePerm('edit','You don\'t have permission to edit clients')) return;
+  const c = contacts.find(x => x.id === contactId); if(!c) return;
+  const tbody = document.getElementById('clients-tbody'); if(!tbody) return;
+  const cell = [...tbody.querySelectorAll('td')].find(td =>
+    td.getAttribute('onclick') === `editClientCell('${contactId}','${field}')`);
+  if(!cell || cell.querySelector('input,select')) return;
+  const current = c[field] != null ? c[field] : '';
+  let input;
+  if(field === 'payment_structure'){
+    input = document.createElement('select');
+    input.className = 'form-select';
+    input.style.cssText = 'width:100%;padding:2px 4px;font-size:12px';
+    input.innerHTML = `<option value="">—</option><option value="weekly">Weekly</option><option value="bi-weekly">Bi-weekly</option><option value="monthly">Monthly</option>`;
+    input.value = current;
+  } else {
+    input = document.createElement('input');
+    input.className = 'form-input';
+    input.type = (field === 'deposit') ? 'number' : 'text';
+    if(field === 'deposit'){ input.step = '0.01'; input.min = '0'; }
+    input.style.cssText = 'width:100%;padding:2px 4px;font-size:12px';
+    input.value = current;
+  }
+  const oldHTML = cell.innerHTML;
+  const oldOnclick = cell.getAttribute('onclick');
+  cell.removeAttribute('onclick');
+  cell.innerHTML = '';
+  cell.appendChild(input);
+  input.focus();
+  if(input.select) input.select();
+  let finished = false;
+  const commit = async () => {
+    if(finished) return; finished = true;
+    let val = input.value.trim();
+    if(field === 'deposit') val = val === '' ? null : Number(val);
+    if(field === 'payment_structure' && val === '') val = null;
+    await saveClientField(contactId, field, val);
+    renderClientsPage();
+  };
+  const cancel = () => {
+    if(finished) return; finished = true;
+    cell.innerHTML = oldHTML;
+    if(oldOnclick) cell.setAttribute('onclick', oldOnclick);
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+    else if(e.key === 'Escape'){ e.preventDefault(); cancel(); }
+  });
+  if(field === 'payment_structure'){
+    input.addEventListener('change', () => input.blur());
+  }
+}
+
+async function saveClientField(contactId, field, value){
+  const c = contacts.find(x => x.id === contactId); if(!c) return;
+  c[field] = value;
+  try {
+    await sb.patch('contacts', contactId, { [field]: value });
+    showToast(`Saved`);
+  } catch(e){
+    logError('saveClientField', e.message, e.stack, { contactId, field });
+    showToast(`Save failed: ${e.message || 'unknown'}`, 'error');
+  }
+}
+
 function renderCampStats(){
   const el = document.getElementById('camp-stats-row'); if(!el) return;
   const totalSent    = campaigns.reduce((s,c)=>s+(c.sentCount||0), 0);
@@ -13177,6 +13367,7 @@ const PAGE_TITLES = {
   dashboard:'Dashboard', contacts:'Contacts', pipeline:'Pipeline & Deal',
   calendar:'Calendar', dialer:'Dialer', conversations:'Conversations', email:'Email',
   automations:'Automations', social:'Social Planner', campaigns:'Campaigns',
+  clients:'Active Clients',
   tags:'Tags', integrations:'Integrations', 'custom-fields':'Custom Fields', settings:'Settings'
 };
 
@@ -13216,6 +13407,7 @@ function navigate(page){
   if(page==='automations') renderAutoList();
   if(page==='social') renderSocialPlanner();
   if(page==='campaigns') renderCampaignsPage();
+  if(page==='clients') renderClientsPage();
   if(page==='tags') renderTagsPage();
   if(page==='custom-fields') renderCustomFieldsPage();
   if(page==='settings') renderSettingsPage();
