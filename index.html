@@ -38,6 +38,11 @@
   --pink:#ff2d78;--pink-bg:rgba(255,45,120,0.1);
   --purple:#a259ff;--purple-bg:rgba(162,89,255,0.1);
   --teal:#00d2ff;--teal-bg:rgba(0,210,255,0.1);
+  /* Rainbow extras (Orange, Yellow, Indigo, Violet) for the Tags palette */
+  --orange:#ff7a00;--orange-bg:rgba(255,122,0,0.12);
+  --yellow:#ffd23f;--yellow-bg:rgba(255,210,63,0.12);
+  --indigo:#5b6cff;--indigo-bg:rgba(91,108,255,0.12);
+  --violet:#c66dff;--violet-bg:rgba(198,109,255,0.12);
   --sidebar:230px;--radius:8px;--radius-lg:12px;
   font-family:'DM Sans',system-ui,sans-serif;
 }
@@ -54,6 +59,11 @@ body.theme-light{
   --pink-bg:rgba(225,30,110,0.08);
   --purple-bg:rgba(125,60,210,0.08);
   --teal-bg:rgba(0,153,204,0.08);
+  /* Rainbow extras — darker text + softer bg for light theme contrast */
+  --orange:#cc5500;--orange-bg:rgba(204,85,0,0.10);
+  --yellow:#b8860b;--yellow-bg:rgba(184,134,11,0.12);
+  --indigo:#3a4bcc;--indigo-bg:rgba(58,75,204,0.08);
+  --violet:#9333ea;--violet-bg:rgba(147,51,234,0.08);
 }
 body.theme-light .login-bg{background:linear-gradient(135deg,#f0f4fc 0%,#e1e8f5 100%);}
 body.theme-light .sidebar{background:#f6f8fc;}
@@ -241,6 +251,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-size:14px;line
 .tag-teal{background:var(--teal-bg);color:var(--teal)}
 .tag-red{background:var(--red-bg);color:var(--red)}
 .tag-gray{background:rgba(255,255,255,.05);color:var(--text3)}
+.tag-orange{background:var(--orange-bg);color:var(--orange)}
+.tag-yellow{background:var(--yellow-bg);color:var(--yellow)}
+.tag-indigo{background:var(--indigo-bg);color:var(--indigo)}
+.tag-violet{background:var(--violet-bg);color:var(--violet)}
 .tag-remove{cursor:pointer;opacity:.6;font-size:12px;line-height:1;margin-left:2px}.tag-remove:hover{opacity:1}
 .pill{display:inline-block;font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
 .pill-hot{background:var(--red-bg);color:var(--red)}
@@ -2695,10 +2709,15 @@ const sb = {
 // GLOBAL STATE
 // ═══════════════════════════════════════════════
 const TAG_COLORS = [
-  {cls:'tag-blue',label:'Blue'},{cls:'tag-green',label:'Green'},
+  // Rainbow (ROYGBIV) first so the palette opens with the classic spectrum
+  {cls:'tag-red',label:'Red'},{cls:'tag-orange',label:'Orange'},
+  {cls:'tag-yellow',label:'Yellow'},{cls:'tag-green',label:'Green'},
+  {cls:'tag-blue',label:'Blue'},{cls:'tag-indigo',label:'Indigo'},
+  {cls:'tag-violet',label:'Violet'},
+  // Extras kept from the original palette
   {cls:'tag-amber',label:'Amber'},{cls:'tag-pink',label:'Pink'},
   {cls:'tag-purple',label:'Purple'},{cls:'tag-teal',label:'Teal'},
-  {cls:'tag-red',label:'Red'},{cls:'tag-gray',label:'Gray'}
+  {cls:'tag-gray',label:'Gray'}
 ];
 
 let contactCustomFields = [];
@@ -4838,7 +4857,7 @@ function openContactModal(contactId=null, tab='info') {
 
   // Set tag color dots
   if(tab==='tags') {
-    const colorMap = {blue:'#4f7ef8',green:'#3ecf8e',amber:'#f59e3f',pink:'#d97bba',purple:'#a78bfa',teal:'#2dd4bf',red:'#f26b6b',gray:'#555a6e'};
+    const colorMap = {blue:'#4f7ef8',green:'#3ecf8e',amber:'#f59e3f',pink:'#d97bba',purple:'#a78bfa',teal:'#2dd4bf',red:'#f26b6b',gray:'#555a6e',orange:'#ff7a00',yellow:'#ffd23f',indigo:'#5b6cff',violet:'#c66dff'};
     document.querySelectorAll('.tag-color-dot').forEach(dot => {
       const cls = dot.dataset.cls.replace('tag-','');
       dot.style.background = colorMap[cls]||'#888';
@@ -9583,6 +9602,7 @@ function renderTagsPage(){
       <td>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn btn-sm" onclick="viewTagContacts('${t.label}')">View Contacts</button>
+          <button class="btn btn-sm" style="color:var(--accent2)" onclick="recolorTagModal('${t.label}','${t.cls}')">Change Color</button>
           <button class="btn btn-sm" style="color:var(--amber)" onclick="renameTagModal('${t.label}','${t.cls}')">Rename</button>
           <button class="btn btn-sm" style="color:var(--red);border-color:rgba(255,77,109,.3)" onclick="deleteMasterTagOnly('${t.label}')">Delete Tag</button>
         </div>
@@ -9608,7 +9628,7 @@ function openCreateTagModal(){
       <div style="font-size:11px;color:var(--text3);margin-top:10px">Tags are added to a master list and can be applied to any contact or deal.</div>
     </div>
     <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="createTag()">Create Tag</button></div>`);
-  const colorMap = {blue:'var(--accent)',green:'var(--green)',amber:'var(--amber)',pink:'var(--pink)',purple:'var(--purple)',teal:'var(--teal)',red:'var(--red)',gray:'var(--text3)'};
+  const colorMap = {blue:'var(--accent)',green:'var(--green)',amber:'var(--amber)',pink:'var(--pink)',purple:'var(--purple)',teal:'var(--teal)',red:'var(--red)',gray:'var(--text3)',orange:'var(--orange)',yellow:'var(--yellow)',indigo:'var(--indigo)',violet:'var(--violet)'};
   setTimeout(()=>{
     document.querySelectorAll('.tag-color-dot').forEach(dot=>{
       dot.style.background = colorMap[dot.dataset.cls.replace('tag-','')]||'#888';
@@ -9667,6 +9687,71 @@ async function renameTag(oldLabel, cls){
     if(changed){ d.tags=(d.tags||[]).map(t=>t.label===oldLabel?{...t,label:newLabel}:t); sb.patch('deals',d.id,{tags:d.tags}); }
   }));
   closeModal(); renderTagsPage(); showToast(`Tag renamed to "${newLabel}"`);
+}
+
+// Change the color of an existing tag. Updates the master list AND propagates
+// the new cls to every contact and deal that already carries the tag, so all
+// existing chips re-render with the new color on the next paint.
+function recolorTagModal(label, currentCls){
+  openModal(`
+    <div class="modal-head"><div class="modal-title">Change Color: ${label}</div><span class="modal-close" onclick="closeModal()">×</span></div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Preview</label>
+        <div style="padding:10px 0"><span class="tag ${currentCls}" id="recolor-preview" style="font-size:12px;padding:3px 10px">${label}</span></div>
+      </div>
+      <div class="form-group"><label class="form-label">Pick a new color</label>
+        <div class="tag-color-pick" id="tag-color-pick" style="margin-top:8px">
+          ${TAG_COLORS.map(tc=>`<div class="tag-color-dot ${tc.cls===currentCls?'selected':''}" data-cls="${tc.cls}" title="${tc.label}" onclick="selectTagColor(this);previewRecolor('${label}')"></div>`).join('')}
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:10px">Changing the color updates every contact and deal that already has this tag.</div>
+    </div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="recolorTag('${label}')">Save Color</button></div>`);
+  const colorMap = {blue:'var(--accent)',green:'var(--green)',amber:'var(--amber)',pink:'var(--pink)',purple:'var(--purple)',teal:'var(--teal)',red:'var(--red)',gray:'var(--text3)',orange:'var(--orange)',yellow:'var(--yellow)',indigo:'var(--indigo)',violet:'var(--violet)'};
+  setTimeout(()=>{
+    document.querySelectorAll('.tag-color-dot').forEach(dot=>{
+      dot.style.background = colorMap[dot.dataset.cls.replace('tag-','')]||'#888';
+    });
+  },10);
+}
+
+function previewRecolor(label){
+  const dot = document.querySelector('.tag-color-dot.selected');
+  const newCls = dot?.dataset.cls;
+  if(!newCls) return;
+  const prev = document.getElementById('recolor-preview');
+  if(prev){ prev.className = 'tag ' + newCls; prev.textContent = label; }
+}
+
+async function recolorTag(label){
+  if(!requirePerm('edit','You have view-only access — editing is disabled')) return;
+  const dot = document.querySelector('.tag-color-dot.selected');
+  const newCls = dot?.dataset.cls;
+  if(!newCls){ showToast('Pick a color first','error'); return; }
+  const mt = getMasterTag(label);
+  if(!mt){ showToast('Tag not found','error'); return; }
+  if(mt.cls === newCls){ closeModal(); return; }
+  mt.cls = newCls;
+  saveMasterTags();
+  // Propagate to every contact and deal that already carries this tag
+  let contactsTouched = 0, dealsTouched = 0;
+  contacts.forEach(c=>{
+    if(!(c.tags||[]).some(t=>t.label===label)) return;
+    c.tags = c.tags.map(t=>t.label===label?{...t, cls:newCls}:t);
+    sb.patch('contacts', c.id, {tags:c.tags}); contactsTouched++;
+  });
+  pipelines.forEach(p=>p.deals.forEach(d=>{
+    if(!(d.tags||[]).some(t=>t.label===label)) return;
+    d.tags = d.tags.map(t=>t.label===label?{...t, cls:newCls}:t);
+    sb.patch('deals', d.id, {tags:d.tags}); dealsTouched++;
+  }));
+  closeModal();
+  renderTagsPage();
+  renderContactTagFilters();
+  if(typeof renderContacts === 'function') renderContacts();
+  if(typeof renderBoard === 'function') renderBoard();
+  showToast(`Tag "${label}" recolored (updated ${contactsTouched} contact${contactsTouched!==1?'s':''}, ${dealsTouched} deal${dealsTouched!==1?'s':''})`);
 }
 
 function viewTagContacts(label){
