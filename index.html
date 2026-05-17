@@ -5341,8 +5341,8 @@ function openContactDetail(contactId, tab='info') {
     const isClient = c.status === 'done';
     body = `
       <div style="display:flex;gap:6px;margin-bottom:16px;padding:4px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)">
-        <button onclick="setClientCategory('${contactId}','lead')" style="flex:1;padding:8px 12px;border-radius:calc(var(--radius) - 2px);border:none;cursor:pointer;font-weight:600;font-size:13px;background:${!isClient?'var(--accent2)':'transparent'};color:${!isClient?'#fff':'var(--text2)'};transition:background .12s,color .12s" title="Mark as Lead">Lead</button>
-        <button onclick="setClientCategory('${contactId}','client')" style="flex:1;padding:8px 12px;border-radius:calc(var(--radius) - 2px);border:none;cursor:pointer;font-weight:600;font-size:13px;background:${isClient?'var(--green)':'transparent'};color:${isClient?'#fff':'var(--text2)'};transition:background .12s,color .12s" title="Mark as Active Client">Client</button>
+        <button id="cd-cat-lead" onclick="pickClientCategory('${contactId}','lead')" style="flex:1;padding:8px 12px;border-radius:calc(var(--radius) - 2px);border:none;cursor:pointer;font-weight:600;font-size:13px;background:${!isClient?'var(--accent2)':'transparent'};color:${!isClient?'#fff':'var(--text2)'};transition:background .12s,color .12s" title="Mark as Lead (not saved until you click Save Changes)">Lead</button>
+        <button id="cd-cat-client" onclick="pickClientCategory('${contactId}','client')" style="flex:1;padding:8px 12px;border-radius:calc(var(--radius) - 2px);border:none;cursor:pointer;font-weight:600;font-size:13px;background:${isClient?'var(--green)':'transparent'};color:${isClient?'#fff':'var(--text2)'};transition:background .12s,color .12s" title="Mark as Active Client (not saved until you click Save Changes)">Client</button>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">First Name</label>
@@ -5371,8 +5371,7 @@ function openContactDetail(contactId, tab='info') {
             ${contactStatuses.map(s=>`<option value="${s.value}" ${c.status===s.value?'selected':''}>${s.label}</option>`).join('')}
           </select></div>
       </div>
-      ${c.status === 'done' ? `
-      <div style="margin:14px 0 6px 0;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)">
+      <div id="cd-client-details" style="display:${isClient?'block':'none'};margin:14px 0 6px 0;padding:12px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)">
         <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Client Details</div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Deposit (${getCurrencySymbol()})</label>
@@ -5389,7 +5388,7 @@ function openContactDetail(contactId, tab='info') {
           <label class="form-label">Assigned VA</label>
           <input class="form-input" id="cd-assigned-va" value="${(c.assigned_va||'').replace(/"/g,'&quot;')}" placeholder="e.g. Maria Cruz"/>
         </div>
-      </div>` : ''}
+      </div>
       <div class="form-group">
         <label class="form-label">Notes</label>
         <div style="display:flex;gap:6px;margin-bottom:10px;align-items:flex-start">
@@ -10253,41 +10252,34 @@ async function saveClientField(contactId, field, value){
   }
 }
 
-// Lead / Client toggle on the Contact Detail drawer. Lead = any non-'done'
-// status (default 'new'); Client = status 'done'. We remember the prior lead
-// sub-status in `window._prevLeadStatus[contactId]` so toggling Lead → Client
-// → Lead in one session restores the original sub-status (new/active/hot/cold)
-// rather than dumping the contact back to 'new'. In-memory only — refresh
-// loses the memory and Lead defaults to 'new', which is acceptable.
-async function setClientCategory(contactId, category){
-  if(!requirePerm('edit','You don\'t have permission to change client status')) return;
-  const c = contacts.find(x => x.id === contactId); if(!c) return;
+// Lead / Client picker on the Contact Detail drawer — VISUAL ONLY, no PATCH.
+// Click flips the status dropdown's value and shows/hides the Client Details
+// card, but nothing persists until the user clicks Save Changes (which runs
+// saveContactDetail and includes the status + client fields in one PATCH).
+// We remember the prior lead sub-status in window._prevLeadStatus[contactId]
+// so picking Client → Lead in the same drawer session restores the original
+// new/active/hot/cold. In-memory only — closing+reopening the drawer makes
+// Lead default to 'new', which is acceptable.
+function pickClientCategory(contactId, category){
+  const statusSel    = document.getElementById('cd-status');
+  const leadBtn      = document.getElementById('cd-cat-lead');
+  const clientBtn    = document.getElementById('cd-cat-client');
+  const clientCard   = document.getElementById('cd-client-details');
+  if(!statusSel || !leadBtn || !clientBtn) return;
   if(!window._prevLeadStatus) window._prevLeadStatus = {};
-  let newStatus;
   if(category === 'client'){
-    if(c.status !== 'done') window._prevLeadStatus[contactId] = c.status;
-    newStatus = 'done';
+    if(statusSel.value !== 'done') window._prevLeadStatus[contactId] = statusSel.value;
+    statusSel.value = 'done';
   } else {
-    newStatus = window._prevLeadStatus[contactId] || (c.status === 'done' ? 'new' : c.status);
+    const restore = window._prevLeadStatus[contactId] || (statusSel.value === 'done' ? 'new' : statusSel.value);
+    statusSel.value = restore;
   }
-  if(newStatus === c.status){
-    // Even on no-op, re-render the drawer so a stuck-looking toggle settles
-    openContactDetail(contactId, 'info');
-    return;
-  }
-  const lastAct = { ts:new Date().toISOString(), type:'update' };
-  c.status = newStatus;
-  c.last_activity = lastAct;
-  try {
-    await sb.patch('contacts', contactId, { status: newStatus, last_activity: lastAct });
-    showToast(category === 'client' ? '👑 Marked as Client' : '↩ Marked as Lead');
-    renderContacts();
-    if(typeof renderClientsPage === 'function') renderClientsPage();
-    openContactDetail(contactId, 'info');
-  } catch(e){
-    logError('setClientCategory', e.message, e.stack, { contactId, category });
-    showToast('Failed to update status','error');
-  }
+  const isClient = (statusSel.value === 'done');
+  leadBtn.style.background   = isClient ? 'transparent'  : 'var(--accent2)';
+  leadBtn.style.color        = isClient ? 'var(--text2)' : '#fff';
+  clientBtn.style.background = isClient ? 'var(--green)' : 'transparent';
+  clientBtn.style.color      = isClient ? '#fff'         : 'var(--text2)';
+  if(clientCard) clientCard.style.display = isClient ? 'block' : 'none';
 }
 
 function renderCampStats(){

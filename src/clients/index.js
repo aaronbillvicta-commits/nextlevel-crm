@@ -164,39 +164,34 @@ export async function saveClientField(contactId, field, value){
   }
 }
 
-// Lead / Client category toggle (rendered at the top of the Contact Detail
-// drawer's Info tab). Lead = any non-'done' status; Client = status === 'done'.
+// Lead / Client picker on the Contact Detail drawer — VISUAL ONLY, no PATCH.
+// Click flips the status dropdown's value and shows/hides the Client Details
+// card; nothing persists until the user clicks Save Changes (which runs
+// saveContactDetail and includes the status + client fields in one PATCH).
 // Remembers the prior lead sub-status in window._prevLeadStatus[contactId] so
-// toggling Lead → Client → Lead in one session restores the original
-// new/active/hot/cold. In-memory only — refresh defaults to 'new'.
-export async function setClientCategory(contactId, category){
-  if(typeof window.requirePerm === 'function' && !window.requirePerm('edit','You don\'t have permission to change client status')) return;
-  const c = window.contacts.find(x => x.id === contactId); if(!c) return;
+// picking Client → Lead within the same drawer session restores the original
+// new/active/hot/cold. In-memory only — closing+reopening the drawer makes
+// Lead default to 'new', which is acceptable.
+export function pickClientCategory(contactId, category){
+  const statusSel    = document.getElementById('cd-status');
+  const leadBtn      = document.getElementById('cd-cat-lead');
+  const clientBtn    = document.getElementById('cd-cat-client');
+  const clientCard   = document.getElementById('cd-client-details');
+  if(!statusSel || !leadBtn || !clientBtn) return;
   if(!window._prevLeadStatus) window._prevLeadStatus = {};
-  let newStatus;
   if(category === 'client'){
-    if(c.status !== 'done') window._prevLeadStatus[contactId] = c.status;
-    newStatus = 'done';
+    if(statusSel.value !== 'done') window._prevLeadStatus[contactId] = statusSel.value;
+    statusSel.value = 'done';
   } else {
-    newStatus = window._prevLeadStatus[contactId] || (c.status === 'done' ? 'new' : c.status);
+    const restore = window._prevLeadStatus[contactId] || (statusSel.value === 'done' ? 'new' : statusSel.value);
+    statusSel.value = restore;
   }
-  if(newStatus === c.status){
-    window.openContactDetail(contactId, 'info');
-    return;
-  }
-  const lastAct = { ts:new Date().toISOString(), type:'update' };
-  c.status = newStatus;
-  c.last_activity = lastAct;
-  try {
-    await window.sb.patch('contacts', contactId, { status: newStatus, last_activity: lastAct });
-    window.showToast(category === 'client' ? '👑 Marked as Client' : '↩ Marked as Lead');
-    if(typeof window.renderContacts === 'function') window.renderContacts();
-    renderClientsPage();
-    window.openContactDetail(contactId, 'info');
-  } catch(e){
-    window.logError('setClientCategory', e.message, e.stack, { contactId, category });
-    window.showToast('Failed to update status','error');
-  }
+  const isClient = (statusSel.value === 'done');
+  leadBtn.style.background   = isClient ? 'transparent'  : 'var(--accent2)';
+  leadBtn.style.color        = isClient ? 'var(--text2)' : '#fff';
+  clientBtn.style.background = isClient ? 'var(--green)' : 'transparent';
+  clientBtn.style.color      = isClient ? '#fff'         : 'var(--text2)';
+  if(clientCard) clientCard.style.display = isClient ? 'block' : 'none';
 }
 
 window.__nlmClientsLoaded = true;
