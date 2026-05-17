@@ -176,6 +176,10 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-size:14px;line
 .main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
 .topbar{height:54px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
 .topbar-title{font-size:15px;font-weight:600;color:var(--text);flex:1;letter-spacing:-.2px}
+.pblur{filter:blur(5px);user-select:none;display:inline-block;transition:filter .2s}
+.privacy-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;color:var(--text3);display:flex;align-items:center;gap:5px;transition:all .15s}
+.privacy-btn:hover{border-color:var(--border2);color:var(--text)}
+.privacy-btn.on{border-color:var(--accent-border);color:var(--accent2);background:var(--accent-bg)}
 .search{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px;width:210px}
 .search input{background:none;border:none;outline:none;font-size:13px;color:var(--text);width:100%;font-family:inherit}
 .search input::placeholder{color:var(--text3)}
@@ -1279,6 +1283,7 @@ table th[onclick]{transition:background .15s,color .15s}
   <header class="topbar">
     <div class="topbar-title" id="page-title">Dashboard</div>
 
+    <button id="privacy-btn" class="privacy-btn" onclick="togglePrivacyMode()" title="Privacy Mode — hide sensitive info">🔒 Privacy</button>
     <div style="margin-left:auto" id="topbar-call-widget">
       
       <div id="call-widget-idle">
@@ -2734,6 +2739,41 @@ const TAG_COLORS = [
 let contactCustomFields = [];
 let dealCustomFields = [];
 let contacts = [];
+
+// ── PRIVACY MODE ────────────────────────────────────────────────────────────
+let privacyMode = localStorage.getItem('nlm_privacy') === '1';
+function pName(name){
+  if(!privacyMode||!name) return name||'';
+  const parts = name.trim().split(/\s+/);
+  if(parts.length===1) return name;
+  return `${parts[0]} <span class="pblur">${parts.slice(1).join(' ')}</span>`;
+}
+function pPhone(phone){
+  if(!privacyMode||!phone) return phone||'';
+  let shown=0, i=0;
+  while(i<phone.length && shown<3){ if(/\d/.test(phone[i])) shown++; i++; }
+  return `${phone.slice(0,i)}<span class="pblur">${phone.slice(i)}</span>`;
+}
+function pEmail(email){
+  if(!privacyMode||!email) return email||'';
+  if(email.length<=4) return email;
+  return `${email.slice(0,4)}<span class="pblur">${email.slice(4)}</span>`;
+}
+function togglePrivacyMode(){
+  privacyMode=!privacyMode;
+  localStorage.setItem('nlm_privacy', privacyMode?'1':'0');
+  const btn=document.getElementById('privacy-btn');
+  if(btn){ btn.classList.toggle('on',privacyMode); btn.title=privacyMode?'Privacy On — click to disable':'Privacy Mode — hide sensitive info'; }
+  renderContacts();
+  if(typeof renderDialerPage==='function') renderDialerPage();
+  if(typeof renderConversationList==='function') renderConversationList();
+  if(typeof renderConvInfoPanel==='function' && window._activeConvContactId){
+    const c=contacts.find(x=>x.id===window._activeConvContactId);
+    if(c) renderConvInfoPanel(c);
+  }
+  if(window._openContactDetailId) openContactDetail(window._openContactDetailId);
+}
+// ── END PRIVACY MODE ─────────────────────────────────────────────────────────
 let pipelines = [];
 let activePipelineId = null;
 let users = [];
@@ -2907,6 +2947,9 @@ async function loadAllData() {
     showToast('Error loading data — check console');
   }
   showLoading(false);
+  // Restore privacy mode button state after load
+  const _pb=document.getElementById('privacy-btn');
+  if(_pb){ _pb.classList.toggle('on',privacyMode); if(privacyMode) _pb.title='Privacy On — click to disable'; }
 }
 
 function showLoading(on) {
@@ -4750,10 +4793,10 @@ function renderContacts(){
       </td>`;
     });
     const cm={
-      name:`<td><div class="td-name" onclick="openContactDetail('${c.id}')" style="cursor:pointer" title="View ${c.name}"><div class="av-sm ${getAv(c.id)}">${initials(c.name)}</div><span style="color:var(--text);font-weight:500">${c.name}</span></div></td>`,
+      name:`<td><div class="td-name" onclick="openContactDetail('${c.id}')" style="cursor:pointer" title="View ${c.name}"><div class="av-sm ${getAv(c.id)}">${initials(c.name)}</div><span style="color:var(--text);font-weight:500">${pName(c.name)}</span></div></td>`,
       company:`<td style="color:var(--text2)">${c.company||"-"}</td>`,
-      email:`<td><div style="display:flex;align-items:center;gap:5px"><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.email||'—'}</span>${c.email?`<button class="btn-email-inline" onclick="openComposeEmail('${c.id}')" title="Email ${c.name}"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>`:''}</div></td>`,
-      phone:`<td><div style="display:flex;align-items:center;gap:5px"><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.phone||'—'}</span>${c.phone?`<button class="btn-call-inline" onclick="initiateCall('${c.id}','${c.phone.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>`:''}</div></td>`,
+      email:`<td><div style="display:flex;align-items:center;gap:5px"><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.email?pEmail(c.email):'—'}</span>${c.email?`<button class="btn-email-inline" onclick="openComposeEmail('${c.id}')" title="Email ${c.name}"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></button>`:''}</div></td>`,
+      phone:`<td><div style="display:flex;align-items:center;gap:5px"><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.phone?pPhone(c.phone):'—'}</span>${c.phone?`<button class="btn-call-inline" onclick="initiateCall('${c.id}','${c.phone.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}')"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></button>`:''}</div></td>`,
       source:`<td><span class="tag tag-blue" style="font-size:10px">${c.source||"Other"}</span></td>`,
       tags:`<td><div class="tags-cell">${(c.tags||[]).map(t=>`<span class="tag ${t.cls}">${t.label}</span>`).join("")}<span class="tag-add-inline" onclick="openContactModal('${c.id}','tags')">+</span></div></td>`,
       status:`<td><span class="pill ${stMeta.color}">${stMeta.label}</span></td>`,
@@ -5272,7 +5315,7 @@ function openContactDetail(contactId, tab='info') {
       <div style="display:flex;align-items:center;gap:12px">
         <div class="detail-avatar" style="background:${avBg};color:${avClr}">${initials(c.name)}</div>
         <div>
-          <div style="font-size:16px;font-weight:700;color:var(--text)">${c.name}</div>
+          <div style="font-size:16px;font-weight:700;color:var(--text)">${pName(c.name)}</div>
           <div style="font-size:12px;color:var(--text3)">${c.company||''} ${c.source?'· '+c.source:''}</div>
         </div>
       </div>
@@ -10256,7 +10299,7 @@ function renderConvList(){
       <div class="conv-item-av" style="background:${avBg};color:${avClr}">${initials(contact.name)}</div>
       <div class="conv-item-info">
         <div class="conv-item-name">
-          ${contact.name}
+          ${pName(contact.name)}
           <span class="conv-ch-icon">${chIcon}</span>
           ${hasUnread?'<span style="width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;display:inline-block"></span>':''}
         </div>
@@ -10345,8 +10388,8 @@ function openConversation(contactId){
   document.getElementById('conv-thread-head').innerHTML=`
     <div class="conv-thread-av" style="background:${avBg};color:${avClr}">${initials(contact.name)}</div>
     <div style="flex:1">
-      <div class="conv-thread-name">${contact.name}</div>
-      <div class="conv-thread-sub">${contact.company||''} ${contact.phone?'· '+contact.phone:''} ${contact.email?'· '+contact.email:''}</div>
+      <div class="conv-thread-name">${pName(contact.name)}</div>
+      <div class="conv-thread-sub">${contact.company||''} ${contact.phone?'· '+pPhone(contact.phone):''} ${contact.email?'· '+pEmail(contact.email):''}</div>
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-sm" onclick="openContactDetail('${contactId}')">View Contact</button>
@@ -10452,13 +10495,13 @@ function renderConvInfoPanel(contact, conv){
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
         <div class="conv-thread-av" style="width:42px;height:42px;background:${{'av-pink':'var(--pink-bg)','av-blue':'var(--accent-bg)','av-amber':'var(--amber-bg)','av-green':'var(--green-bg)','av-purple':'var(--purple-bg)'}[getAv(contact.id)]||'var(--accent-bg)'};color:${{'av-pink':'var(--pink)','av-blue':'var(--accent2)','av-amber':'var(--amber)','av-green':'var(--green)','av-purple':'var(--purple)'}[getAv(contact.id)]||'var(--accent2)'};font-size:13px">${initials(contact.name)}</div>
         <div>
-          <div style="font-size:13px;font-weight:600;color:var(--text)">${contact.name}</div>
+          <div style="font-size:13px;font-weight:600;color:var(--text)">${pName(contact.name)}</div>
           <div style="font-size:11px;color:var(--text3)">${contact.company||'—'}</div>
         </div>
       </div>
       <span class="pill ${_stMeta.color}" style="margin-bottom:10px;display:inline-block">${_stMeta.label}</span>
-      <div class="conv-info-row"><span class="conv-info-key">Email</span><span class="conv-info-val" style="font-family:'DM Mono',monospace;font-size:11px">${contact.email||'—'}</span></div>
-      <div class="conv-info-row"><span class="conv-info-key">Phone</span><span class="conv-info-val" style="font-family:'DM Mono',monospace;font-size:11px">${contact.phone||'—'}</span></div>
+      <div class="conv-info-row"><span class="conv-info-key">Email</span><span class="conv-info-val" style="font-family:'DM Mono',monospace;font-size:11px">${contact.email?pEmail(contact.email):'—'}</span></div>
+      <div class="conv-info-row"><span class="conv-info-key">Phone</span><span class="conv-info-val" style="font-family:'DM Mono',monospace;font-size:11px">${contact.phone?pPhone(contact.phone):'—'}</span></div>
       <div class="conv-info-row"><span class="conv-info-key">Source</span><span class="conv-info-val">${contact.source||'—'}</span></div>
     </div>
 
@@ -12273,8 +12316,8 @@ function renderDialerQueue(){
       <span class="dialer-q-pos">${i===0?'▶':i+1}</span>
       <div class="av-sm ${getAv(c.id)}" style="flex-shrink:0">${initials(c.name)}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name||'Unknown'}</div>
-        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${c.phone||'⚠ no phone'}</div>
+        <div style="font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pName(c.name||'Unknown')}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${c.phone?pPhone(c.phone):'⚠ no phone'}</div>
       </div>
       <span class="dialer-q-x" onclick="removeFromDialerQueue('${c.id}')" title="Remove from queue">×</span>
     </div>
@@ -12328,8 +12371,8 @@ function renderDialerNowCalling(){
   el.innerHTML = `
     <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Up Next</div>
     <div class="av-sm ${getAv(c.id)}" style="width:64px;height:64px;font-size:22px;margin:0 auto 12px">${initials(c.name)}</div>
-    <div style="font-size:19px;font-weight:700;color:var(--text);margin-bottom:3px">${c.name}</div>
-    <div style="font-size:13px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:20px">${c.phone||'⚠ No phone number'}</div>
+    <div style="font-size:19px;font-weight:700;color:var(--text);margin-bottom:3px">${pName(c.name)}</div>
+    <div style="font-size:13px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:20px">${c.phone?pPhone(c.phone):'⚠ No phone number'}</div>
     <button class="btn btn-primary" onclick="dialerCallTop()" style="font-size:14px;padding:10px 24px" ${!c.phone?'disabled':''}>📞 Call ${(c.name||'').split(' ')[0]}</button>
     <div style="font-size:11px;color:var(--text3);margin-top:14px">${q.length} lead${q.length>1?'s':''} in queue${dialerSettings.autoDial?' · auto-dial ON':''}</div>
     ${fromNum?`<div style="font-size:11px;color:var(--text3);margin-top:4px">Calling from <span style="color:var(--text2);font-family:'DM Mono',monospace">${fromNum}</span></div>`:''}`;
