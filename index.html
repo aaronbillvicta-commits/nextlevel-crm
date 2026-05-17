@@ -25,6 +25,7 @@
 <script type="module" src="src/pipelines/index.js?v=2026-05-17-2"></script>
 <script type="module" src="src/pipelines/board.js?v=2026-05-17-3"></script>
 <script type="module" src="src/pipelines/admin.js?v=2026-05-17-4"></script>
+<script type="module" src="src/conversations/index.js?v=2026-05-17-5"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -13205,6 +13206,12 @@ Object.defineProperty(window, 'conversations',           { get:()=>conversations
 Object.defineProperty(window, 'emailStore',              { get:()=>emailStore,              set:v=>{emailStore=v;},              configurable:true });
 Object.defineProperty(window, 'activePipelineId',        { get:()=>activePipelineId,        set:v=>{activePipelineId=v;},        configurable:true });
 Object.defineProperty(window, 'dealCustomFields',        { get:()=>dealCustomFields,        set:v=>{dealCustomFields=v;},        configurable:true });
+Object.defineProperty(window, 'activeConvContactId',     { get:()=>activeConvContactId,     set:v=>{activeConvContactId=v;},     configurable:true });
+Object.defineProperty(window, 'convFilter',              { get:()=>convFilter,              set:v=>{convFilter=v;},              configurable:true });
+Object.defineProperty(window, 'convSearchQ',             { get:()=>convSearchQ,             set:v=>{convSearchQ=v;},             configurable:true });
+Object.defineProperty(window, 'convSort',                { get:()=>convSort,                set:v=>{convSort=v;},                configurable:true });
+Object.defineProperty(window, 'composeChannel',          { get:()=>composeChannel,          set:v=>{composeChannel=v;},          configurable:true });
+Object.defineProperty(window, 'callHistory',             { get:()=>callHistory,             set:v=>{callHistory=v;},             configurable:true });
 window.__nlmStateMirrorLoaded = true;
 </script>
 <audio id="remote-audio" autoplay style="display:none"></audio>
