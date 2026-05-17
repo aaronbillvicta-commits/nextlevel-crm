@@ -20,6 +20,7 @@
 <script type="module" src="src/contacts/import-export.js?v=2026-05-16-10"></script>
 <script type="module" src="src/contacts/filters.js?v=2026-05-16-11"></script>
 <script type="module" src="src/contacts/selection.js?v=2026-05-16-12"></script>
+<script type="module" src="src/contacts/column-customizer.js?v=2026-05-16-13"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -13077,6 +13078,7 @@ Object.defineProperty(window, 'visibleColumns',          { get:()=>visibleColumn
 Object.defineProperty(window, 'columnOrder',             { get:()=>columnOrder,             set:v=>{columnOrder=v;},             configurable:true });
 Object.defineProperty(window, 'selectedContactIds',      { get:()=>selectedContactIds,                                            configurable:true });
 Object.defineProperty(window, 'contactView',             { get:()=>contactView,             set:v=>{contactView=v;},             configurable:true });
+Object.defineProperty(window, 'ALL_COLUMNS',             { get:()=>ALL_COLUMNS,                                                  configurable:true });
 Object.defineProperty(window, 'gcalAccessToken',         { get:()=>gcalAccessToken,         set:v=>{gcalAccessToken=v;},         configurable:true });
 Object.defineProperty(window, 'calView',                 { get:()=>calView,                 set:v=>{calView=v;},                 configurable:true });
 Object.defineProperty(window, 'calDate',                 { get:()=>calDate,                 set:v=>{calDate=v;},                 configurable:true });
