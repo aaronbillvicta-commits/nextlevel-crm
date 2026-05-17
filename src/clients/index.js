@@ -164,4 +164,39 @@ export async function saveClientField(contactId, field, value){
   }
 }
 
+// Lead / Client category toggle (rendered at the top of the Contact Detail
+// drawer's Info tab). Lead = any non-'done' status; Client = status === 'done'.
+// Remembers the prior lead sub-status in window._prevLeadStatus[contactId] so
+// toggling Lead → Client → Lead in one session restores the original
+// new/active/hot/cold. In-memory only — refresh defaults to 'new'.
+export async function setClientCategory(contactId, category){
+  if(typeof window.requirePerm === 'function' && !window.requirePerm('edit','You don\'t have permission to change client status')) return;
+  const c = window.contacts.find(x => x.id === contactId); if(!c) return;
+  if(!window._prevLeadStatus) window._prevLeadStatus = {};
+  let newStatus;
+  if(category === 'client'){
+    if(c.status !== 'done') window._prevLeadStatus[contactId] = c.status;
+    newStatus = 'done';
+  } else {
+    newStatus = window._prevLeadStatus[contactId] || (c.status === 'done' ? 'new' : c.status);
+  }
+  if(newStatus === c.status){
+    window.openContactDetail(contactId, 'info');
+    return;
+  }
+  const lastAct = { ts:new Date().toISOString(), type:'update' };
+  c.status = newStatus;
+  c.last_activity = lastAct;
+  try {
+    await window.sb.patch('contacts', contactId, { status: newStatus, last_activity: lastAct });
+    window.showToast(category === 'client' ? '👑 Marked as Client' : '↩ Marked as Lead');
+    if(typeof window.renderContacts === 'function') window.renderContacts();
+    renderClientsPage();
+    window.openContactDetail(contactId, 'info');
+  } catch(e){
+    window.logError('setClientCategory', e.message, e.stack, { contactId, category });
+    window.showToast('Failed to update status','error');
+  }
+}
+
 window.__nlmClientsLoaded = true;

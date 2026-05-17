@@ -5338,7 +5338,12 @@ function openContactDetail(contactId, tab='info') {
       c.first_name = sp.first; c.last_name = sp.last;
     }
     migrateContactNotes(c);
+    const isClient = c.status === 'done';
     body = `
+      <div style="display:flex;gap:6px;margin-bottom:16px;padding:4px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)">
+        <button onclick="setClientCategory('${contactId}','lead')" style="flex:1;padding:8px 12px;border-radius:calc(var(--radius) - 2px);border:none;cursor:pointer;font-weight:600;font-size:13px;background:${!isClient?'var(--accent2)':'transparent'};color:${!isClient?'#fff':'var(--text2)'};transition:background .12s,color .12s" title="Mark as Lead">Lead</button>
+        <button onclick="setClientCategory('${contactId}','client')" style="flex:1;padding:8px 12px;border-radius:calc(var(--radius) - 2px);border:none;cursor:pointer;font-weight:600;font-size:13px;background:${isClient?'var(--green)':'transparent'};color:${isClient?'#fff':'var(--text2)'};transition:background .12s,color .12s" title="Mark as Active Client">Client</button>
+      </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">First Name</label>
           <input class="form-input" id="cd-first-name" value="${(c.first_name||'').replace(/"/g,'&quot;')}" placeholder="Maria"/></div>
@@ -10245,6 +10250,43 @@ async function saveClientField(contactId, field, value){
   } catch(e){
     logError('saveClientField', e.message, e.stack, { contactId, field });
     showToast(`Save failed: ${e.message || 'unknown'}`, 'error');
+  }
+}
+
+// Lead / Client toggle on the Contact Detail drawer. Lead = any non-'done'
+// status (default 'new'); Client = status 'done'. We remember the prior lead
+// sub-status in `window._prevLeadStatus[contactId]` so toggling Lead → Client
+// → Lead in one session restores the original sub-status (new/active/hot/cold)
+// rather than dumping the contact back to 'new'. In-memory only — refresh
+// loses the memory and Lead defaults to 'new', which is acceptable.
+async function setClientCategory(contactId, category){
+  if(!requirePerm('edit','You don\'t have permission to change client status')) return;
+  const c = contacts.find(x => x.id === contactId); if(!c) return;
+  if(!window._prevLeadStatus) window._prevLeadStatus = {};
+  let newStatus;
+  if(category === 'client'){
+    if(c.status !== 'done') window._prevLeadStatus[contactId] = c.status;
+    newStatus = 'done';
+  } else {
+    newStatus = window._prevLeadStatus[contactId] || (c.status === 'done' ? 'new' : c.status);
+  }
+  if(newStatus === c.status){
+    // Even on no-op, re-render the drawer so a stuck-looking toggle settles
+    openContactDetail(contactId, 'info');
+    return;
+  }
+  const lastAct = { ts:new Date().toISOString(), type:'update' };
+  c.status = newStatus;
+  c.last_activity = lastAct;
+  try {
+    await sb.patch('contacts', contactId, { status: newStatus, last_activity: lastAct });
+    showToast(category === 'client' ? '👑 Marked as Client' : '↩ Marked as Lead');
+    renderContacts();
+    if(typeof renderClientsPage === 'function') renderClientsPage();
+    openContactDetail(contactId, 'info');
+  } catch(e){
+    logError('setClientCategory', e.message, e.stack, { contactId, category });
+    showToast('Failed to update status','error');
   }
 }
 
