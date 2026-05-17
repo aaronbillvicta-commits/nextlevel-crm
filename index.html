@@ -2770,10 +2770,17 @@ async function loadAllData() {
       sb.get('campaigns', '?order=created_at.desc').catch(()=>[]),
     ]);
 
-    // Map contacts — Supabase uses snake_case, our UI uses camelCase
+    // Map contacts — Supabase uses snake_case, our UI uses camelCase.
+    // notes/first_name/last_name/last_activity were previously dropped on load
+    // (BUG-012) — every note saved via addContactNote / saveContactNoteEdit was
+    // persisted in Supabase but vanished after refresh because the in-memory
+    // object the UI reads from never received the field. Same class of issue
+    // for the legacy-name split fields and the last-activity timestamp.
     contacts = dbContacts.map(c => ({
       id: c.id,
       name: c.name,
+      first_name: c.first_name || '',
+      last_name: c.last_name || '',
       company: c.company || '',
       email: c.email || '',
       phone: c.phone || '',
@@ -2781,6 +2788,8 @@ async function loadAllData() {
       status: c.status || 'new',
       tags: Array.isArray(c.tags) ? c.tags : [],
       customFields: c.custom_fields || {},
+      notes: Array.isArray(c.notes) ? c.notes : [],
+      last_activity: c.last_activity || null,
       created_at: c.created_at
     }));
 
