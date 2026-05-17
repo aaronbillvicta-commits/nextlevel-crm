@@ -22,6 +22,7 @@
 <script type="module" src="src/contacts/selection.js?v=2026-05-16-12"></script>
 <script type="module" src="src/contacts/column-customizer.js?v=2026-05-16-13"></script>
 <script type="module" src="src/contacts/index.js?v=2026-05-17-1"></script>
+<script type="module" src="src/pipelines/index.js?v=2026-05-17-2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -13098,6 +13099,8 @@ Object.defineProperty(window, 'contactCustomFields',     { get:()=>contactCustom
 Object.defineProperty(window, 'TAG_COLORS',              { get:()=>TAG_COLORS,                                                   configurable:true });
 Object.defineProperty(window, 'conversations',           { get:()=>conversations,           set:v=>{conversations=v;},           configurable:true });
 Object.defineProperty(window, 'emailStore',              { get:()=>emailStore,              set:v=>{emailStore=v;},              configurable:true });
+Object.defineProperty(window, 'activePipelineId',        { get:()=>activePipelineId,        set:v=>{activePipelineId=v;},        configurable:true });
+Object.defineProperty(window, 'dealCustomFields',        { get:()=>dealCustomFields,        set:v=>{dealCustomFields=v;},        configurable:true });
 window.__nlmStateMirrorLoaded = true;
 </script>
 <audio id="remote-audio" autoplay style="display:none"></audio>
