@@ -3748,6 +3748,7 @@ async function dialWithAuthRetry(dialTo){
       // start() is part of the same auth flow — must be inside the retry so
       // an expired token caught here triggers the refresh
       await call.start();
+      attachCallAudio(call);
       logError('startCall_step', '4_call_started', null, { attempt });
       return call;
     } catch(e){
@@ -3793,6 +3794,43 @@ async function enableIncomingCalls(){
 // through an SWML `connect` handler the remote PSTN hangup sometimes only
 // surfaces as a `call.state` transition to 'ending' / 'ended' — so we listen
 // for that too and act on terminal states. All paths route to endCall().
+// Route the remote audio stream to the <audio id="remote-audio"> element so
+// the user can hear the call. The SDK establishes the WebRTC peer connection
+// but does not attach remote tracks to a DOM audio element automatically.
+// We try three paths in order: direct remoteStream, SDK 'track' event,
+// and the underlying RTCPeerConnection ontrack — whichever fires first wins.
+function attachCallAudio(call){
+  const audioEl = document.getElementById('remote-audio');
+  if(!audioEl || !call) return;
+  const attach = stream => {
+    if(!stream) return;
+    audioEl.srcObject = stream;
+    audioEl.play().catch(e => logError('audio_play_failed', e.message, null, {}));
+    if(preferredOutputDevice && audioEl.setSinkId)
+      audioEl.setSinkId(preferredOutputDevice).catch(()=>{});
+  };
+  // 1. Already available (e.g. answered inbound call)
+  if(call.remoteStream){ attach(call.remoteStream); return; }
+  // 2. SDK-level track event
+  if(typeof call.on === 'function'){
+    call.on('track', ev => {
+      const s = ev?.streams?.[0] || (ev?.track ? new MediaStream([ev.track]) : null);
+      if(s) attach(s);
+    });
+  }
+  // 3. Underlying RTCPeerConnection (SDK internals vary by version)
+  const pc = call?.peer?.instance || call?.peer?.peerConnection || call?.peerConnection;
+  if(pc?.addEventListener){
+    pc.addEventListener('track', ev => {
+      if(ev?.streams?.[0]) attach(ev.streams[0]);
+    });
+    // Tracks may already be there if we raced
+    const tracks = (pc.getReceivers ? pc.getReceivers() : [])
+      .filter(r => r.track?.kind === 'audio').map(r => r.track);
+    if(tracks.length) attach(new MediaStream(tracks));
+  }
+}
+
 function attachCallTeardown(call){
   if(!call || !call.on) return;
   const teardown = (reason) => {
@@ -4008,6 +4046,7 @@ async function acceptIncomingCall(){
       rootElement: document.getElementById('sw-root-element'),
       audio: true, video: false
     });
+    attachCallAudio(swCall);
     attachCallTeardown(swCall);
     if(activeCallContact?.id){
       let conv=conversations.find(c=>c.contactId===activeCallContact.id);
@@ -13301,7 +13340,7 @@ Object.defineProperty(window, 'composeChannel',          { get:()=>composeChanne
 Object.defineProperty(window, 'callHistory',             { get:()=>callHistory,             set:v=>{callHistory=v;},             configurable:true });
 window.__nlmStateMirrorLoaded = true;
 </script>
-<audio id="remote-audio" autoplay style="display:none"></audio>
+<audio id="remote-audio" autoplay style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px"></audio>
 <div id="sw-root-element" style="position:absolute;width:1px;height:1px;overflow:hidden"></div>
 </body>
 </html>
