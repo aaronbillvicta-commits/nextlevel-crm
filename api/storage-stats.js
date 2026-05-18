@@ -1,9 +1,13 @@
 // Returns row counts, growth rates, and estimated storage usage per Supabase table.
 // Estimates are conservative — actual disk size includes indexes/overhead, so real usage may be ~1.5×.
+const { applyCors, requireAuth } = require('./_auth');
+
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  applyCors(req, res, 'GET, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const user = await requireAuth(req, res);
+  if (!user) return;
 
   const SUPABASE_URL = 'https://oipkvwdjlwienkphsivr.supabase.co';
   const KEY = process.env.SUPABASE_SERVICE_KEY;

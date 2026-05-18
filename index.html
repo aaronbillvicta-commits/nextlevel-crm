@@ -3773,7 +3773,10 @@ async function initSWClient(force = false){
     updateOnlineIndicator();
   }
   // Cache-buster + no-store so we never reuse a stale (expired) token
-  const r = await fetch('/api/call-token?_=' + Date.now(), { cache: 'no-store' });
+  const r = await fetch('/api/call-token?_=' + Date.now(), {
+    cache: 'no-store',
+    headers: { Authorization: 'Bearer ' + authToken },
+  });
   const data = await r.json();
   if(!data.token) throw new Error(data.error || 'Failed to get call token');
 
@@ -6640,7 +6643,9 @@ async function loadStorageStats(){
   contentEl.style.display='none';
   errorEl.style.display='none';
   try {
-    const r = await fetch('/api/storage-stats');
+    const r = await fetch('/api/storage-stats', {
+      headers: { Authorization: 'Bearer ' + authToken },
+    });
     const data = await r.json();
     if(!r.ok || data.error) throw new Error(data.error || 'Request failed');
     renderStorageStats(data);
@@ -7616,7 +7621,7 @@ async function sendSMS(){
   try {
     const r = await fetch('/api/sms',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'application/json', Authorization:'Bearer '+authToken},
       body: JSON.stringify({to, body, from})
     });
     const data = await r.json();
@@ -11004,7 +11009,7 @@ async function sendConvMessage(ch){
       const fromPicker = document.getElementById('conv-sms-from-picker-select');
       const fromNumber = (fromPicker && fromPicker.value) ? fromPicker.value : getPrimarySwPhone();
       try {
-        const r = await fetch('/api/sms',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({to:contact.phone,body:mergedBody,from:fromNumber})});
+        const r = await fetch('/api/sms',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+authToken},body:JSON.stringify({to:contact.phone,body:mergedBody,from:fromNumber})});
         const data = await r.json();
         if(data.error) throw new Error(data.error);
         newMsg.status='sent';
@@ -11708,7 +11713,7 @@ async function callAI(feature, context) {
   try {
     const r = await fetch('/api/ai', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
       body: JSON.stringify({ feature, context })
     });
     const data = await r.json();

@@ -1,17 +1,20 @@
+const { applyCors, requireAuth } = require('./_auth');
+
 const SPACE   = process.env.SW_SPACE_URL;
 const PROJECT = process.env.SW_PROJECT_ID;
 const TOKEN   = process.env.SW_API_TOKEN;
 
 module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  applyCors(req, res, 'GET, OPTIONS');
   // CRITICAL: never cache token responses. A cached (stale) token causes
   // SignalWire's "authblock_is_expired" error even on a fresh fetch.
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const user = await requireAuth(req, res);
+  if (!user) return;
 
   if (!SPACE || !PROJECT || !TOKEN) {
     return res.status(500).json({ error: 'SignalWire env vars not set' });
