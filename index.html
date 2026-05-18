@@ -68,6 +68,7 @@
 <script type="module" src="src/settings/index.js?v=2026-05-18-1"></script>
 <script type="module" src="src/settings/users.js?v=2026-05-18-2"></script>
 <script type="module" src="src/settings/usage.js?v=2026-05-18-3"></script>
+<script type="module" src="src/calling/index.js?v=2026-05-18-4"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -13695,6 +13696,8 @@ Object.defineProperty(window, 'PERMISSION_DEFS',         { get:()=>PERMISSION_DE
 Object.defineProperty(window, 'authToken',               { get:()=>authToken,               set:v=>{authToken=v;},               configurable:true });
 Object.defineProperty(window, 'preferredInputDevice',    { get:()=>preferredInputDevice,    set:v=>{preferredInputDevice=v;},    configurable:true });
 Object.defineProperty(window, 'preferredOutputDevice',   { get:()=>preferredOutputDevice,   set:v=>{preferredOutputDevice=v;},   configurable:true });
+Object.defineProperty(window, 'swClient',                { get:()=>swClient,                set:v=>{swClient=v;},                configurable:true });
+Object.defineProperty(window, 'incomingCallsRegistered', { get:()=>incomingCallsRegistered, set:v=>{incomingCallsRegistered=v;}, configurable:true });
 window.__nlmStateMirrorLoaded = true;
 </script>
 <audio id="remote-audio" autoplay style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px"></audio>
