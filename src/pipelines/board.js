@@ -91,7 +91,7 @@ export function renderDealCard(deal){
   const contactBadge = linkedContact
     ? `<div style="display:flex;align-items:center;gap:5px;margin-top:4px">
         <div class="av-sm ${window.getAv(linkedContact.id)}" style="width:16px;height:16px;font-size:7px;flex-shrink:0">${window.initials(linkedContact.name)}</div>
-        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${linkedContact.name}</span>
+        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${window.pName(linkedContact.name)}</span>
        </div>`
     : '';
   return `
@@ -99,11 +99,11 @@ export function renderDealCard(deal){
       ondragstart="onDealDragStart(event)" ondragend="onDealDragEnd(event)"
       onclick="handleDealClick(event,'${deal.id}')">
       <div class="deal-grip">⠿</div>
-      <div class="deal-name">${deal.name}</div>
-      <div class="deal-co">${deal.company||''}</div>
+      <div class="deal-name">${window.pName(deal.name)}</div>
+      <div class="deal-co">${deal.company?window.pCompany(deal.company):''}</div>
       ${contactBadge}
       <div class="deal-val">${window.formatCurrency(deal.value||0)}/mo</div>
-      <div class="deal-tags">${(deal.tags||[]).map(t=>`<span class="tag ${t.cls}">${t.label}</span>`).join('')}</div>
+      <div class="deal-tags">${(deal.tags||[]).map(t=>`<span class="tag ${t.cls}">${window.pTag(t.label)}</span>`).join('')}</div>
       ${preview?`<div class="deal-custom-preview">${preview}</div>`:''}
     </div>`;
 }

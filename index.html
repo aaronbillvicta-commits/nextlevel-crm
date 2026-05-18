@@ -2857,6 +2857,7 @@ function togglePrivacyMode(){
     const c=contacts.find(x=>x.id===window._activeConvContactId);
     if(c) renderConvInfoPanel(c);
   }
+  if(typeof renderBoard==='function') renderBoard();
   if(window._openContactDetailId) openContactDetail(window._openContactDetailId);
 }
 // ── END PRIVACY MODE ─────────────────────────────────────────────────────────
@@ -5966,7 +5967,7 @@ function renderDealCard(deal){
   const contactBadge = linkedContact
     ? `<div style="display:flex;align-items:center;gap:5px;margin-top:4px">
         <div class="av-sm ${getAv(linkedContact.id)}" style="width:16px;height:16px;font-size:7px;flex-shrink:0">${initials(linkedContact.name)}</div>
-        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${linkedContact.name}</span>
+        <span style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pName(linkedContact.name)}</span>
        </div>`
     : '';
   const ageDays = deal.created_at ? Math.floor((Date.now()-new Date(deal.created_at).getTime())/86400000) : null;
@@ -5977,11 +5978,11 @@ function renderDealCard(deal){
       ondragstart="onDealDragStart(event)" ondragend="onDealDragEnd(event)"
       onclick="handleDealClick(event,'${deal.id}')">
       <div class="deal-grip">⠿</div>
-      <div class="deal-name">${deal.name}</div>
-      <div class="deal-co">${deal.company||''}</div>
+      <div class="deal-name">${pName(deal.name)}</div>
+      <div class="deal-co">${deal.company?pCompany(deal.company):''}</div>
       ${contactBadge}
       <div class="deal-val">${formatCurrency(deal.value||0)}/mo${ageBadge}</div>
-      <div class="deal-tags">${(deal.tags||[]).map(t=>`<span class="tag ${t.cls}">${t.label}</span>`).join('')}</div>
+      <div class="deal-tags">${(deal.tags||[]).map(t=>`<span class="tag ${t.cls}">${pTag(t.label)}</span>`).join('')}</div>
       ${preview?`<div class="deal-custom-preview">${preview}</div>`:''}
     </div>`;
 }
@@ -6323,8 +6324,8 @@ function openDealDetail(dealId){
     <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);margin-bottom:14px">
       <div class="av-sm ${getAv(linkedContact.id)}">${initials(linkedContact.name)}</div>
       <div style="flex:1">
-        <div style="font-size:13px;font-weight:600;color:var(--accent2)">${linkedContact.name}</div>
-        <div style="font-size:11px;color:var(--text3)">${linkedContact.email||''} ${linkedContact.phone?'· '+linkedContact.phone:''}</div>
+        <div style="font-size:13px;font-weight:600;color:var(--accent2)">${pName(linkedContact.name)}</div>
+        <div style="font-size:11px;color:var(--text3)">${linkedContact.email?pEmail(linkedContact.email):''} ${linkedContact.phone?'· '+pPhone(linkedContact.phone):''}</div>
       </div>
       <button class="btn btn-sm" onclick="closeModal();openContactDetail('${linkedContact.id}')">View Contact</button>
     </div>` : `
@@ -6332,7 +6333,7 @@ function openDealDetail(dealId){
       No contact linked. <span onclick="closeModal();navigate('contacts')" style="color:var(--accent2);cursor:pointer">Link from Contacts →</span>
     </div>`;
   openModal(`
-    <div class="modal-head"><div class="modal-title">Deal: ${deal.name}</div><span class="modal-close" onclick="closeModal()">×</span></div>
+    <div class="modal-head"><div class="modal-title">Deal: ${pName(deal.name)}</div><span class="modal-close" onclick="closeModal()">×</span></div>
     <div class="modal-body">
       <div class="modal-section">
         <div class="modal-section-title">Linked Contact</div>
@@ -6350,7 +6351,7 @@ function openDealDetail(dealId){
       <div class="modal-section">
         <div class="modal-section-title">Tags</div>
         <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
-          ${(deal.tags||[]).map((t,i)=>`<span class="tag ${t.cls}">${t.label}<span class="tag-remove" onclick="removeDealTag('${dealId}',${i})">×</span></span>`).join('')}
+          ${(deal.tags||[]).map((t,i)=>`<span class="tag ${t.cls}">${pTag(t.label)}<span class="tag-remove" onclick="removeDealTag('${dealId}',${i})">×</span></span>`).join('')}
           ${!(deal.tags||[]).length?'<span style="font-size:12px;color:var(--text3)">No tags</span>':''}
         </div>
         <div class="tag-input-wrap">
