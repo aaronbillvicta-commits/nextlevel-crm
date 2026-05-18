@@ -66,6 +66,7 @@
 <script type="module" src="src/conversations/index.js?v=2026-05-17-5"></script>
 <script type="module" src="src/clients/index.js?v=2026-05-17-6"></script>
 <script type="module" src="src/settings/index.js?v=2026-05-18-1"></script>
+<script type="module" src="src/settings/users.js?v=2026-05-18-2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -13688,6 +13689,9 @@ Object.defineProperty(window, 'convSearchQ',             { get:()=>convSearchQ, 
 Object.defineProperty(window, 'convSort',                { get:()=>convSort,                set:v=>{convSort=v;},                configurable:true });
 Object.defineProperty(window, 'composeChannel',          { get:()=>composeChannel,          set:v=>{composeChannel=v;},          configurable:true });
 Object.defineProperty(window, 'callHistory',             { get:()=>callHistory,             set:v=>{callHistory=v;},             configurable:true });
+Object.defineProperty(window, 'users',                   { get:()=>users,                   set:v=>{users=v;},                   configurable:true });
+Object.defineProperty(window, 'PERMISSION_DEFS',         { get:()=>PERMISSION_DEFS,                                              configurable:true });
+Object.defineProperty(window, 'authToken',               { get:()=>authToken,               set:v=>{authToken=v;},               configurable:true });
 window.__nlmStateMirrorLoaded = true;
 </script>
 <audio id="remote-audio" autoplay style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px"></audio>
