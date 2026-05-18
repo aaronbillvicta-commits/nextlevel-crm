@@ -70,6 +70,7 @@
 <script type="module" src="src/settings/usage.js?v=2026-05-18-3"></script>
 <script type="module" src="src/calling/index.js?v=2026-05-18-4"></script>
 <script type="module" src="src/calling/outbound.js?v=2026-05-18-5"></script>
+<script type="module" src="src/calling/inbound.js?v=2026-05-18-6"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -13706,6 +13707,7 @@ Object.defineProperty(window, 'callMuted',               { get:()=>callMuted,   
 Object.defineProperty(window, 'activeCallContact',       { get:()=>activeCallContact,       set:v=>{activeCallContact=v;},       configurable:true });
 Object.defineProperty(window, 'activeCallDirection',     { get:()=>activeCallDirection,     set:v=>{activeCallDirection=v;},     configurable:true });
 Object.defineProperty(window, 'dialerCallInProgress',    { get:()=>dialerCallInProgress,    set:v=>{dialerCallInProgress=v;},    configurable:true });
+Object.defineProperty(window, 'pendingInvite',           { get:()=>pendingInvite,           set:v=>{pendingInvite=v;},           configurable:true });
 window.__nlmStateMirrorLoaded = true;
 </script>
 <audio id="remote-audio" autoplay style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px"></audio>
