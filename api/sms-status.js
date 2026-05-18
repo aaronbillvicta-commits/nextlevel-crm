@@ -1,6 +1,15 @@
+const { verifySignalWireSignature } = require('./_auth');
+
 const SUPABASE_URL = 'https://oipkvwdjlwienkphsivr.supabase.co';
 
 module.exports = async function handler(req, res) {
+  // Reject forged callbacks. Without this check, anyone could POST a known
+  // MessageSid + status='failed' and silently corrupt the delivery state on
+  // any sent message.
+  if (!verifySignalWireSignature(req)) {
+    return res.status(401).end();
+  }
+
   const sid    = req.body?.MessageSid || req.body?.SmsSid || '';
   const raw    = req.body?.MessageStatus || req.body?.SmsStatus || '';
   const status = { delivered: 'delivered', sent: 'sent', failed: 'failed', undelivered: 'failed' }[raw] || null;

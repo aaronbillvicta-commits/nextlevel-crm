@@ -115,4 +115,47 @@ async function requireAuth(req, res) {
   }
 }
 
-module.exports = { applyCors, requireAuth, isAllowedOrigin };
+// SignalWire webhook signature verification (Twilio-compatible HMAC-SHA1).
+// SignalWire signs every POST to a webhook URL using the project's API token
+// as the HMAC key. The signed string is the full webhook URL concatenated
+// with sorted POST params (key+value, no separator). The base64 result is
+// sent in the X-Twilio-Signature header. Without this check, anyone who
+// knows the webhook URL can forge inbound SMS or status callbacks and
+// have them written to the database via the service-role key (BUG-018,
+// compounds the XSS class fixed in BUG-017).
+const crypto = require('crypto');
+
+function verifySignalWireSignature(req) {
+  const authToken = process.env.SW_API_TOKEN;
+  if (!authToken) return false; // fail-closed: missing env var means deployment misconfig
+
+  const sig = req.headers['x-twilio-signature']
+           || req.headers['x-signalwire-signature']
+           || '';
+  if (!sig) return false;
+
+  // Reconstruct the URL SignalWire was told to POST to. Vercel forwards
+  // the original host in req.headers.host and the original path+query in
+  // req.url. Webhooks must be HTTPS in production (SignalWire requires it).
+  const proto = req.headers['x-forwarded-proto'] || 'https';
+  const url = `${proto}://${req.headers.host}${req.url}`;
+
+  // Vercel parses application/x-www-form-urlencoded into an object of
+  // string values. Sort keys ASCII-ascending; concatenate key+value.
+  const body = req.body && typeof req.body === 'object' ? req.body : {};
+  const keys = Object.keys(body).sort();
+  let signed = url;
+  for (const k of keys) signed += k + String(body[k]);
+
+  const expected = crypto.createHmac('sha1', authToken).update(signed).digest('base64');
+  try {
+    const a = Buffer.from(expected);
+    const b = Buffer.from(sig);
+    if (a.length !== b.length) return false;
+    return crypto.timingSafeEqual(a, b);
+  } catch (_) {
+    return false;
+  }
+}
+
+module.exports = { applyCors, requireAuth, isAllowedOrigin, verifySignalWireSignature };

@@ -1,3 +1,5 @@
+const { verifySignalWireSignature } = require('./_auth');
+
 const SUPABASE_URL = 'https://oipkvwdjlwienkphsivr.supabase.co';
 
 function sbHeaders() {
@@ -11,6 +13,14 @@ function sbHeaders() {
 
 module.exports = async function handler(req, res) {
   res.setHeader('Content-Type', 'text/xml');
+
+  // Reject forged webhooks. Without this check, anyone who knows the public
+  // /api/sms-inbound URL can POST arbitrary inbound SMS — compounded with the
+  // XSS class fixed in BUG-017, that was a direct path to operator session
+  // token exfiltration without needing to own the SignalWire DID.
+  if (!verifySignalWireSignature(req)) {
+    return res.status(401).end('<?xml version="1.0"?><Response></Response>');
+  }
 
   const from = (req.body?.From || '').replace(/\D/g, '').slice(-10);
   const body = req.body?.Body || '';
