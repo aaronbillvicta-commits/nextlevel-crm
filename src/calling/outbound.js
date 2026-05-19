@@ -150,25 +150,70 @@ export function attachCallTeardown(call){
     window.swCall = null;
     if(window.callTimer) endCall();
   };
-  call.on('destroy',    () => teardown('destroy'));
-  call.on('room.left',  () => teardown('room.left'));
-  call.on('call.ended', () => teardown('call.ended'));
-  // Widened terminal-state set: covers SDK variants that emit `terminated`,
-  // `completed`, `disconnected`, `destroyed`, `gone`, `aborted` instead of the
-  // five originally matched. None of these are valid intermediate states, so
-  // adding them is purely defensive — without them, those SDK paths leave the
-  // "On Call" UI stuck until the user manually drops.
+  // BUG-020: empirical observation from error_logs — `call.state` events have
+  // NEVER been emitted across every recorded call. The Fabric SDK's room
+  // session emits room-/member-scoped events instead. We now subscribe to a
+  // wider set with one common logger so the next real call surfaces the
+  // correct event name; the safety-net below handles the case where NO
+  // SignalWire event fires at all (e.g. remote PSTN hangup on Fabric).
   const TERMINAL_CALL_STATES = new Set([
     'ended','ending','destroy','destroyed','done','hangup',
     'terminated','completed','disconnected','gone','aborted'
   ]);
-  call.on('call.state', ev => {
-    const state = String(ev?.call_state ?? ev?.state ?? '').toLowerCase();
-    window.logError('sw_call_state', state || (typeof window._safeStringify === 'function' ? window._safeStringify(ev,300) : ''), null, {});
-    if(TERMINAL_CALL_STATES.has(state)){
-      teardown('call.state:'+state);
-    }
+  const PROBE_EVENTS = [
+    'destroy','destroyed',
+    'room.left','room.ended','room.destroyed','room.session.ended',
+    'call.ended','call.state',
+    'member.left'
+  ];
+  const _stringify = (typeof window._safeStringify === 'function')
+    ? (ev) => window._safeStringify(ev, 400)
+    : () => '';
+  PROBE_EVENTS.forEach(evName => {
+    try {
+      call.on(evName, ev => {
+        window.logError('sw_call_event', evName, null, { ev: _stringify(ev) });
+        if(evName === 'member.left'){
+          // Only the REMOTE peer leaving means the call dropped. Ignore our
+          // own member-left (which fires after we call hangup()/leave()).
+          const leftId = ev?.member?.id || ev?.member_id || ev?.memberId;
+          const selfId = call?.selfMember?.id || call?.memberId;
+          if(leftId && selfId && leftId === selfId) return;
+          teardown('member.left:'+(leftId||'unknown'));
+          return;
+        }
+        if(evName === 'call.state'){
+          const state = String(ev?.call_state ?? ev?.state ?? '').toLowerCase();
+          if(TERMINAL_CALL_STATES.has(state)) teardown('call.state:'+state);
+          return;
+        }
+        teardown(evName);
+      });
+    } catch(_){ /* SDK may reject unknown event names — silently skip */ }
   });
+  // ICE safety net — SDK-agnostic. When the remote leg hangs up, the WebRTC
+  // media path physically dies and ICE transitions to disconnected/failed/
+  // closed regardless of which SignalWire event (if any) fires. This is what
+  // catches BUG-020 even if every PROBE_EVENT above is wrong.
+  const pc = call?.peer?.instance || call?.peer?.peerConnection || call?.peerConnection;
+  if(pc && typeof pc.addEventListener === 'function'){
+    pc.addEventListener('iceconnectionstatechange', () => {
+      const st = pc.iceConnectionState;
+      window.logError('sw_call_ice', st, null, {});
+      if(st === 'failed' || st === 'closed'){
+        teardown('ice:'+st);
+      } else if(st === 'disconnected'){
+        const checkAt = Date.now();
+        setTimeout(() => {
+          if(window.swCall === call && pc.iceConnectionState === 'disconnected'){
+            teardown('ice:disconnected_persistent@'+checkAt);
+          }
+        }, 2000);
+      }
+    });
+  } else {
+    window.logError('sw_call_no_pc', 'attachCallTeardown could not find RTCPeerConnection — ICE safety net disabled', null, {});
+  }
 }
 
 export async function startCall(){
