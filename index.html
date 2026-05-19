@@ -4003,11 +4003,23 @@ function attachCallTeardown(call){
   // media path physically dies and ICE transitions to disconnected/failed/
   // closed regardless of which SignalWire event (if any) fires. This is what
   // catches BUG-020 even if every PROBE_EVENT above is wrong.
+  //
+  // BUG-020 follow-up: `wasConnected` guards against false positives during
+  // call setup. ICE can briefly transit through `disconnected`/`failed`
+  // BEFORE first reaching `connected` (especially on inbound accept), which
+  // previously caused a teardown 2-3s after answer. We only react to ICE
+  // failures AFTER the call has successfully established at least once.
   const pc = call?.peer?.instance || call?.peer?.peerConnection || call?.peerConnection;
   if(pc && typeof pc.addEventListener === 'function'){
+    let wasConnected = false;
     pc.addEventListener('iceconnectionstatechange', () => {
       const st = pc.iceConnectionState;
-      logError('sw_call_ice', st, null, {});
+      logError('sw_call_ice', st, null, { wasConnected });
+      if(st === 'connected' || st === 'completed'){
+        wasConnected = true;
+        return;
+      }
+      if(!wasConnected) return; // ignore setup-phase transient drops
       if(st === 'failed' || st === 'closed'){
         teardown('ice:'+st);
       } else if(st === 'disconnected'){
@@ -4019,6 +4031,18 @@ function attachCallTeardown(call){
             teardown('ice:disconnected_persistent@'+checkAt);
           }
         }, 2000);
+      }
+    });
+    // Higher-level connection state — semantically clearer than iceConnectionState.
+    // When the remote PSTN leg ends, connectionState typically goes to
+    // 'disconnected' or 'failed' faster than iceConnectionState does.
+    pc.addEventListener('connectionstatechange', () => {
+      const st = pc.connectionState;
+      logError('sw_call_pc_state', st, null, { wasConnected });
+      if(st === 'connected'){ wasConnected = true; return; }
+      if(!wasConnected) return;
+      if(st === 'failed' || st === 'closed' || st === 'disconnected'){
+        teardown('pc:'+st);
       }
     });
   } else {
@@ -4144,6 +4168,31 @@ function handleIncomingInvite(notification){
     invite._resolvedName = displayName;
     showIncomingCallUI(displayName, from, matched);
     startRingtone();
+
+    // BUG-020 follow-up: stop the ringtone when the caller hangs up BEFORE
+    // we accept. The invite object only exposes details/accept/reject —
+    // no public event API documented — so we probe likely event names on
+    // both the invite and swClient, and add a 45s timeout fallback (typical
+    // ring-no-answer / voicemail handoff). Whichever fires first cleans up.
+    const cancelHandler = (reason) => () => {
+      logError('sw_inbound_cancel', reason, null, {});
+      if(pendingInvite !== invite) return; // already accepted or declined
+      pendingInvite = null;
+      stopRingtone();
+      hideIncomingCallUI();
+      if(typeof logCall === 'function') logCall('inbound', from, displayName, 0, 'missed');
+    };
+    const CANCEL_EVENTS = ['cancelled','cancel','ended','end','expired','reject','rejected','destroy','destroyed','timeout'];
+    if(typeof invite.on === 'function'){
+      CANCEL_EVENTS.forEach(ev => { try { invite.on(ev, cancelHandler('invite.'+ev)); } catch(_){} });
+    }
+    if(swClient && typeof swClient.on === 'function'){
+      ['call.invite.cancelled','invite.cancelled','incomingCallCancelled','call.cancelled','invite.ended','call.ended']
+        .forEach(ev => { try { swClient.on(ev, cancelHandler('client.'+ev)); } catch(_){} });
+    }
+    // Safety timeout — if no cancellation event ever fires and the user
+    // doesn't accept/decline, force cleanup after 45 seconds.
+    setTimeout(() => { if(pendingInvite === invite) cancelHandler('timeout_45s')(); }, 45000);
   } catch(e){
     logError('sw_inbound_handle', e.message, e.stack, {});
   }

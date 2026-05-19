@@ -165,6 +165,31 @@ export function handleIncomingInvite(notification){
     invite._resolvedName = displayName;
     showIncomingCallUI(displayName, from, matched);
     startRingtone();
+
+    // BUG-020 follow-up: stop the ringtone when the caller hangs up BEFORE
+    // we accept. The invite object only exposes details/accept/reject —
+    // no public event API documented — so we probe likely event names on
+    // both the invite and swClient, and add a 45s timeout fallback (typical
+    // ring-no-answer / voicemail handoff). Whichever fires first cleans up.
+    const cancelHandler = (reason) => () => {
+      window.logError('sw_inbound_cancel', reason, null, {});
+      if(window.pendingInvite !== invite) return; // already accepted or declined
+      window.pendingInvite = null;
+      stopRingtone();
+      hideIncomingCallUI();
+      if(typeof window.logCall === 'function') window.logCall('inbound', from, displayName, 0, 'missed');
+    };
+    const CANCEL_EVENTS = ['cancelled','cancel','ended','end','expired','reject','rejected','destroy','destroyed','timeout'];
+    if(typeof invite.on === 'function'){
+      CANCEL_EVENTS.forEach(ev => { try { invite.on(ev, cancelHandler('invite.'+ev)); } catch(_){} });
+    }
+    if(window.swClient && typeof window.swClient.on === 'function'){
+      ['call.invite.cancelled','invite.cancelled','incomingCallCancelled','call.cancelled','invite.ended','call.ended']
+        .forEach(ev => { try { window.swClient.on(ev, cancelHandler('client.'+ev)); } catch(_){} });
+    }
+    // Safety timeout — if no cancellation event ever fires and the user
+    // doesn't accept/decline, force cleanup after 45 seconds.
+    setTimeout(() => { if(window.pendingInvite === invite) cancelHandler('timeout_45s')(); }, 45000);
   } catch(e){
     window.logError('sw_inbound_handle', e.message, e.stack, {});
   }

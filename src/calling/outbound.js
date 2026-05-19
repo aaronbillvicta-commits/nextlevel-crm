@@ -195,11 +195,23 @@ export function attachCallTeardown(call){
   // media path physically dies and ICE transitions to disconnected/failed/
   // closed regardless of which SignalWire event (if any) fires. This is what
   // catches BUG-020 even if every PROBE_EVENT above is wrong.
+  //
+  // BUG-020 follow-up: `wasConnected` guards against false positives during
+  // call setup. ICE can briefly transit through `disconnected`/`failed`
+  // BEFORE first reaching `connected` (especially on inbound accept), which
+  // previously caused a teardown 2-3s after answer. We only react to ICE
+  // failures AFTER the call has successfully established at least once.
   const pc = call?.peer?.instance || call?.peer?.peerConnection || call?.peerConnection;
   if(pc && typeof pc.addEventListener === 'function'){
+    let wasConnected = false;
     pc.addEventListener('iceconnectionstatechange', () => {
       const st = pc.iceConnectionState;
-      window.logError('sw_call_ice', st, null, {});
+      window.logError('sw_call_ice', st, null, { wasConnected });
+      if(st === 'connected' || st === 'completed'){
+        wasConnected = true;
+        return;
+      }
+      if(!wasConnected) return; // ignore setup-phase transient drops
       if(st === 'failed' || st === 'closed'){
         teardown('ice:'+st);
       } else if(st === 'disconnected'){
@@ -209,6 +221,15 @@ export function attachCallTeardown(call){
             teardown('ice:disconnected_persistent@'+checkAt);
           }
         }, 2000);
+      }
+    });
+    pc.addEventListener('connectionstatechange', () => {
+      const st = pc.connectionState;
+      window.logError('sw_call_pc_state', st, null, { wasConnected });
+      if(st === 'connected'){ wasConnected = true; return; }
+      if(!wasConnected) return;
+      if(st === 'failed' || st === 'closed' || st === 'disconnected'){
+        teardown('pc:'+st);
       }
     });
   } else {
