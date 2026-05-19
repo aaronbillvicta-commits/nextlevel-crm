@@ -188,8 +188,9 @@ export function handleIncomingInvite(notification){
         .forEach(ev => { try { window.swClient.on(ev, cancelHandler('client.'+ev)); } catch(_){} });
     }
     // Safety timeout — if no cancellation event ever fires and the user
-    // doesn't accept/decline, force cleanup after 45 seconds.
-    setTimeout(() => { if(window.pendingInvite === invite) cancelHandler('timeout_45s')(); }, 45000);
+    // doesn't accept/decline, force cleanup after 25 seconds (closer to
+    // typical ring duration before voicemail).
+    setTimeout(() => { if(window.pendingInvite === invite) cancelHandler('timeout_25s')(); }, 25000);
   } catch(e){
     window.logError('sw_inbound_handle', e.message, e.stack, {});
   }

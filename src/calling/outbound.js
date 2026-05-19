@@ -110,6 +110,31 @@
 //   path is the most fragile bit — verify Drop ends the call cleanly on the
 //   remote PSTN side, not just locally). All paths use inline copies.
 
+// BUG-020 follow-up: locate the underlying RTCPeerConnection across every
+// known SDK shape. Older Verto/Relay builds expose `peer.instance` /
+// `peer.peerConnection` / `peerConnection` directly. The Fabric Room Session
+// build (current — confirmed in sw_call_keys logs) keeps PCs in a
+// `rtcPeerMap` keyed by `activeRTCPeerId`. Module-local; mirrors the inline
+// `_pcOf` so the module and inline copies stay aligned.
+function _pcOf(call){
+  if(!call) return null;
+  if(call.peer?.instance)         return call.peer.instance;
+  if(call.peer?.peerConnection)   return call.peer.peerConnection;
+  if(call.peerConnection)         return call.peerConnection;
+  const direct = call.rtcPeerMap?.get?.(call.activeRTCPeerId);
+  if(direct?.instance)            return direct.instance;
+  if(direct?.peerConnection)      return direct.peerConnection;
+  if(direct?.pc)                  return direct.pc;
+  if(call.rtcPeerMap?.values){
+    for(const v of call.rtcPeerMap.values()){
+      if(v?.instance)       return v.instance;
+      if(v?.peerConnection) return v.peerConnection;
+      if(v?.pc)             return v.pc;
+    }
+  }
+  return null;
+}
+
 export function attachCallAudio(call){
   const audioEl = document.getElementById('remote-audio');
   if(!audioEl || !call) return;
@@ -130,7 +155,7 @@ export function attachCallAudio(call){
     });
   }
   // 3. Underlying RTCPeerConnection (SDK internals vary by version)
-  const pc = call?.peer?.instance || call?.peer?.peerConnection || call?.peerConnection;
+  const pc = _pcOf(call);
   if(pc?.addEventListener){
     pc.addEventListener('track', ev => {
       if(ev?.streams?.[0]) attach(ev.streams[0]);
@@ -201,7 +226,7 @@ export function attachCallTeardown(call){
   // BEFORE first reaching `connected` (especially on inbound accept), which
   // previously caused a teardown 2-3s after answer. We only react to ICE
   // failures AFTER the call has successfully established at least once.
-  const pc = call?.peer?.instance || call?.peer?.peerConnection || call?.peerConnection;
+  const pc = _pcOf(call);
   if(pc && typeof pc.addEventListener === 'function'){
     let wasConnected = false;
     pc.addEventListener('iceconnectionstatechange', () => {
@@ -362,7 +387,7 @@ export function endCall(){
       try { audioEl.pause(); } catch(_){}
       try { audioEl.srcObject = null; } catch(_){}
     }
-    const pc = _call?.peer?.instance || _call?.peer?.peerConnection || _call?.peerConnection;
+    const pc = _pcOf(_call);
     if(pc && typeof pc.close === 'function'){
       try { pc.getSenders?.().forEach(s => { try{ s.track?.stop(); }catch(_){} }); } catch(_){}
       try { pc.getReceivers?.().forEach(r => { try{ r.track?.stop(); }catch(_){} }); } catch(_){}

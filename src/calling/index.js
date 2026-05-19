@@ -119,6 +119,35 @@ export async function initSWClient(force = false){
 
   const SW = (window.SignalWire && window.SignalWire.SignalWire) || window.SignalWire;
   window.swClient = await SW({ token: data.token, logLevel: 'debug' });
+  // BUG-020 follow-up: monkey-patch the SDK event emitter to log every event
+  // the client emits. The SignalWire JS SDK does not document an "invite
+  // cancelled" event, and our probe set in handleIncomingInvite didn't match
+  // any of the names that actually fire. This instrumentation captures every
+  // event so one cancelled-invite test surfaces the real name.
+  try {
+    const sw = window.swClient;
+    const targets = [
+      ['client', sw],
+      ['emitter', sw?.eventEmitter],
+      ['_emitter', sw?._emitter],
+      ['_eventEmitter', sw?._eventEmitter],
+    ].filter(([,t]) => t);
+    for(const [label, t] of targets){
+      if(typeof t.emit === 'function' && !t.__nlmEmitWrapped){
+        const orig = t.emit.bind(t);
+        t.emit = function(name, ...args){
+          try {
+            window.logError('sw_emit', String(name), null, {
+              target: label,
+              args: (typeof window._safeStringify === 'function' ? window._safeStringify(args, 280) : '')
+            });
+          } catch(_){}
+          return orig(name, ...args);
+        };
+        t.__nlmEmitWrapped = true;
+      }
+    }
+  } catch(e){ window.logError('sw_emit_wrap_failed', e.message, e.stack, {}); }
   // Re-register the inbound handler on every fresh client (silent if the user
   // doesn't have calling perm or hasn't connected SignalWire)
   if(typeof window.enableIncomingCalls === 'function'){
