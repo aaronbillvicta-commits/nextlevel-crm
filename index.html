@@ -3813,8 +3813,94 @@ async function initSWClient(force = false){
   const data = await r.json();
   if(!data.token) throw new Error(data.error || 'Failed to get call token');
 
+  // BUG-020 round 4: intercept the WebSocket SignalWire opens for transport.
+  // The SDK does not surface a JS event for "inbound invite cancelled by caller
+  // before accept" — we verified this in error_logs: zero sw_emit rows across
+  // an entire cancellation test, but `declineIncomingCall` returns "CALL DOES
+  // NOT EXIST" proving the server DID send a CANCEL message. That message is
+  // arriving via the underlying WebSocket; we just need to read it directly.
+  // Wrapping the WebSocket constructor BEFORE SW() is called lets us inspect
+  // every server-to-client message. SignalWire Fabric uses Verto over WS —
+  // verto.bye / verto.destroy carries the CANCEL with the call's callID.
+  // Idempotent guard so reconnect/refresh doesn't double-wrap.
+  if(window.WebSocket && !window.__nlmWSWrapped){
+    const _OrigWS = window.WebSocket;
+    class _NlmWS extends _OrigWS {
+      constructor(url, protocols){
+        super(url, protocols);
+        try { logError('ws_open', String(url).slice(0,120), null, {}); } catch(_){}
+        this.addEventListener('message', (ev) => {
+          try {
+            const data = typeof ev.data === 'string' ? ev.data : null;
+            if(!data || data.length > 8192) return;
+            // Heuristic: only parse messages that look like control/lifecycle
+            // events. Verto JSON-RPC messages are small and method-prefixed.
+            if(!/verto\.|bye|cancel|destroy|hangup|ended/i.test(data)) return;
+            let parsed = null;
+            try { parsed = JSON.parse(data); } catch(_){}
+            const method = String(parsed?.method || parsed?.params?.method || '');
+            const params = parsed?.params || {};
+            const callID = params.callID || params.call_id || params.id || '';
+            const cause  = params.cause || params.reason || params.causeCode || '';
+            logError('ws_msg', method || 'no-method', null, {
+              callID, cause, raw: data.slice(0, 400)
+            });
+            // Real-time cancellation: match the message's callID against the
+            // pending invite. If it matches, clean up the ringtone + card.
+            if(window.pendingInvite && /bye|cancel|destroy|hangup|ended/i.test(method) && callID){
+              const inviteId = window.pendingInvite?.details?.callID;
+              if(inviteId === callID){
+                logError('ws_invite_cancel_match', method, null, { callID, cause });
+                // Capture before nulling so the missed-call log gets the number
+                let _from = '';
+                try {
+                  _from = window.cleanCallerNumber?.(
+                    window.pendingInvite?._resolvedFrom ||
+                    window.pendingInvite?.details?.caller_id_number || ''
+                  ) || '';
+                } catch(_){}
+                window.pendingInvite = null;
+                try { stopRingtone(); } catch(_){}
+                try { hideIncomingCallUI(); } catch(_){}
+                try { if(typeof logCall === 'function') logCall('inbound', _from, '', 0, 'missed'); } catch(_){}
+              }
+            }
+            // For connected calls: also catch the cancel via swCall.callID match.
+            // The Fabric Room Session exposes callID on dialogParams or memberId
+            // — we use a string-contains fallback if exact match doesn't apply.
+            if(window.swCall && /bye|cancel|destroy|hangup|ended/i.test(method) && callID){
+              const swCallID = window.swCall?.dialogParams?.callID
+                            || window.swCall?.callId
+                            || window.swCall?.id
+                            || '';
+              if(swCallID && swCallID === callID){
+                logError('ws_call_cancel_match', method, null, { callID });
+                if(typeof endCall === 'function') endCall();
+              }
+            }
+          } catch(_){}
+        });
+      }
+    }
+    // Preserve static enum properties
+    _NlmWS.CONNECTING = _OrigWS.CONNECTING;
+    _NlmWS.OPEN       = _OrigWS.OPEN;
+    _NlmWS.CLOSING    = _OrigWS.CLOSING;
+    _NlmWS.CLOSED     = _OrigWS.CLOSED;
+    window.WebSocket = _NlmWS;
+    window.__nlmWSWrapped = true;
+    logError('ws_wrap_installed', 'WebSocket constructor patched', null, {});
+  }
+
+  // Diagnostic: dump swClient's shape so a future-Aaron-or-me can see what
+  // the SDK actually exposes. Logged ONCE per page-load via the wrap guard.
   const SW = (window.SignalWire && window.SignalWire.SignalWire) || window.SignalWire;
   swClient = await SW({ token: data.token, logLevel: 'debug' });
+  try {
+    const ownKeys   = Object.getOwnPropertyNames(swClient || {}).slice(0, 80);
+    const protoKeys = Object.getOwnPropertyNames(Object.getPrototypeOf(swClient) || {}).slice(0, 80);
+    logError('sw_client_shape', ownKeys.join(','), null, { proto: protoKeys.join(',') });
+  } catch(_){}
   // BUG-020 follow-up: monkey-patch the SDK event emitter to log every event
   // the client emits. The SignalWire JS SDK does not document an "invite
   // cancelled" event, and our probe set in handleIncomingInvite (cancelled,
