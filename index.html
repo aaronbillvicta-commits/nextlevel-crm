@@ -1300,6 +1300,10 @@ table th[onclick]{transition:background .15s,color .15s}
       Active Clients
     </div>
     <div class="nav-sec">Settings</div>
+    <div class="nav-item" data-page="tools">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+      Tools
+    </div>
     <div class="nav-item" data-page="tags">
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
       Tags
@@ -1745,6 +1749,19 @@ table th[onclick]{transition:background .15s,color .15s}
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="page" id="page-tools">
+      <div class="sec-head">
+        <div>
+          <div class="sec-title">Tools</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Forms and helpers</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:18px;border-bottom:1px solid var(--border);margin-bottom:18px">
+        <div class="contact-view-tab active" data-tlview="form" onclick="setToolsView('form')">Form</div>
+      </div>
+      <div id="tools-content"></div>
     </div>
 
     <div class="page" id="page-tags">
@@ -2957,7 +2974,7 @@ const PERMISSION_KEYS = PERMISSION_DEFS.map(p=>p.key);
 // Which page each permission gates (used by navigate() and nav hiding).
 const PAGE_PERMISSION = {
   dialer:'calling', conversations:'calling',
-  settings:'settings', integrations:'settings', 'custom-fields':'settings',
+  settings:'settings', integrations:'settings', 'custom-fields':'settings', tools:'settings',
 };
 function rolePermDefaults(role){
   if(role==='admin')  return { calling:true,  edit:true,  delete:true,  settings:true  };
@@ -10096,6 +10113,32 @@ function syncMasterTags(){
   pipelines.forEach(p=>p.deals.forEach(d=>(d.tags||[]).forEach(t=>ensureMasterTag(t.label,t.cls))));
 }
 
+// ── TOOLS PAGE ──
+// Container page with a tab strip. First tab is "Form"; more tabs can be added
+// later by appending to TOOLS_TABS and the nav <div>. Renderers are stubs for
+// now — nothing is wired to Supabase yet.
+let toolsView = 'form';
+function setToolsView(view){
+  toolsView = view;
+  document.querySelectorAll('[data-tlview]').forEach(t=>{
+    t.classList.toggle('active', t.dataset.tlview === view);
+  });
+  renderToolsPage();
+}
+function renderToolsPage(){
+  const el = document.getElementById('tools-content');
+  if(!el) return;
+  if(toolsView === 'form'){
+    el.innerHTML = `
+      <div style="padding:48px 24px;text-align:center;color:var(--text3);border:1px dashed var(--border);border-radius:var(--radius)">
+        <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Form tools</div>
+        <div style="font-size:12px">Coming soon — intake and application forms will land here.</div>
+      </div>`;
+    return;
+  }
+  el.innerHTML = '';
+}
+
 function renderTagsPage(){
   // Always sync first
   syncMasterTags();
@@ -13652,7 +13695,7 @@ const PAGE_TITLES = {
   calendar:'Calendar', dialer:'Dialer', conversations:'Conversations', email:'Email',
   automations:'Automations', social:'Social Planner', campaigns:'Campaigns',
   clients:'Active Clients',
-  tags:'Tags', integrations:'Integrations', 'custom-fields':'Custom Fields', settings:'Settings'
+  tools:'Tools', tags:'Tags', integrations:'Integrations', 'custom-fields':'Custom Fields', settings:'Settings'
 };
 
 // Hide sidebar nav items the current user has no permission for.
@@ -13692,6 +13735,7 @@ function navigate(page){
   if(page==='social') renderSocialPlanner();
   if(page==='campaigns') renderCampaignsPage();
   if(page==='clients') renderClientsPage();
+  if(page==='tools') renderToolsPage();
   if(page==='tags') renderTagsPage();
   if(page==='custom-fields') renderCustomFieldsPage();
   if(page==='settings') renderSettingsPage();
