@@ -3832,42 +3832,16 @@ async function initSWClient(force = false){
 
   const SW = (window.SignalWire && window.SignalWire.SignalWire) || window.SignalWire;
   swClient = await SW({ token: data.token, logLevel: 'debug' });
-  try {
-    const ownKeys   = Object.getOwnPropertyNames(swClient || {}).slice(0, 80);
-    const protoKeys = Object.getOwnPropertyNames(Object.getPrototypeOf(swClient) || {}).slice(0, 80);
-    logError('sw_client_shape', ownKeys.join(','), null, { proto: protoKeys.join(',') });
-  } catch(_){}
-  // BUG-020 follow-up: monkey-patch the SDK event emitter to log every event
-  // the client emits. The SignalWire JS SDK does not document an "invite
-  // cancelled" event, and our probe set in handleIncomingInvite (cancelled,
-  // call.cancelled, invite.cancelled, etc.) didn't match any of the names that
-  // actually fire. This instrumentation captures every event so one cancelled-
-  // invite test surfaces the real name. Wrapped in try/catch since SDK
-  // internals are not part of any public contract. Once we know the name(s),
-  // the followup will trim this back to a targeted listener.
-  try {
-    const targets = [
-      ['client', swClient],
-      ['emitter', swClient?.eventEmitter],
-      ['_emitter', swClient?._emitter],
-      ['_eventEmitter', swClient?._eventEmitter],
-    ].filter(([,t]) => t);
-    for(const [label, t] of targets){
-      if(typeof t.emit === 'function' && !t.__nlmEmitWrapped){
-        const orig = t.emit.bind(t);
-        t.emit = function(name, ...args){
-          try {
-            logError('sw_emit', String(name), null, {
-              target: label,
-              args: _safeStringify(args, 280)
-            });
-          } catch(_){}
-          return orig(name, ...args);
-        };
-        t.__nlmEmitWrapped = true;
-      }
-    }
-  } catch(e){ logError('sw_emit_wrap_failed', e.message, e.stack, {}); }
+  // BUG-020 round 6: removed all SDK-internals instrumentation (emit monkey-
+  // patch + Object.getPrototypeOf shape dump). After round-4's WebSocket
+  // wrap broke inbound invite delivery (subscribed but no invites arrived),
+  // suspicion fell on any code that touches SDK internals. Even if these
+  // didn't cause the regression, the safest path back to a working state
+  // is a minimal-touch initSWClient that just constructs the client and
+  // registers inbound. The proven-safe fixes from round 3 remain in place
+  // elsewhere: _pcOf helper for the rtcPeerMap PC shape, the wider PROBE
+  // event listener in attachCallTeardown (member.left + room events), the
+  // pre-accept invite-cancel probe listeners + 25s safety timeout.
   // Re-register the inbound handler on every fresh client (silent if the user
   // doesn't have calling perm or hasn't connected SignalWire)
   enableIncomingCalls().catch(e => logError('sw_inbound_register', e.message, e.stack, {}));
