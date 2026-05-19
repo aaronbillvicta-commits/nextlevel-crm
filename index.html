@@ -223,6 +223,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-size:14px;line
 .topbar{height:54px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0}
 .topbar-title{font-size:15px;font-weight:600;color:var(--text);flex:1;letter-spacing:-.2px}
 .pblur{filter:blur(5px);user-select:none;display:inline-block;transition:filter .2s}
+body.private-mode .priv-blur-el{filter:blur(5px);user-select:none;transition:filter .2s}
 .privacy-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;color:var(--text3);display:flex;align-items:center;gap:5px;transition:all .15s}
 .privacy-btn:hover{border-color:var(--border2);color:var(--text)}
 .privacy-btn.on{border-color:var(--accent-border);color:var(--accent2);background:var(--accent-bg)}
@@ -2854,23 +2855,19 @@ function pPhone(phone){
   if(!phone) return '';
   const safe = escapeHtml(phone);
   if(!privacyMode) return safe;
-  let shown=0, i=0;
-  while(i<phone.length && shown<3){ if(/\d/.test(phone[i])) shown++; i++; }
-  return `${escapeHtml(phone.slice(0,i))}<span class="pblur">${escapeHtml(phone.slice(i))}</span>`;
+  return `<span class="pblur">${safe}</span>`;
 }
 function pEmail(email){
   if(!email) return '';
   const safe = escapeHtml(email);
   if(!privacyMode) return safe;
-  if(email.length<=4) return safe;
-  return `${escapeHtml(email.slice(0,4))}<span class="pblur">${escapeHtml(email.slice(4))}</span>`;
+  return `<span class="pblur">${safe}</span>`;
 }
 function pCompany(company){
   if(!company) return '';
   const safe = escapeHtml(company);
   if(!privacyMode) return safe;
-  if(company.length<=3) return safe;
-  return `${escapeHtml(company.slice(0,3))}<span class="pblur">${escapeHtml(company.slice(3))}</span>`;
+  return `<span class="pblur">${safe}</span>`;
 }
 function pTag(label){
   if(!label) return '';
@@ -2878,20 +2875,65 @@ function pTag(label){
   if(!privacyMode) return safe;
   return `<span class="pblur">${safe}</span>`;
 }
+// True if the string is mostly digits/punctuation typical of a phone number
+// (used so display fields that can hold either a name OR a phone fallback get
+// blurred via pPhone instead of pName when the value is actually a phone).
+function looksLikePhone(s){
+  if(!s) return false;
+  const str = String(s).trim();
+  const digits = str.replace(/\D/g,'');
+  return digits.length >= 7 && /^[+()\d\s\-.]+$/.test(str);
+}
+// Auto-route: if the value reads as a phone, blur as a phone; else as a name.
+function pNameOrPhone(s){
+  if(!s) return '';
+  return looksLikePhone(s) ? pPhone(s) : pName(s);
+}
+// Mask any phone-number-shaped substring inside arbitrary text (used for the
+// conversation preview body, which embeds call-log strings like "📞 Outbound
+// call to +12523907157"). Off when privacyMode is off.
+function pMaskPhonesInText(text){
+  if(!text) return '';
+  if(!privacyMode) return escapeHtml(text);
+  const PHONE_RE = /(\+?\d[\d().\s-]{6,}\d)/g;
+  // Escape first, then replace matches with blur spans
+  const esc = escapeHtml(text);
+  return esc.replace(PHONE_RE, m => `<span class="pblur">${m}</span>`);
+}
 function togglePrivacyMode(){
   privacyMode=!privacyMode;
   localStorage.setItem('nlm_privacy', privacyMode?'1':'0');
+  document.body.classList.toggle('private-mode', privacyMode);
   const btn=document.getElementById('privacy-btn');
   if(btn){ btn.classList.toggle('on',privacyMode); btn.title=privacyMode?'Privacy On — click to disable':'Privacy Mode — hide sensitive info'; }
-  renderContacts();
-  if(typeof renderDialerPage==='function') renderDialerPage();
-  if(typeof renderConversationList==='function') renderConversationList();
-  if(typeof renderConvInfoPanel==='function' && window._activeConvContactId){
-    const c=contacts.find(x=>x.id===window._activeConvContactId);
-    if(c) renderConvInfoPanel(c);
+  // Re-render every section that displays contact PII so blur applies/clears
+  // immediately without requiring a page refresh.
+  try { if(typeof renderContacts==='function') renderContacts(); } catch(_){}
+  try { if(typeof renderDialerPage==='function') renderDialerPage(); } catch(_){}
+  try { if(typeof renderDialerQueue==='function') renderDialerQueue(); } catch(_){}
+  try { if(typeof renderDialerNowCalling==='function') renderDialerNowCalling(); } catch(_){}
+  try { if(typeof renderDialerHistory==='function') renderDialerHistory(); } catch(_){}
+  try { if(typeof renderDialerNumberPicker==='function') renderDialerNumberPicker(); } catch(_){}
+  try { if(typeof renderDialerContactPanel==='function') renderDialerContactPanel(true); } catch(_){}
+  try { if(typeof renderCallHistory==='function') renderCallHistory(); } catch(_){}
+  try { if(typeof renderDialpadCallerPicker==='function') renderDialpadCallerPicker(); } catch(_){}
+  try { if(typeof renderConvList==='function') renderConvList(); } catch(_){}
+  try { if(typeof renderConvInfoPanel==='function' && (window._activeConvContactId || (typeof activeConvContactId!=='undefined' && activeConvContactId))){
+    const acid = window._activeConvContactId || (typeof activeConvContactId!=='undefined' ? activeConvContactId : null);
+    const c = acid && contacts.find(x=>x.id===acid);
+    const conv = acid && (typeof conversations!=='undefined') ? conversations.find(x=>x.contactId===acid) : null;
+    if(c) renderConvInfoPanel(c, conv);
+  }} catch(_){}
+  try { if(typeof renderBoard==='function') renderBoard(); } catch(_){}
+  try { if(typeof renderEmailList==='function') renderEmailList(); } catch(_){}
+  try { if(typeof renderCalendar==='function') renderCalendar(); } catch(_){}
+  try { if(typeof renderUpcomingEvents==='function') renderUpcomingEvents(); } catch(_){}
+  try { if(typeof renderFollowupsList==='function') renderFollowupsList(); } catch(_){}
+  try { if(typeof renderDashboard==='function') renderDashboard(); } catch(_){}
+  try { if(typeof renderTagsPage==='function') renderTagsPage(); } catch(_){}
+  if(window._openContactDetailId && typeof openContactDetail==='function'){
+    openContactDetail(window._openContactDetailId);
   }
-  if(typeof renderBoard==='function') renderBoard();
-  if(window._openContactDetailId) openContactDetail(window._openContactDetailId);
 }
 // ── END PRIVACY MODE ─────────────────────────────────────────────────────────
 let pipelines = [];
@@ -3073,6 +3115,7 @@ async function loadAllData() {
   // Restore privacy mode button state after load
   const _pb=document.getElementById('privacy-btn');
   if(_pb){ _pb.classList.toggle('on',privacyMode); if(privacyMode) _pb.title='Privacy On — click to disable'; }
+  if(privacyMode) document.body.classList.add('private-mode');
 }
 
 function showLoading(on) {
@@ -3523,8 +3566,9 @@ function renderCallHistory(){
     const contact = (typeof findContactByPhone==='function') ? findContactByPhone(c.number) : null;
     // If contactName equals the raw number (unmatched caller), don't repeat it
     const showsName = c.contactName && c.contactName.replace(/\D/g,'') !== (c.number||'').replace(/\D/g,'');
-    const title = contact?.name || (showsName ? c.contactName : (phoneFmt || c.number || 'Unknown'));
-    const sub   = (contact || showsName) && phoneFmt ? `${phoneFmt} · ${fmtCallTime(c.ts)}` : fmtCallTime(c.ts);
+    const rawTitle = contact?.name || (showsName ? c.contactName : (phoneFmt || c.number || 'Unknown'));
+    const title = pNameOrPhone(rawTitle);
+    const sub   = (contact || showsName) && phoneFmt ? `${pPhone(phoneFmt)} · ${fmtCallTime(c.ts)}` : fmtCallTime(c.ts);
     const numStr = (c.number||'').replace(/'/g,'');
     const onClick = contact
       ? `openContactDetail('${contact.id}')`
@@ -3604,7 +3648,7 @@ function renderDialpadCallerPicker(){
   if(phones.length === 1){
     el.innerHTML = `<div style="padding:6px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
       <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">From</span>
-      <span style="font-size:11px;color:var(--text2);font-family:'DM Mono',monospace">${fmt}</span>
+      <span style="font-size:11px;color:var(--text2);font-family:'DM Mono',monospace">${pPhone(fmt)}</span>
       ${active.label?`<span style="font-size:9px;color:var(--text3);margin-left:auto">${(active.label||'').replace(/</g,'&lt;')}</span>`:''}
     </div>`;
     return;
@@ -3614,7 +3658,7 @@ function renderDialpadCallerPicker(){
     <div style="position:relative;border-bottom:1px solid var(--border)">
       <div onclick="toggleDialpadCallerMenu(event)" title="Change caller number" style="padding:6px 12px;display:flex;align-items:center;gap:8px;cursor:pointer">
         <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">From</span>
-        <span style="font-size:11px;color:var(--text2);font-family:'DM Mono',monospace;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${fmt}</span>
+        <span style="font-size:11px;color:var(--text2);font-family:'DM Mono',monospace;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pPhone(fmt)}</span>
         <span style="font-size:9px;color:var(--text3)">${(active.label||'').replace(/</g,'&lt;')}</span>
         <span style="font-size:10px;color:var(--text3);transition:transform .12s" id="dialpad-caller-chev">▾</span>
       </div>
@@ -3628,7 +3672,7 @@ function renderDialpadCallerPicker(){
               ${p.primary?`<span style="font-size:8px;color:var(--text3);background:var(--bg3);padding:1px 5px;border-radius:8px">PRIMARY</span>`:''}
               ${isActive?`<span style="margin-left:auto;font-size:11px;color:var(--accent2)">✓</span>`:''}
             </div>
-            <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px">${pFmt}</div>
+            <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace;margin-top:2px">${pPhone(pFmt)}</div>
           </div>`;
         }).join('')}
       </div>
@@ -3652,7 +3696,7 @@ function dialpadSetCallerNumber(num){
   const fromEl = document.getElementById('dp-call-from');
   if(fromEl && fromEl.textContent){
     const fmt = (typeof fmtPhoneDisplay === 'function' ? fmtPhoneDisplay(num) : num);
-    fromEl.textContent = 'From: ' + fmt;
+    fromEl.innerHTML = 'From: ' + pPhone(fmt);
   }
 }
 // Close the caller-picker menu if the user clicks anywhere outside it
@@ -4261,16 +4305,18 @@ function showIncomingCallUI(name, number, matched){
     host.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);z-index:99999;width:340px;max-width:calc(100vw - 32px);background:var(--bg1);border:1px solid var(--border);border-radius:14px;box-shadow:0 24px 56px rgba(0,0,0,.45);padding:18px;font-family:inherit';
     document.body.appendChild(host);
   }
-  const safeName = String(name).replace(/[<>&"]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[s]));
-  const safeNum  = String(number||'').replace(/[<>&"]/g, s => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[s]));
-  const subline  = matched ? (matched.company || safeNum || '') : safeNum;
+  // Decide whether `name` is actually a name (matched contact) or a phone fallback
+  const nameLooksLikeName = matched && matched.name && String(name) === matched.name;
+  const headHtml = nameLooksLikeName ? pName(String(name)) : (number ? pPhone(String(name)) : escapeHtml(String(name)));
+  const rawSub = matched ? (matched.company || number || '') : (number || '');
+  const subHtml = matched ? (matched.company ? pCompany(matched.company) : (number?pPhone(number):'')) : (number ? pPhone(number) : '');
   host.innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
       <div style="width:40px;height:40px;border-radius:50%;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;color:var(--accent2);animation:pulse 1s infinite;flex-shrink:0;box-shadow:0 0 16px rgba(79,126,248,.4)">${icon('phone',20)}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text3)">Incoming call</div>
-        <div style="font-size:15px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${safeName}</div>
-        ${subline ? `<div style="font-size:12px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${subline}</div>` : ''}
+        <div style="font-size:15px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${headHtml}</div>
+        ${rawSub ? `<div style="font-size:12px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${subHtml}</div>` : ''}
       </div>
     </div>
     <div style="display:flex;gap:8px">
@@ -4457,18 +4503,22 @@ async function startCall(){
 function setCallActive(name, number){
   document.getElementById('call-widget-idle').style.display='none';
   document.getElementById('call-widget-active').style.display='flex';
-  document.getElementById('call-active-name').textContent=name||number;
+  // Use innerHTML + helpers so privacy mode can blur. name → pName (first-name
+  // visible, rest blurred); number fallback → pPhone (fully blurred).
+  const headHtml = name ? pName(name) : (number ? pPhone(number) : '');
+  document.getElementById('call-active-name').innerHTML = headHtml;
   callSeconds=0; callMuted=false;
   document.getElementById('call-mute-btn')?.classList.remove('muted');
   document.getElementById('dialpad-incall').style.display='block';
   document.getElementById('dialpad-idle').style.display='none';
-  document.getElementById('dp-call-name').textContent=name||number;
+  document.getElementById('dp-call-name').innerHTML = headHtml;
   // "From: (305) 845-8883" — show the SignalWire number we're calling from
   const fromEl = document.getElementById('dp-call-from');
   if(fromEl){
     const fromNum = (activeCallDirection === 'outbound' && typeof getDialerActiveNumber === 'function')
       ? getDialerActiveNumber() : '';
-    fromEl.textContent = fromNum ? 'From: ' + (typeof fmtPhoneDisplay === 'function' ? fmtPhoneDisplay(fromNum) : fromNum) : '';
+    const fmtted = fromNum ? (typeof fmtPhoneDisplay === 'function' ? fmtPhoneDisplay(fromNum) : fromNum) : '';
+    fromEl.innerHTML = fmtted ? 'From: ' + pPhone(fmtted) : '';
   }
   document.getElementById('dp-call-timer').textContent='00:00';
   document.getElementById('dp-mute-btn')?.classList.remove('muted');
@@ -5242,7 +5292,7 @@ function openContactModal(contactId=null, tab='info') {
       <div class="modal-section">
         <div class="modal-section-title">Current Tags</div>
         <div class="tags-manager" id="tags-manager-box">
-          ${(c.tags||[]).map((t,i)=>`<span class="tag ${t.cls}">${t.label}<span class="tag-remove" onclick="removeTagFromContact('${c.id}',${i})">×</span></span>`).join('')}
+          ${(c.tags||[]).map((t,i)=>`<span class="tag ${t.cls}">${pTag(t.label)}<span class="tag-remove" onclick="removeTagFromContact('${c.id}',${i})">×</span></span>`).join('')}
           ${(!c.tags||c.tags.length===0)?'<span style="font-size:12px;color:var(--text3)">No tags yet</span>':''}
         </div>
       </div>
@@ -6452,7 +6502,7 @@ function dealContactInput(val){
   ac.innerHTML = matches.map((c,i)=>
     `<div class="ac-item" data-id="${c.id}" data-name="${c.name}" data-company="${c.company||''}"
       onmousedown="pickDealContact('${c.id}','${c.name.replace(/'/g,"\\'")}','${(c.company||'').replace(/'/g,"\\'")}')">
-      <span>${c.name}</span><small>${c.company||''}</small>
+      <span>${pName(c.name)}</span><small>${c.company?pCompany(c.company):''}</small>
     </div>`).join('');
   ac.classList.add('open');
 }
@@ -7283,7 +7333,7 @@ function buildWidgetContent(wid,def){
   }
 
   if(wid==='contacts-list'){
-    const rows=contacts.slice(0,5).map(c=>`<div class="w-contact-row"><div class="av-sm ${getAv(c.id)}" style="width:24px;height:24px;font-size:9px">${initials(c.name)}</div><div class="w-contact-info"><div class="w-contact-name">${c.name}</div><div class="w-contact-co">${c.company||''}</div></div><span class="pill pill-${c.status}">${c.status}</span></div>`).join('');
+    const rows=contacts.slice(0,5).map(c=>`<div class="w-contact-row"><div class="av-sm ${getAv(c.id)}" style="width:24px;height:24px;font-size:9px">${initials(c.name)}</div><div class="w-contact-info"><div class="w-contact-name">${pName(c.name)}</div><div class="w-contact-co">${c.company?pCompany(c.company):''}</div></div><span class="pill pill-${c.status}">${c.status}</span></div>`).join('');
     return `<div class="widget-title"><span class="widget-title-icon">👤</span>Recent Contacts</div>${rows||'<div style="font-size:12px;color:var(--text3)">No contacts yet</div>'}`;
   }
 
@@ -7835,7 +7885,7 @@ function renderSwFromPicker(containerId, currentVal){
   const primary = currentVal || getPrimarySwPhone();
   el.innerHTML = `
     <label style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-right:6px">From:</label>
-    <select id="${containerId}-select" class="form-select" style="display:inline-block;width:auto;font-size:11px;padding:4px 8px">
+    <select id="${containerId}-select" class="form-select priv-blur-el" style="display:inline-block;width:auto;font-size:11px;padding:4px 8px">
       ${phones.map(p => `<option value="${p.number}" ${p.number===primary?'selected':''}>${p.label || 'Number'} — ${p.number}</option>`).join('')}
     </select>
   `;
@@ -8441,7 +8491,7 @@ function filterCalByContact(q){
   listEl.innerHTML = matches.map(c=>`
     <div onclick="setCalContactFilter('${c.id}')" style="padding:7px 10px;cursor:pointer;font-size:12px;color:var(--text);display:flex;align-items:center;gap:8px;transition:background .12s" onmouseenter="this.style.background='var(--bg4)'" onmouseleave="this.style.background=''">
       <div class="av-sm ${getAv(c.id)}" style="width:22px;height:22px;font-size:9px">${initials(c.name)}</div>
-      <div><div style="font-weight:500">${c.name}</div><div style="font-size:10px;color:var(--text3)">${c.company||''}</div></div>
+      <div><div style="font-weight:500">${pName(c.name)}</div><div style="font-size:10px;color:var(--text3)">${c.company?pCompany(c.company):''}</div></div>
     </div>`).join('');
 }
 
@@ -8510,7 +8560,7 @@ function _eventItemHTML(ev){
           ${ev.followupType?followupTypeChip(ev.followupType):''}
         </div>
         <div class="cal-upcoming-time" style="margin-top:3px">${dateStr} · ${timeStr}</div>
-        ${contact?`<div style="font-size:10px;color:var(--text3);margin-top:2px">👤 ${contact.name}</div>`:''}
+        ${contact?`<div style="font-size:10px;color:var(--text3);margin-top:2px">👤 ${pName(contact.name)}</div>`:''}
       </div>
     </div>
   </div>`;
@@ -8913,7 +8963,7 @@ function renderEvGuestList(){
   const el = document.getElementById('ev-guest-list'); if(!el) return;
   el.innerHTML = _evGuests.map(g=>`
     <div class="guest-row">
-      <span class="guest-email">${g.email}</span>
+      <span class="guest-email">${pEmail(g.email)}</span>
       <span class="guest-optional ${g.optional?'guest-opt-yes':'guest-opt-no'}">${g.optional?'Optional':'Required'}</span>
       <span class="guest-del" onclick="removeEvGuest('${g.email}')">×</span>
     </div>`).join('');
@@ -10249,12 +10299,12 @@ async function recolorTag(label){
 function viewTagContacts(label){
   const tagged = contacts.filter(c=>(c.tags||[]).some(t=>t.label===label));
   openModal(`
-    <div class="modal-head"><div class="modal-title">Contacts tagged "${label}" (${tagged.length})</div><span class="modal-close" onclick="closeModal()">×</span></div>
+    <div class="modal-head"><div class="modal-title">Contacts tagged "${pTag(label)}" (${tagged.length})</div><span class="modal-close" onclick="closeModal()">×</span></div>
     <div class="modal-body">
       ${tagged.length===0?'<div style="color:var(--text3);font-size:13px">No contacts with this tag</div>'
         :tagged.map(c=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
           <div class="av-sm ${getAv(c.id)}">${initials(c.name)}</div>
-          <div style="flex:1"><div style="font-size:13px;font-weight:500">${c.name}</div><div style="font-size:11px;color:var(--text3)">${c.company||''}</div></div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:500">${pName(c.name)}</div><div style="font-size:11px;color:var(--text3)">${c.company?pCompany(c.company):''}</div></div>
           <button class="btn btn-sm" onclick="closeModal();openContactDetail('${c.id}')">View</button>
         </div>`).join('')}
     </div>
@@ -10756,7 +10806,8 @@ function renderConvList(){
 
     el.innerHTML = calls.map(c => {
       const contact = findContactByPhone(c.number);
-      const displayName = contact?.name || c.contactName || c.number;
+      const rawDisplayName = contact?.name || c.contactName || c.number;
+      const displayName = pNameOrPhone(rawDisplayName);
       const isUnknown = !contact;
       const avCls = contact ? getAv(contact.id) : 'av-blue';
       const avClr = {'av-pink':'var(--pink)','av-blue':'var(--accent2)','av-amber':'var(--amber)','av-green':'var(--green)','av-purple':'var(--purple)'}[avCls]||'var(--accent2)';
@@ -10777,7 +10828,7 @@ function renderConvList(){
                        : `Outgoing · ${fmtDuration(c.duration)}`;
       const statusColor = (c.status==='missed'||c.status==='failed') ? 'var(--red)' : 'var(--text3)';
       const numberLine = contact
-        ? `<span style="color:var(--text3)">${c.number}</span>`
+        ? `<span style="color:var(--text3)">${pPhone(c.number)}</span>`
         : `<span style="color:var(--amber);font-size:10px">Not in contacts</span>`;
       const onClick = contact
         ? `openConversation('${contact.id}')`
@@ -10845,11 +10896,11 @@ function renderConvList(){
       <div class="conv-item-av" style="background:${avBg};color:${avClr}">${initials(contact.name)}</div>
       <div class="conv-item-info">
         <div class="conv-item-name">
-          ${pName(contact.name)}
+          ${pNameOrPhone(contact.name)}
           <span class="conv-ch-icon">${chIcon}</span>
           ${hasUnread?'<span style="width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0;display:inline-block"></span>':''}
         </div>
-        <div class="conv-item-preview" style="${hasUnread?'color:var(--text);font-weight:500':''}">${preview}</div>
+        <div class="conv-item-preview" style="${hasUnread?'color:var(--text);font-weight:500':''}">${pMaskPhonesInText(preview)}</div>
       </div>
       <div class="conv-item-meta">
         <span class="conv-item-time">${timeStr}</span>
@@ -11536,7 +11587,9 @@ function renderEmailList(){
   }
   el.innerHTML = items.map(email=>{
     const isInbound = email.direction==='inbound';
-    const displayName = isInbound ? (email.fromName||email.from||'Unknown') : (email.contactName||email.to||'—');
+    const rawDisplayName = isInbound ? (email.fromName||email.from||'Unknown') : (email.contactName||email.to||'—');
+    // Heuristic: if it contains '@' treat as email; otherwise name
+    const displayName = rawDisplayName.includes('@') ? pEmail(rawDisplayName) : pName(rawDisplayName);
     const timeStr = email.sentAt||email.createdAt ? relativeTime(email.sentAt||email.createdAt) : '';
     const statusColor={sent:'var(--green)',delivered:'var(--accent2)',failed:'var(--red)',draft:'var(--amber)',received:'var(--purple)'}[email.status]||'var(--text3)';
     const isActive = email.id===activeEmailId;
@@ -11550,7 +11603,7 @@ function renderEmailList(){
       <div class="email-item-preview">${(email.body||'').replace(/\n/g,' ').slice(0,70)}</div>
       <div class="email-item-badges">
         <span style="font-size:9px;padding:1px 7px;border-radius:20px;background:${statusColor}20;color:${statusColor};font-weight:600">${isInbound?'Received':email.status||'sent'}</span>
-        ${isInbound&&email.fromEmail?`<span style="font-size:9px;color:var(--text3)">from: ${email.from}</span>`:''}
+        ${isInbound&&email.fromEmail?`<span style="font-size:9px;color:var(--text3)">from: ${pEmail(email.from)}</span>`:''}
         ${email.inReplyToId?`<span style="font-size:9px;color:var(--purple)">↩ Reply</span>`:''}
       </div>
     </div>`;
@@ -11590,7 +11643,7 @@ function openEmailDetail(id){
       return `<div style="padding:10px 20px;background:${isSelf?'var(--accent-bg)':'var(--bg)'};border-bottom:1px solid var(--border)">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
           <span style="font-size:11px;font-weight:600;color:${eDir?'var(--purple)':'var(--accent2)'}">
-            ${eDir?'↙ '+e.fromName||e.from:'↗ You'}
+            ${eDir?'↙ '+(e.fromName?pName(e.fromName):pEmail(e.from||'')):'↗ You'}
           </span>
           <span style="font-size:10px;color:var(--text3)">${e.sentAt?new Date(e.sentAt).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}</span>
           ${isSelf?'<span style="font-size:9px;color:var(--accent2);background:var(--accent-bg);padding:1px 6px;border-radius:10px">current</span>':''}
@@ -11604,10 +11657,10 @@ function openEmailDetail(id){
       <div class="email-detail-subject">${email.subject||'(no subject)'}</div>
       <div class="email-detail-meta">
         ${isInbound
-          ? `<div class="email-detail-meta-item"><strong>From:</strong> ${email.fromName||''} &lt;${email.from||''}&gt;</div>
-             <div class="email-detail-meta-item"><strong>To:</strong> ${email.to||''}</div>`
-          : `<div class="email-detail-meta-item"><strong>To:</strong> ${email.to} ${contact?`(${contact.name})`:''}</div>
-             <div class="email-detail-meta-item"><strong>From:</strong> ${email.fromName||'You'} &lt;${email.fromEmail||''}&gt;</div>`}
+          ? `<div class="email-detail-meta-item"><strong>From:</strong> ${email.fromName?pName(email.fromName):''} &lt;${email.from?pEmail(email.from):''}&gt;</div>
+             <div class="email-detail-meta-item"><strong>To:</strong> ${email.to?pEmail(email.to):''}</div>`
+          : `<div class="email-detail-meta-item"><strong>To:</strong> ${email.to?pEmail(email.to):''} ${contact?`(${pName(contact.name)})`:''}</div>
+             <div class="email-detail-meta-item"><strong>From:</strong> ${email.fromName||'You'} &lt;${email.fromEmail?pEmail(email.fromEmail):''}&gt;</div>`}
         <div class="email-detail-meta-item"><strong>Date:</strong> ${sentDate}</div>
         <span style="font-size:10px;padding:2px 10px;border-radius:20px;background:${statusColor}20;color:${statusColor};font-weight:600">${isInbound?'Received':email.status||'sent'}</span>
       </div>
@@ -12221,7 +12274,7 @@ function bulkAddTag(){
   const tagOptions = masterTags.map(t =>
     `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius);cursor:pointer" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
       <input type="checkbox" class="bulk-tag-pick" value="${t.label.replace(/"/g,'&quot;')}" data-cls="${t.cls}"/>
-      <span class="tag ${t.cls}">${t.label}</span>
+      <span class="tag ${t.cls}">${pTag(t.label)}</span>
     </label>`
   ).join('');
   openModal(`
@@ -12269,7 +12322,7 @@ function bulkRemoveTag(){
   const tagOptions = tagsPresent.map(t =>
     `<label style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--radius);cursor:pointer" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='transparent'">
       <input type="checkbox" class="bulk-tag-pick" value="${t.label.replace(/"/g,'&quot;')}"/>
-      <span class="tag ${t.cls}">${t.label}</span>
+      <span class="tag ${t.cls}">${pTag(t.label)}</span>
     </label>`
   ).join('');
   openModal(`
@@ -12392,7 +12445,7 @@ function bulkDelete(){
         You're about to permanently delete <strong>${sel.length}</strong> contact${sel.length>1?'s':''}.
       </div>
       <div style="background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:11px;color:var(--text2);max-height:140px;overflow-y:auto;margin-bottom:12px">
-        ${sel.slice(0,20).map(c => `<div style="padding:2px 0">• ${c.name}${c.email?' <span style="color:var(--text3)">'+c.email+'</span>':''}</div>`).join('')}
+        ${sel.slice(0,20).map(c => `<div style="padding:2px 0">• ${pName(c.name)}${c.email?' <span style="color:var(--text3)">'+pEmail(c.email)+'</span>':''}</div>`).join('')}
         ${sel.length>20?`<div style="padding:2px 0;color:var(--text3);font-style:italic">…and ${sel.length-20} more</div>`:''}
       </div>
       <div style="background:var(--red-bg);border:1px solid rgba(255,77,109,.25);border-radius:var(--radius);padding:10px;font-size:12px;color:var(--red);font-weight:500;margin-bottom:14px">
@@ -12589,13 +12642,13 @@ function renderDialerContactPanel(force){
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
       <div class="av-sm ${getAv(c.id)}" style="width:38px;height:38px;font-size:14px;flex-shrink:0">${initials(c.name)}</div>
       <div style="min-width:0">
-        <div style="font-size:14px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(c.name)||'Unknown'}</div>
-        <div style="font-size:11px;color:var(--text3)">${c.company?pCompany(esc(c.company)):'—'} ${c.status?`· <span class="pill ${stMeta.color}" style="font-size:9px">${stMeta.label}</span>`:''}</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pName(c.name)||'Unknown'}</div>
+        <div style="font-size:11px;color:var(--text3)">${c.company?pCompany(c.company):'—'} ${c.status?`· <span class="pill ${stMeta.color}" style="font-size:9px">${stMeta.label}</span>`:''}</div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text2);margin-bottom:${tagsHtml||lastAct?'8px':'12px'}">
-      <div>📞 <span style="font-family:'DM Mono',monospace">${esc(c.phone)||'—'}</span></div>
-      <div>✉ ${esc(c.email)||'—'}</div>
+      <div>📞 <span style="font-family:'DM Mono',monospace">${c.phone?pPhone(c.phone):'—'}</span></div>
+      <div>✉ ${c.email?pEmail(c.email):'—'}</div>
       ${lastAct?`<div style="color:var(--text3)">🕐 Last activity: ${lastAct}</div>`:''}
     </div>
     ${tagsHtml?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:12px">${tagsHtml}</div>`:''}
@@ -12678,7 +12731,8 @@ function dialerHistRowHTML(c){
   // is just the number (unmatched caller), use the formatted phone instead so
   // it doesn't look like a bare E.164 string.
   const hasName = contact?.name || (c.contactName && c.contactName.replace(/\D/g,'') !== (c.number||'').replace(/\D/g,''));
-  const displayName = contact?.name || (hasName ? c.contactName : (phoneFmt || c.number)) || 'Unknown';
+  const rawDisplayName = contact?.name || (hasName ? c.contactName : (phoneFmt || c.number)) || 'Unknown';
+  const displayName = pNameOrPhone(rawDisplayName);
   const time = new Date(c.ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
   let icon, iconColor;
   if(c.direction === 'inbound'){
@@ -12707,7 +12761,7 @@ function dialerHistRowHTML(c){
     ${av}
     <div style="flex:1;min-width:0">
       <div style="font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${displayName}${dispoPill}</div>
-      <div style="font-size:11px;color:var(--text3)">${(contact||hasName)?(phoneFmt+' · '):''}${statusText}${!contact?' · not in contacts':''}</div>
+      <div style="font-size:11px;color:var(--text3)">${(contact||hasName)?(pPhone(phoneFmt)+' · '):''}${statusText}${!contact?' · not in contacts':''}</div>
     </div>
     <div style="font-size:11px;color:var(--text3);flex-shrink:0">${time}</div>
   </div>`;
@@ -12755,7 +12809,7 @@ function renderDialerNumberPicker(){
       <div class="dialer-num-radio"></div>
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:500;color:var(--text)">${(p.label||'Number').replace(/</g,'&lt;')}${p.primary?' <span style="font-size:9px;color:var(--text3)">PRIMARY</span>':''}</div>
-        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">${p.number}</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">${pPhone(p.number)}</div>
       </div>
     </div>
   `).join('') + (phones.length===1
@@ -12885,8 +12939,8 @@ function renderDialerNowCalling(){
     el.innerHTML = `
       <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Auto-dialing next in</div>
       <div style="font-size:48px;font-weight:700;color:var(--accent);font-family:'DM Mono',monospace;margin-bottom:6px"><span id="dialer-countdown-num">${dialerSettings.countdownSecs}</span></div>
-      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px">${c.name}</div>
-      <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:18px">${c.phone||''}</div>
+      <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px">${pName(c.name)}</div>
+      <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:18px">${c.phone?pPhone(c.phone):''}</div>
       <div style="display:flex;gap:8px;justify-content:center">
         <button class="btn btn-primary btn-sm" onclick="cancelDialerCountdown(true)">📞 Call Now</button>
         <button class="btn btn-sm" onclick="cancelDialerCountdown(false)">Cancel</button>
@@ -12909,8 +12963,8 @@ function renderDialerNowCalling(){
     el.innerHTML = `
       <div class="call-active-pulse" style="margin:0 auto 14px"></div>
       <div style="font-size:11px;color:var(--green);text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:8px">● On Call</div>
-      <div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:2px">${c.name}</div>
-      <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:14px">${c.phone||''}</div>
+      <div style="font-size:17px;font-weight:600;color:var(--text);margin-bottom:2px">${pName(c.name)}</div>
+      <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:14px">${c.phone?pPhone(c.phone):''}</div>
       <div style="font-size:12px;color:var(--text3);line-height:1.6">Call controls are in the dialpad ↘<br>Disposition appears when the call ends.</div>`;
     return;
   }
@@ -12925,7 +12979,7 @@ function renderDialerNowCalling(){
     <div style="font-size:13px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:20px">${c.phone?pPhone(c.phone):'⚠ No phone number'}</div>
     <button class="btn btn-primary" onclick="dialerCallTop()" style="font-size:14px;padding:10px 24px" ${!c.phone?'disabled':''}>📞 Call ${(c.name||'').split(' ')[0]}</button>
     <div style="font-size:11px;color:var(--text3);margin-top:14px">${q.length} lead${q.length>1?'s':''} in queue${dialerSettings.autoDial?' · auto-dial ON':''}</div>
-    ${fromNum?`<div style="font-size:11px;color:var(--text3);margin-top:4px">Calling from <span style="color:var(--text2);font-family:'DM Mono',monospace">${fromNum}</span></div>`:''}`;
+    ${fromNum?`<div style="font-size:11px;color:var(--text3);margin-top:4px">Calling from <span style="color:var(--text2);font-family:'DM Mono',monospace">${pPhone(fromNum)}</span></div>`:''}`;
 }
 
 function renderDialerSearchResults(query){
@@ -12949,8 +13003,8 @@ function renderDialerSearchResults(query){
     <div class="dialer-search-opt" onclick="addToDialerQueue('${c.id}')">
       <div class="av-sm ${getAv(c.id)}" style="flex-shrink:0">${initials(c.name)}</div>
       <div style="flex:1;min-width:0">
-        <div style="color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${c.name||'Unknown'}</div>
-        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${c.phone||'⚠ no phone'}</div>
+        <div style="color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pName(c.name)||'Unknown'}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${c.phone?pPhone(c.phone):'⚠ no phone'}</div>
       </div>
     </div>
   `).join('');
@@ -13128,8 +13182,8 @@ function showDialerDisposition(ctx){
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--border)">
         <div class="av-sm ${getAv(c.id)}" style="width:42px;height:42px;font-size:15px">${initials(c.name)}</div>
         <div>
-          <div style="font-size:15px;font-weight:600;color:var(--text)">${c.name||'Unknown'}</div>
-          <div style="font-size:11px;color:var(--text3)">${c.phone||''} · Call duration ${m}:${s}</div>
+          <div style="font-size:15px;font-weight:600;color:var(--text)">${pName(c.name)||'Unknown'}</div>
+          <div style="font-size:11px;color:var(--text3)">${c.phone?pPhone(c.phone):''} · Call duration ${m}:${s}</div>
         </div>
       </div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:10px;font-weight:500">How did the call go? <span style="color:var(--text3);font-weight:400">(click to log — pop-up stays open)</span></div>
@@ -13389,8 +13443,8 @@ function openFollowupModal(contactId, eventId){
       <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)">
         <div class="av-sm ${getAv(c.id)}" style="width:38px;height:38px;font-size:13px">${initials(c.name)}</div>
         <div>
-          <div style="font-size:14px;font-weight:600;color:var(--text)">${c.name||'Unknown'}</div>
-          <div style="font-size:11px;color:var(--text3)">${[c.company,c.phone].filter(Boolean).join(' · ')||''}</div>
+          <div style="font-size:14px;font-weight:600;color:var(--text)">${pName(c.name)||'Unknown'}</div>
+          <div style="font-size:11px;color:var(--text3)">${[c.company?pCompany(c.company):'', c.phone?pPhone(c.phone):''].filter(Boolean).join(' · ')||''}</div>
         </div>
       </div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:6px;font-weight:500">Date & Time</div>
