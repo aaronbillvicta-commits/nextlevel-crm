@@ -13948,68 +13948,94 @@ async function activateVaForMatching(id){
 
 function openVaApplicantModal(id){
   const v = vaApplicants.find(x => x.id === id); if(!v) return;
-  const name = `${v.first_name||''} ${v.last_name||''}`.trim();
+  const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email || 'Applicant';
   const statusOptions = VA_STATUSES.map(s =>
     `<option value="${s}" ${v.review_status===s?'selected':''}>${VA_STATUS_LABELS[s]}</option>`
   ).join('');
 
-  const field = (label, val) => val
-    ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${label}</div><div style="font-size:13px;color:var(--text)">${val}</div></div>`
-    : '';
-  const chips = (arr) => (arr||[]).map(x=>`<span style="display:inline-block;background:var(--bg2);color:var(--text2);border-radius:6px;padding:2px 8px;font-size:11px;margin:2px">${x}</span>`).join('');
+  // Untrusted public-form data — escape everything; only render http(s) links.
+  const esc = (s) => escapeHtml(s == null ? '' : String(s));
+  const safeUrl = (u) => { try { const x = new URL(String(u)); return (x.protocol==='http:'||x.protocol==='https:') ? x.href : ''; } catch(_){ return ''; } };
+  const L = "font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px";
+  const cell = (label, html) => `<div><div style="${L}">${label}</div><div style="font-size:13px;color:var(--text);word-break:break-word">${html}</div></div>`;
+  const field = (label, val) => (val!=null && String(val).trim()!=='') ? cell(label, esc(val)) : '';
+  const boolField = (label, val) => (typeof val==='boolean') ? cell(label, val?'Yes':'No') : '';
+  const linkField = (label, url, text) => { const s=safeUrl(url); return s ? cell(label, `<a href="${esc(s)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent2)">${esc(text||s)}</a>`) : ''; };
+  const longField = (label, val) => (val!=null && String(val).trim()!=='')
+    ? `<div style="grid-column:1/-1"><div style="${L}">${label}</div><div style="font-size:13px;color:var(--text);white-space:pre-wrap;word-break:break-word">${esc(val)}</div></div>` : '';
+  const chipField = (label, arr) => (Array.isArray(arr)&&arr.length)
+    ? `<div style="grid-column:1/-1"><div style="${L};margin-bottom:4px">${label}</div><div>${arr.map(x=>`<span style="display:inline-block;background:var(--bg2);color:var(--text2);border-radius:6px;padding:2px 8px;font-size:11px;margin:2px">${esc(x)}</span>`).join('')}</div></div>` : '';
+  const sec = (title, cells) => { const body = cells.filter(Boolean).join(''); return body ? `<div style="margin-top:16px"><div style="font-size:12px;font-weight:800;color:var(--accent2);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);padding-bottom:4px">${title}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:8px">${body}</div></div>` : ''; };
+  const submitted = v.submitted_at ? new Date(v.submitted_at).toLocaleString() : '';
 
   openModal(`
     <div class="modal-head">
-      <div class="modal-title">VA Applicant — ${name}</div>
+      <div class="modal-title">VA Applicant — ${esc(name)}</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:4px 0 12px">
-      <div>
-        ${field('Email', v.email)}
-        ${field('Phone', v.phone)}
-        ${field('Location', v.country_city)}
-        ${field('Timezone', v.timezone)}
-        ${field('Facebook', v.facebook_url ? `<a href="${v.facebook_url}" target="_blank" style="color:var(--accent2)">${v.facebook_url}</a>` : '')}
-        ${field('LinkedIn', v.linkedin_url ? `<a href="${v.linkedin_url}" target="_blank" style="color:var(--accent2)">Profile</a>` : '')}
-        ${field('Portfolio', v.portfolio_url ? `<a href="${v.portfolio_url}" target="_blank" style="color:var(--accent2)">Link</a>` : '')}
-        ${field('English Level', v.english_self_level)}
-        ${field('EF SET Score', v.english_efset_score)}
+    <div style="max-height:72vh;overflow-y:auto;padding:2px 4px 4px">
+      ${submitted ? `<div style="font-size:11px;color:var(--text3)">Submitted ${esc(submitted)}</div>` : ''}
+      ${sec('Personal Info', [
+        field('Email', v.email), field('Phone', v.phone), field('Location', v.country_city), field('Timezone', v.timezone),
+        linkField('Facebook', v.facebook_url, 'Profile'), linkField('LinkedIn', v.linkedin_url, 'Profile'),
+        linkField('Portfolio', v.portfolio_url, 'Link'), linkField('Other Profile', v.other_profile_url, 'Link'),
+      ])}
+      ${sec('Experience', [
+        field('Years Experience', v.years_experience), field('English Level', v.english_self_level),
+        field('EF SET Score', v.english_efset_score), linkField('EF SET Link', v.english_efset_link, 'View'),
+        field('Clients Worked With', v.clients_worked_with), field('Niche', v.niche_specialization),
+        chipField('Industries', v.industries), longField('Work History', v.work_history_summary),
+        longField('Best Result', v.best_result), linkField('CV', v.cv_link, 'Download'),
+        linkField('Video Intro', v.video_intro_link, 'Watch'), field('References Available', v.references_available),
+        longField('Reference Links', v.reference_links),
+      ])}
+      ${sec('Skills & Tools', [
+        chipField('Roles', v.roles), chipField('Tools', v.tools_selected), field('Other Tools', v.other_tools),
+        boolField('Sales Role?', v.is_sales_role), chipField('Sales Roles', v.sales_roles),
+        field('Calls / Day', v.calls_per_day), field('Appts / Week', v.appts_per_week),
+        field('Highest Ticket Closed', v.highest_ticket_closed), field('Close Rate', v.close_rate),
+        longField('Best Sales Result', v.best_sales_result), linkField('Voice Sample', v.voice_sample_link, 'Listen'),
+      ])}
+      ${sec('Availability & Rates', [
+        field('Employment Status', v.current_employment_status), field('Engagement Type', v.current_engagement_type),
+        field('Hours Committed (current)', v.current_hours_committed!=null? v.current_hours_committed+' hrs/wk':''),
+        field('Current Schedule', v.current_schedule), field('Current Client Aware', v.current_client_aware),
+        field('Hours Available (new)', v.hours_available_new!=null? v.hours_available_new+' hrs/wk':''),
+        field('Hours / Week', v.hours_per_week!=null? v.hours_per_week+' hrs/wk':''),
+        field('Notice Period', v.notice_period), field('Start Date', v.start_date), field('Preferred Hours', v.preferred_hours),
+        field('Hourly Rate', v.hourly_rate!=null? '$'+v.hourly_rate+'/hr':''),
+        field('Monthly Rate', v.monthly_rate!=null? '$'+v.monthly_rate+'/mo':''),
+        field('Commission Open', v.commission_open), field('Rate Negotiable', v.rate_negotiable),
+        chipField('Hire Arrangement', v.hire_arrangement), chipField('Timezone Overlap', v.timezone_overlap),
+        field('Internet Speed', v.internet_speed), field('Backup Internet', v.backup_internet),
+        field('Time-Tracking Comfort', v.time_tracking_comfort), chipField('Time-Tracking Tools', v.time_tracking_tools),
+        field('ID Verification Willing', v.id_verification_willing), chipField('ID Types Available', v.id_types_available),
+      ])}
+      ${sec('Fit & Personality', [
+        chipField('Working Style', v.working_style), field('Management Style', v.management_style),
+        chipField('Preferred Client Type', v.preferred_client_type), field('Response Time', v.response_time),
+        longField('Enjoys Most', v.enjoys_most), longField('Wish Clients Knew', v.wish_clients_knew),
+        longField('Anything Else', v.anything_else), boolField('Direction Test Passed', v.direction_test_passed),
+        longField('Direction Test Answer', v.direction_test_answer),
+      ])}
+      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:12px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">Status</label>
+          <select class="form-select" style="margin-top:4px;font-size:13px" onchange="updateVaStatus('${id}',this.value)">${statusOptions}</select>
+        </div>
+        <div style="flex:2;min-width:200px">
+          <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">Reviewer Notes</label>
+          <textarea class="form-input" id="va-notes-${id}" style="margin-top:4px;font-size:13px;min-height:60px" placeholder="Internal notes...">${esc(v.reviewer_notes)}</textarea>
+        </div>
+        <button class="btn" style="background:var(--accent);color:#fff" onclick="saveVaNotes('${id}')">Save Notes</button>
       </div>
-      <div>
-        ${field('Years Experience', v.years_experience)}
-        ${field('Hourly Rate', v.hourly_rate ? '$'+v.hourly_rate+'/hr' : '')}
-        ${field('Monthly Rate', v.monthly_rate ? '$'+v.monthly_rate+'/mo' : '')}
-        ${field('Hours Available', v.hours_available_new ? v.hours_available_new+' hrs/wk' : '')}
-        ${field('Start Date', v.start_date)}
-        ${field('Notice Period', v.notice_period)}
-        ${field('Employment Status', v.current_employment_status)}
-        ${field('CV', v.cv_link ? `<a href="${v.cv_link}" target="_blank" style="color:var(--accent2)">Download</a>` : '')}
-        ${field('Video Intro', v.video_intro_link ? `<a href="${v.video_intro_link}" target="_blank" style="color:var(--accent2)">Watch</a>` : '')}
+      <div style="margin-top:12px;text-align:right">
+        ${!v.activated_at
+          ? `<button class="btn" style="background:#059669;color:#fff" onclick="activateVaForMatching('${id}');closeModal()">⚡ Activate for Matching</button>`
+          : `<span style="font-size:13px;color:#059669;font-weight:600">✓ In matching pool since ${new Date(v.activated_at).toLocaleDateString()}</span>`}
       </div>
     </div>
-    ${v.roles?.length ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Roles</div>${chips(v.roles)}</div>` : ''}
-    ${v.tools_selected?.length ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Tools</div>${chips(v.tools_selected)}</div>` : ''}
-    ${v.industries?.length ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Industries</div>${chips(v.industries)}</div>` : ''}
-    ${field('Work History', v.work_history_summary)}
-    ${field('Best Result', v.best_result)}
-    ${field('Niche', v.niche_specialization)}
-    <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;display:flex;gap:12px;align-items:center">
-      <div style="flex:1">
-        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">Status</label>
-        <select class="form-select" style="margin-top:4px;font-size:13px" onchange="updateVaStatus('${id}',this.value)">${statusOptions}</select>
-      </div>
-      <div style="flex:1">
-        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">Reviewer Notes</label>
-        <textarea class="form-input" id="va-notes-${id}" style="margin-top:4px;font-size:13px;min-height:60px" placeholder="Internal notes...">${v.reviewer_notes||''}</textarea>
-      </div>
-      <button class="btn" style="background:var(--accent);color:#fff;align-self:flex-end" onclick="saveVaNotes('${id}')">Save Notes</button>
-    </div>
-    <div style="margin-top:12px;text-align:right">
-      ${!v.activated_at
-        ? `<button class="btn" style="background:#059669;color:#fff" onclick="activateVaForMatching('${id}');closeModal()">⚡ Activate for Matching</button>`
-        : `<span style="font-size:13px;color:#059669;font-weight:600">✓ In matching pool since ${new Date(v.activated_at).toLocaleDateString()}</span>`}
-    </div>
-  `);
+  `, true);
 }
 
 async function updateVaStatus(id, status){
@@ -14109,18 +14135,23 @@ function renderClientIntakesPage(){
 
 function openClientIntakeModal(id){
   const c = clientIntakes.find(x => x.id === id); if(!c) return;
-  const name = `${c.first_name||''} ${c.last_name||''}`.trim();
+  const name = `${c.first_name||''} ${c.last_name||''}`.trim() || c.email || 'Client';
   const statusOptions = CI_STATUSES.map(s =>
     `<option value="${s}" ${c.review_status===s?'selected':''}>${CI_STATUS_LABELS[s]}</option>`
   ).join('');
-  const field = (label, val) => val
-    ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${label}</div><div style="font-size:13px;color:var(--text)">${val}</div></div>`
+  // Untrusted public-form data — escape everything before injecting.
+  const esc = (s) => escapeHtml(s == null ? '' : String(s));
+  const field = (label, val) => (val!=null && String(val).trim()!=='')
+    ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${label}</div><div style="font-size:13px;color:var(--text);word-break:break-word">${esc(val)}</div></div>`
     : '';
-  const chips = (arr) => (arr||[]).map(x=>`<span style="display:inline-block;background:var(--bg2);color:var(--text2);border-radius:6px;padding:2px 8px;font-size:11px;margin:2px">${x}</span>`).join('');
+  const longField = (label, val) => (val!=null && String(val).trim()!=='')
+    ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${label}</div><div style="font-size:13px;color:var(--text);white-space:pre-wrap;word-break:break-word">${esc(val)}</div></div>`
+    : '';
+  const chips = (arr) => (arr||[]).map(x=>`<span style="display:inline-block;background:var(--bg2);color:var(--text2);border-radius:6px;padding:2px 8px;font-size:11px;margin:2px">${esc(x)}</span>`).join('');
 
   openModal(`
     <div class="modal-head">
-      <div class="modal-title">Client Intake — ${name}</div>
+      <div class="modal-title">Client Intake — ${esc(name)}</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:4px 0 12px">
@@ -14141,8 +14172,8 @@ function openClientIntakeModal(id){
     ${c.required_skills?.length ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Required Skills</div>${chips(c.required_skills)}</div>` : ''}
     ${c.required_tools?.length ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Required Tools</div>${chips(c.required_tools)}</div>` : ''}
     ${c.timezone_preferences?.length ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Timezone Preferences</div>${chips(c.timezone_preferences)}</div>` : ''}
-    ${field('Role Description', c.role_description)}
-    ${field('Additional Notes', c.additional_notes)}
+    ${longField('Role Description', c.role_description)}
+    ${longField('Additional Notes', c.additional_notes)}
     <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;display:flex;gap:12px;align-items:center">
       <div style="flex:1">
         <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">Status</label>
@@ -14150,7 +14181,7 @@ function openClientIntakeModal(id){
       </div>
       <div style="flex:1">
         <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">Notes</label>
-        <textarea class="form-input" id="ci-notes-${id}" style="margin-top:4px;font-size:13px;min-height:60px" placeholder="Internal notes...">${c.reviewer_notes||''}</textarea>
+        <textarea class="form-input" id="ci-notes-${id}" style="margin-top:4px;font-size:13px;min-height:60px" placeholder="Internal notes...">${esc(c.reviewer_notes)}</textarea>
       </div>
       <button class="btn" style="background:var(--accent);color:#fff;align-self:flex-end" onclick="saveCiNotes('${id}')">Save</button>
     </div>
