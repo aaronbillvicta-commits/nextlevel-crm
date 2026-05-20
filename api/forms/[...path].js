@@ -1,6 +1,6 @@
-// Consolidated forms handler: GET /options, POST /va, POST /client
-// Replaces 3 separate files to stay within Vercel Hobby's 12-function limit.
-const { applyCors } = require('../_auth');
+// Consolidated forms handler: GET /options, POST /va, POST /client, POST /embed
+// Replaces 4 separate files to stay within Vercel Hobby's 12-function limit.
+const { applyCors, requireAuth } = require('../_auth');
 
 const SUPABASE_URL = 'https://oipkvwdjlwienkphsivr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pcGt2d2RqbHdpZW5rcGhzaXZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMzk2NTUsImV4cCI6MjA5MTcxNTY1NX0.VAj_i2iCnvd3qz9Emhh-O_eBywrmxYH9U2vJPVFclT0';
@@ -101,6 +101,83 @@ async function supabasePost(table, payload) {
   if (!r.ok) throw new Error(await r.text());
 }
 
+async function supabaseGetOne(table, id) {
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!key) throw new Error('SUPABASE_SERVICE_KEY not set');
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}&select=*`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}` },
+  });
+  if (!r.ok) throw new Error(await r.text());
+  const rows = await r.json();
+  return rows[0] || null;
+}
+
+async function supabasePatch(table, id, payload) {
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!key) throw new Error('SUPABASE_SERVICE_KEY not set');
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=minimal',
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!r.ok) throw new Error(await r.text());
+}
+
+// ── Embedding: build a semantic text blob from a record, then call OpenAI ─────
+function joinArr(v) { return Array.isArray(v) ? v.filter(Boolean).join(', ') : (v || ''); }
+
+function vaEmbedText(v) {
+  const lines = [
+    ['Roles', joinArr(v.roles)],
+    ['Industries', joinArr(v.industries)],
+    ['Tools', [joinArr(v.tools_selected), v.other_tools].filter(Boolean).join(', ')],
+    ['Specialization', v.niche_specialization],
+    ['Years of experience', v.years_experience],
+    ['Sales roles', joinArr(v.sales_roles)],
+    ['Work history', v.work_history_summary],
+    ['Best result', v.best_result],
+    ['Clients worked with', v.clients_worked_with],
+    ['Enjoys most', v.enjoys_most],
+    ['Working style', joinArr(v.working_style)],
+    ['Preferred client type', joinArr(v.preferred_client_type)],
+    ['Management style', v.management_style],
+    ['English level', v.english_self_level],
+  ];
+  return lines.filter(([, val]) => val && String(val).trim()).map(([k, val]) => `${k}: ${val}`).join('\n');
+}
+
+function ciEmbedText(c) {
+  const lines = [
+    ['Industry', c.industry],
+    ['Role needed', c.role_description],
+    ['Required skills', joinArr(c.required_skills)],
+    ['Required tools', joinArr(c.required_tools)],
+    ['English required', c.english_level_required],
+    ['Additional notes', c.additional_notes],
+  ];
+  return lines.filter(([, val]) => val && String(val).trim()).map(([k, val]) => `${k}: ${val}`).join('\n');
+}
+
+async function openaiEmbed(text) {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) { const e = new Error('OPENAI_API_KEY not set in Vercel environment variables'); e.code = 'NO_KEY'; throw e; }
+  const r = await fetch('https://api.openai.com/v1/embeddings', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'text-embedding-3-small', input: text }),
+  });
+  if (!r.ok) { const e = new Error('OpenAI embeddings error: ' + (await r.text())); e.code = 'OPENAI'; throw e; }
+  const data = await r.json();
+  const vec = data.data && data.data[0] && data.data[0].embedding;
+  if (!Array.isArray(vec) || vec.length !== 1536) throw new Error('Unexpected embedding shape');
+  return vec;
+}
+
 // ── Route handlers ────────────────────────────────────────────────────────────
 async function handleOptions(req, res) {
   const { form_type } = req.query;
@@ -156,6 +233,43 @@ async function handleClientIntake(req, res, ip) {
   res.status(200).json({ success: true });
 }
 
+// Auth-gated: generate an OpenAI embedding for a VA or client record and mark
+// it activated for the matching pool. Triggered by the "Activate for Matching"
+// button in the CRM.
+async function handleEmbed(req, res) {
+  const user = await requireAuth(req, res);
+  if (!user) return; // requireAuth already sent 401
+
+  const body = req.body || {};
+  const type = body.type;
+  const id = body.id;
+  if ((type !== 'va' && type !== 'client') || !id || typeof id !== 'string') {
+    return res.status(400).json({ error: 'Body must be { type: "va"|"client", id: "<uuid>" }' });
+  }
+
+  const table = type === 'va' ? 'va_applicants' : 'client_intakes';
+  const rec = await supabaseGetOne(table, id);
+  if (!rec) return res.status(404).json({ error: 'Record not found' });
+
+  const text = type === 'va' ? vaEmbedText(rec) : ciEmbedText(rec);
+  if (!text.trim()) return res.status(422).json({ error: 'Record has no matchable content to embed' });
+
+  let vec;
+  try {
+    vec = await openaiEmbed(text);
+  } catch (e) {
+    if (e.code === 'NO_KEY') return res.status(503).json({ error: e.message });
+    console.error('[forms/embed] openai', e);
+    return res.status(502).json({ error: 'Embedding generation failed' });
+  }
+
+  const patch = { embedding: '[' + vec.join(',') + ']', activated_at: new Date().toISOString() };
+  if (type === 'va') patch.review_status = 'shortlisted';
+  await supabasePatch(table, id, patch);
+
+  return res.status(200).json({ success: true, activated_at: patch.activated_at });
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 module.exports = async function handler(req, res) {
   applyCors(req, res, 'GET, POST, OPTIONS');
@@ -169,6 +283,7 @@ module.exports = async function handler(req, res) {
     if (action === 'options' && req.method === 'GET') return await handleOptions(req, res);
     if (action === 'va'      && req.method === 'POST') return await handleVaApply(req, res, ip);
     if (action === 'client'  && req.method === 'POST') return await handleClientIntake(req, res, ip);
+    if (action === 'embed'   && req.method === 'POST') return await handleEmbed(req, res);
     return res.status(404).json({ error: 'Not found' });
   } catch (err) {
     console.error('[forms]', action, err);

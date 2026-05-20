@@ -13893,13 +13893,20 @@ function renderVaApplicantsPage(){
 }
 
 async function activateVaForMatching(id){
-  const { error } = await supabase.from('va_applicants').update({
-    review_status: 'shortlisted',
-    activated_at: new Date().toISOString()
-  }).eq('id', id);
-  if(error){ showToast('Update failed: '+error.message, 'error'); return; }
-  showToast('VA activated for matching pool ✓', 'success');
-  renderVaApplicantsPage();
+  showToast('Generating match profile…');
+  try {
+    const r = await fetch('/api/forms/embed', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken},
+      body: JSON.stringify({ type:'va', id })
+    });
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok){ showToast(data.error || 'Activation failed', 'error'); return; }
+    const v = vaApplicants.find(x => x.id === id);
+    if(v){ v.review_status='shortlisted'; v.activated_at=data.activated_at; }
+    showToast('VA activated for matching pool ✓', 'success');
+    renderVaApplicantsPage();
+  } catch(e){ showToast('Activation failed: '+e.message, 'error'); }
 }
 
 function openVaApplicantModal(id){
@@ -14043,6 +14050,7 @@ function renderClientIntakesPage(){
       const statusCol = CI_STATUS_COLORS[c.review_status] || '#6b7280';
       const statusLabel = CI_STATUS_LABELS[c.review_status] || c.review_status;
       const submitted = c.submitted_at ? new Date(c.submitted_at).toLocaleDateString() : '—';
+      const isActive = !!c.activated_at;
       return `<tr>
         <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openClientIntakeModal('${c.id}')">${name}</span><br><span style="font-size:11px;color:var(--text3)">${c.email||''}</span></td>
         <td style="font-size:12px;color:var(--text2)">${c.company||'—'}</td>
@@ -14051,7 +14059,12 @@ function renderClientIntakesPage(){
         <td style="font-size:12px;color:var(--text2)">${c.hours_per_week ? c.hours_per_week+' hrs' : '—'}</td>
         <td><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;background:${statusCol}18;color:${statusCol}">${statusLabel}</span></td>
         <td style="font-size:11px;color:var(--text3)">${submitted}</td>
-        <td><button class="btn btn-sm" onclick="openClientIntakeModal('${c.id}')">View</button></td>
+        <td style="white-space:nowrap;display:flex;gap:6px;align-items:center">
+          <button class="btn btn-sm" onclick="openClientIntakeModal('${c.id}')">View</button>
+          ${!isActive
+            ? `<button class="btn btn-sm" style="font-size:11px;background:#059669;color:#fff;border:none" onclick="activateCiForMatching('${c.id}')">⚡ Activate</button>`
+            : `<span style="font-size:11px;color:#059669;font-weight:600">✓ Active</span>`}
+        </td>
       </tr>`;
     }).join('');
   });
@@ -14104,6 +14117,11 @@ function openClientIntakeModal(id){
       </div>
       <button class="btn" style="background:var(--accent);color:#fff;align-self:flex-end" onclick="saveCiNotes('${id}')">Save</button>
     </div>
+    <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;display:flex;justify-content:flex-end">
+      ${!c.activated_at
+        ? `<button class="btn" style="background:#059669;color:#fff" onclick="activateCiForMatching('${id}');closeModal()">⚡ Activate for Matching</button>`
+        : `<span style="font-size:13px;color:#059669;font-weight:600">✓ In matching pool since ${new Date(c.activated_at).toLocaleDateString()}</span>`}
+    </div>
   `);
 }
 
@@ -14122,6 +14140,23 @@ async function saveCiNotes(id){
   const c = clientIntakes.find(x => x.id === id);
   if(c) c.reviewer_notes = notes;
   showToast('Notes saved', 'success');
+}
+
+async function activateCiForMatching(id){
+  showToast('Generating match profile…');
+  try {
+    const r = await fetch('/api/forms/embed', {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken},
+      body: JSON.stringify({ type:'client', id })
+    });
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok){ showToast(data.error || 'Activation failed', 'error'); return; }
+    const c = clientIntakes.find(x => x.id === id);
+    if(c) c.activated_at = data.activated_at;
+    showToast('Client activated for matching pool ✓', 'success');
+    renderClientIntakesPage();
+  } catch(e){ showToast('Activation failed: '+e.message, 'error'); }
 }
 
 // ── FORM OPTIONS MANAGER ────────────────────────────────────────────────────
