@@ -1325,6 +1325,10 @@ table th[onclick]{transition:background .15s,color .15s}
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
       Custom Fields
     </div>
+    <div class="nav-item" data-page="form-options-mgr">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Form Options
+    </div>
     <div class="nav-item" data-page="settings">
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       Settings
@@ -1833,6 +1837,44 @@ table th[onclick]{transition:background .15s,color .15s}
         </table>
       </div>
       <div id="ci-empty" style="display:none;text-align:center;padding:48px;color:var(--text3);font-size:14px">No client intakes yet. Share the form link to start receiving requests.</div>
+    </div>
+
+    <!-- FORM OPTIONS MANAGER -->
+    <div class="page" id="page-form-options-mgr">
+      <div class="sec-head">
+        <div>
+          <div class="sec-title">Form Options</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Manage the options shown in the VA and Client intake forms</div>
+        </div>
+        <button class="btn btn-primary" onclick="openAddFormOptionModal()" style="font-size:13px">+ Add Option</button>
+      </div>
+
+      <!-- Category filter tabs -->
+      <div id="fom-category-tabs" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px"></div>
+
+      <!-- Search -->
+      <div style="position:relative;max-width:300px;margin-bottom:14px">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-input" id="fom-search" type="search" style="padding-left:32px" placeholder="Search options…" oninput="renderFormOptionsMgr()" autocomplete="off" data-form-type="other"/>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Label</th>
+              <th>Value / Key</th>
+              <th>Category</th>
+              <th>Shows in</th>
+              <th>Order</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="fom-tbody"></tbody>
+        </table>
+      </div>
+      <div id="fom-empty" style="display:none;text-align:center;padding:48px;color:var(--text3);font-size:14px">No options found.</div>
     </div>
 
     <div class="page" id="page-tools">
@@ -14082,13 +14124,197 @@ async function saveCiNotes(id){
   showToast('Notes saved', 'success');
 }
 
+// ── FORM OPTIONS MANAGER ────────────────────────────────────────────────────
+
+const FOM_CATEGORIES = [
+  { value:'industry',         label:'Industry' },
+  { value:'tools',            label:'Tools' },
+  { value:'skills',           label:'Skills' },
+  { value:'roles',            label:'Roles' },
+  { value:'timezone',         label:'Timezone' },
+  { value:'hire_arrangement', label:'Hire Arrangement' },
+  { value:'english_level',    label:'English Level' },
+];
+const FOM_FORM_TYPES = { va:'VA only', client:'Client only', both:'Both' };
+
+let fomOptions = [];
+let fomCategoryFilter = 'all';
+
+async function fetchFormOptions(){
+  const { data } = await supabase
+    .from('form_field_options')
+    .select('*')
+    .order('category', { ascending: true })
+    .order('sort_order', { ascending: true });
+  fomOptions = data || [];
+}
+
+function renderFormOptionsMgr(){
+  const tbody = document.getElementById('fom-tbody'); if(!tbody) return;
+  const emptyEl = document.getElementById('fom-empty');
+  const q = (document.getElementById('fom-search')?.value || '').toLowerCase();
+
+  // Build category tab pills once
+  const tabsDiv = document.getElementById('fom-category-tabs');
+  if(tabsDiv && !tabsDiv.dataset.built){
+    tabsDiv.dataset.built = '1';
+    const cats = [{ value:'all', label:'All' }, ...FOM_CATEGORIES];
+    tabsDiv.innerHTML = cats.map(c =>
+      `<button id="fomCat-${c.value}" onclick="fomCategoryFilter='${c.value}';renderFormOptionsMgr()"
+        style="padding:5px 14px;border-radius:999px;border:1.5px solid #e5e7eb;font-size:12px;font-weight:600;cursor:pointer;background:transparent;color:var(--text2);transition:.1s">${c.label}</button>`
+    ).join('');
+  }
+  // Highlight active tab
+  [{ value:'all' }, ...FOM_CATEGORIES].forEach(c => {
+    const btn = document.getElementById('fomCat-'+c.value);
+    if(!btn) return;
+    const active = c.value === fomCategoryFilter;
+    btn.style.background = active ? 'var(--accent2)' : 'transparent';
+    btn.style.color = active ? '#fff' : 'var(--text2)';
+    btn.style.borderColor = active ? 'var(--accent2)' : '#e5e7eb';
+  });
+
+  fetchFormOptions().then(() => {
+    let list = fomOptions;
+    if(fomCategoryFilter !== 'all') list = list.filter(o => o.category === fomCategoryFilter);
+    if(q) list = list.filter(o =>
+      (o.label||'').toLowerCase().includes(q) ||
+      (o.value||'').toLowerCase().includes(q) ||
+      (o.category||'').toLowerCase().includes(q)
+    );
+    if(!list.length){ tbody.innerHTML=''; emptyEl.style.display='block'; return; }
+    emptyEl.style.display = 'none';
+    tbody.innerHTML = list.map(o => {
+      const catLabel = FOM_CATEGORIES.find(c => c.value===o.category)?.label || o.category;
+      const ftLabel = FOM_FORM_TYPES[o.form_type] || o.form_type;
+      const activeStyle = o.active
+        ? 'background:#d1fae5;color:#065f46'
+        : 'background:#f3f4f6;color:#6b7280';
+      const activeLabel = o.active ? 'Active' : 'Inactive';
+      return `<tr style="opacity:${o.active?1:0.6}">
+        <td style="font-weight:500">${o.label}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text3)">${o.value}</td>
+        <td><span style="font-size:11px;font-weight:600;background:var(--bg2);color:var(--text2);padding:2px 8px;border-radius:6px">${catLabel}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${ftLabel}</td>
+        <td style="font-size:12px;color:var(--text3)">${o.sort_order}</td>
+        <td><span style="font-size:11px;font-weight:700;padding:2px 10px;border-radius:999px;${activeStyle}">${activeLabel}</span></td>
+        <td style="white-space:nowrap;display:flex;gap:6px">
+          <button class="btn btn-sm" onclick="openEditFormOptionModal('${o.id}')">Edit</button>
+          <button class="btn btn-sm" style="font-size:11px;color:${o.active?'#dc2626':'#059669'}"
+            onclick="toggleFormOption('${o.id}',${!o.active})">${o.active?'Deactivate':'Activate'}</button>
+        </td>
+      </tr>`;
+    }).join('');
+  });
+}
+
+function fomModalHTML(opt){
+  const isEdit = !!opt;
+  const o = opt || { category:'tools', form_type:'both', label:'', value:'', sort_order:0, active:true };
+  const catOptions = FOM_CATEGORIES.map(c =>
+    `<option value="${c.value}" ${o.category===c.value?'selected':''}>${c.label}</option>`
+  ).join('');
+  const ftOptions = Object.entries(FOM_FORM_TYPES).map(([v,l]) =>
+    `<option value="${v}" ${o.form_type===v?'selected':''}>${l}</option>`
+  ).join('');
+  return `
+    <div class="modal-head">
+      <div class="modal-title">${isEdit ? 'Edit Option' : 'Add Form Option'}</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0">
+      <div class="form-row">
+        <label class="form-label">Label <span style="color:#e53e3e">*</span></label>
+        <input class="form-input" id="fom-label" value="${o.label}" placeholder="e.g. HubSpot">
+      </div>
+      <div class="form-row">
+        <label class="form-label">Value / Key <span style="color:#e53e3e">*</span><span style="font-weight:400;color:var(--text3)"> — lowercase, underscores only</span></label>
+        <input class="form-input" id="fom-value" value="${o.value}" placeholder="e.g. hubspot"
+          oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'_')">
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-row">
+          <label class="form-label">Category <span style="color:#e53e3e">*</span></label>
+          <select class="form-select" id="fom-category">${catOptions}</select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Shows in</label>
+          <select class="form-select" id="fom-form-type">${ftOptions}</select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="form-row">
+          <label class="form-label">Sort order <span style="color:var(--text3);font-weight:400">(lower = first)</span></label>
+          <input class="form-input" type="number" id="fom-sort" value="${o.sort_order}" min="0" step="1">
+        </div>
+        <div class="form-row" style="justify-content:flex-end;flex-direction:row;align-items:center;gap:10px;padding-top:20px">
+          <label class="form-label" style="margin:0">Active</label>
+          <input type="checkbox" id="fom-active" ${o.active?'checked':''} style="width:16px;height:16px;accent-color:var(--accent2)">
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="${isEdit ? `saveEditFormOption('${o.id}')` : 'saveNewFormOption()'}">
+        ${isEdit ? 'Save Changes' : 'Add Option'}
+      </button>
+    </div>`;
+}
+
+function openAddFormOptionModal(){
+  openModal(fomModalHTML(null));
+}
+
+function openEditFormOptionModal(id){
+  const o = fomOptions.find(x => x.id === id); if(!o) return;
+  openModal(fomModalHTML(o));
+}
+
+function fomCollect(){
+  const label = (document.getElementById('fom-label')?.value || '').trim();
+  const value = (document.getElementById('fom-value')?.value || '').trim();
+  const category = document.getElementById('fom-category')?.value || '';
+  const form_type = document.getElementById('fom-form-type')?.value || 'both';
+  const sort_order = parseInt(document.getElementById('fom-sort')?.value || '0') || 0;
+  const active = document.getElementById('fom-active')?.checked ?? true;
+  if(!label){ showToast('Label is required', 'error'); return null; }
+  if(!value){ showToast('Value/key is required', 'error'); return null; }
+  if(!category){ showToast('Category is required', 'error'); return null; }
+  return { label, value, category, form_type, sort_order, active };
+}
+
+async function saveNewFormOption(){
+  const payload = fomCollect(); if(!payload) return;
+  const { error } = await supabase.from('form_field_options').insert(payload);
+  if(error){ showToast('Error: '+error.message, 'error'); return; }
+  showToast('Option added ✓', 'success');
+  closeModal();
+  renderFormOptionsMgr();
+}
+
+async function saveEditFormOption(id){
+  const payload = fomCollect(); if(!payload) return;
+  const { error } = await supabase.from('form_field_options').update(payload).eq('id', id);
+  if(error){ showToast('Error: '+error.message, 'error'); return; }
+  showToast('Option updated ✓', 'success');
+  closeModal();
+  renderFormOptionsMgr();
+}
+
+async function toggleFormOption(id, active){
+  const { error } = await supabase.from('form_field_options').update({ active }).eq('id', id);
+  if(error){ showToast('Error: '+error.message, 'error'); return; }
+  showToast(active ? 'Option activated ✓' : 'Option deactivated', 'success');
+  renderFormOptionsMgr();
+}
+
 const PAGE_TITLES = {
   dashboard:'Dashboard', contacts:'Contacts', pipeline:'Pipeline & Deal',
   calendar:'Calendar', dialer:'Dialer', conversations:'Conversations', email:'Email',
   automations:'Automations', social:'Social Planner', campaigns:'Campaigns',
   clients:'Active Clients',
   'va-applicants':'VA Applicants', 'client-intakes':'Client Intakes',
-  tools:'Tools', tags:'Tags', integrations:'Integrations', 'custom-fields':'Custom Fields', settings:'Settings'
+  tools:'Tools', tags:'Tags', integrations:'Integrations', 'custom-fields':'Custom Fields', 'form-options-mgr':'Form Options', settings:'Settings'
 };
 
 // Hide sidebar nav items the current user has no permission for.
@@ -14130,6 +14356,7 @@ function navigate(page){
   if(page==='clients') renderClientsPage();
   if(page==='va-applicants') renderVaApplicantsPage();
   if(page==='client-intakes') renderClientIntakesPage();
+  if(page==='form-options-mgr') renderFormOptionsMgr();
   if(page==='tools') renderToolsPage();
   if(page==='tags') renderTagsPage();
   if(page==='custom-fields') renderCustomFieldsPage();
