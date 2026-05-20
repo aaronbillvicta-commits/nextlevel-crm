@@ -275,8 +275,13 @@ module.exports = async function handler(req, res) {
   applyCors(req, res, 'GET, POST, OPTIONS');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const pathParts = Array.isArray(req.query.path) ? req.query.path : [req.query.path].filter(Boolean);
-  const action = pathParts[0] || '';
+  // Derive the action from the URL path. Don't rely on req.query.path —
+  // Vercel's catch-all ([...path]) query population is unreliable for bare
+  // (non-framework) serverless functions, so req.url is the source of truth.
+  const urlPath = (req.url || '').split('?')[0].replace(/\/+$/, '');
+  const urlMatch = urlPath.match(/\/api\/forms\/([^/]+)/);
+  const qp = Array.isArray(req.query.path) ? req.query.path[0] : req.query.path;
+  const action = (urlMatch ? urlMatch[1] : qp) || '';
   const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || 'unknown';
 
   try {
