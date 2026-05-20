@@ -423,6 +423,8 @@
       </div>
     </div>
 
+    <!-- EF SET temporarily hidden (to revive: remove style="display:none" from #efset_block and restore the validation checks in validateSection section 0). -->
+    <div id="efset_block" style="display:none">
     <div class="info-box" style="margin-top:16px;">
       <span class="icon">💡</span>
       <span>A certified EF SET score is <b>required</b>. The test is free and gives you a shareable certificate link + score. Take the <b>50-minute certified test</b> (the 15-minute quick check does not certify). <a href="https://www.efset.org/ef-set-50/" target="_blank" rel="noopener" style="color:#7a5a00;font-weight:600;">Take the free EF SET certified test →</a></span>
@@ -439,6 +441,7 @@
         <span class="hint">Paste the shareable certificate link from your EF SET results page.</span>
       </div>
     </div>
+    </div>
   </div>
 </div>
 
@@ -450,6 +453,54 @@
       <div>
         <div class="card-title">Experience &amp; Portfolio <span class="priority-badge">#1 priority</span></div>
         <div class="card-subtitle">Your track record — numbers and specifics stand out</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Do you have VA / remote work experience? <span class="req">*</span></label>
+      <div class="radio-group" id="experience_type">
+        <label><input type="radio" name="experience_type" value="has_va"> Yes — I have VA / remote work experience</label>
+        <label><input type="radio" name="experience_type" value="fresh_graduate"> No VA experience — fresh graduate</label>
+        <label><input type="radio" name="experience_type" value="corporate_bpo"> No VA experience — but I have corporate / BPO experience</label>
+      </div>
+    </div>
+
+    <div id="non_va_background" class="hidden">
+      <div class="section-label">Your Background</div>
+      <div class="field-row">
+        <div class="field">
+          <label>Most recent company / employer</label>
+          <input type="text" id="prior_company" placeholder="Company name (leave blank if fresh graduate)">
+        </div>
+        <div class="field">
+          <label>Years of professional experience</label>
+          <select id="prior_years">
+            <option value="">Select</option>
+            <option value="none">None / just graduated</option>
+            <option value="less_than_1">Less than 1 year</option>
+            <option value="1_2">1–2 years</option>
+            <option value="2_5">2–5 years</option>
+            <option value="5_plus">5+ years</option>
+          </select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Market / region you served</label>
+          <select id="prior_market">
+            <option value="">Select</option>
+            <option value="us">US</option>
+            <option value="uk">UK</option>
+            <option value="au">Australia</option>
+            <option value="ca">Canada</option>
+            <option value="local_ph">Local (Philippines)</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Industry of that role</label>
+          <input type="text" id="prior_industry" placeholder="e.g. Telecommunications, Banking, Healthcare BPO">
+        </div>
       </div>
     </div>
 
@@ -640,6 +691,16 @@
     <div class="field">
       <label>Preferred hire arrangement</label>
       <div class="check-grid" id="hire_arrangement_grid"></div>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Willing to work weekends (Saturday / Sunday)?</label>
+      <div class="radio-group">
+        <label><input type="radio" name="weekend_availability" value="both"> Yes — both days</label>
+        <label><input type="radio" name="weekend_availability" value="saturday"> Saturday only</label>
+        <label><input type="radio" name="weekend_availability" value="sunday"> Sunday only</label>
+        <label><input type="radio" name="weekend_availability" value="no"> No</label>
+      </div>
     </div>
 
     <div class="field-row" style="margin-top:16px;">
@@ -990,12 +1051,20 @@ document.addEventListener('change', e => {
   }
 });
 
+// VA experience-type branch toggle — reveal the non-VA background block for the two "No" answers
+document.addEventListener('change', e => {
+  if (e.target.name === 'experience_type') {
+    const nonVa = e.target.value === 'fresh_graduate' || e.target.value === 'corporate_bpo';
+    document.getElementById('non_va_background').classList.toggle('hidden', !nonVa);
+  }
+});
+
 // --- Tools grouped by category (checkboxes, name="tools") ---
 const TOOL_CATEGORIES = [
   ['CRM & Sales', ['hubspot','gohighlevel','salesforce','zoho_crm','pipedrive','close_crm','keap']],
-  ['Project Management', ['asana','trello','monday','clickup','notion','basecamp','jira']],
-  ['Communication', ['slack','zoom','google_meet','ms_teams','discord']],
-  ['Office & Docs', ['google_workspace','ms_office']],
+  ['Project Management', ['asana','trello','monday','clickup','notion','basecamp','jira','airtable']],
+  ['Communication', ['slack','zoom','google_meet','ms_teams','discord','loom','whatsapp']],
+  ['Office & Docs', ['google_workspace','ms_office','dropbox','grammarly']],
   ['Email & Marketing', ['mailchimp','klaviyo','activecampaign','convertkit','constant_contact']],
   ['Social Media', ['buffer','hootsuite','later','sprout_social','meta_business']],
   ['Ads', ['facebook_ads','google_ads','tiktok_ads']],
@@ -1005,6 +1074,7 @@ const TOOL_CATEGORIES = [
   ['Automation & AI', ['zapier','make','chatgpt','claude','jasper']],
   ['Website', ['wordpress','webflow','squarespace','wix']],
   ['E-commerce', ['shopify','woocommerce','amazon_seller','etsy']],
+  ['Time Tracking', ['hubstaff','time_doctor','toggl','clockify']],
 ];
 
 function renderToolGroups() {
@@ -1041,14 +1111,16 @@ function validateSection(i) {
     if (!document.querySelector('input[name="english_self_level"]:checked')) {
       showToast('Please select your English proficiency level'); return false;
     }
-    if (!document.getElementById('english_efset_score').value.trim()) { showToast('Please enter your EF SET score'); return false; }
-    if (!document.getElementById('english_efset_link').value.trim()) { showToast('Please paste your EF SET certificate link'); return false; }
+    // EF SET temporarily hidden — score/link checks disabled (see #efset_block).
   }
   if (i === 1) {
+    const expType = (document.querySelector('input[name="experience_type"]:checked') || {}).value || '';
+    if (!expType) { showToast('Please tell us about your VA experience level'); return false; }
     if (!document.getElementById('years_experience').value) { showToast('Please select years of experience'); return false; }
     if (!document.querySelectorAll('#industries_grid input:checked').length) { showToast('Please select at least one industry'); return false; }
     if (!document.getElementById('work_history_summary').value.trim()) { showToast('Please add your work history summary'); return false; }
-    if (!document.getElementById('best_result').value.trim()) { showToast('Please describe your best client result'); return false; }
+    // "Best client result" only required for applicants who have VA experience.
+    if (expType === 'has_va' && !document.getElementById('best_result').value.trim()) { showToast('Please describe your best client result'); return false; }
     if (!document.getElementById('cv_link').value.trim()) { showToast('Please add your CV / Resume link'); return false; }
     if (!document.getElementById('video_intro_link').value.trim()) { showToast('Please add your video intro link'); return false; }
   }
@@ -1088,6 +1160,11 @@ function collectData() {
     english_self_level: gRadio('english_self_level'),
     english_efset_score: g('english_efset_score'),
     english_efset_link: g('english_efset_link'),
+    experience_type: gRadio('experience_type'),
+    prior_company: g('prior_company'),
+    prior_market: g('prior_market'),
+    prior_industry: g('prior_industry'),
+    prior_years: g('prior_years'),
     years_experience: g('years_experience'),
     clients_worked_with: g('clients_worked_with'),
     industries: gCheckboxGrid('industries_grid'),
@@ -1112,6 +1189,7 @@ function collectData() {
     current_employment_status: g('current_employment_status'),
     hours_available_new: parseInt(g('hours_available_new')) || null,
     hire_arrangement: gCheckboxGrid('hire_arrangement_grid'),
+    weekend_availability: gRadio('weekend_availability'),
     hourly_rate: parseFloat(g('hourly_rate')) || null,
     monthly_rate: parseFloat(g('monthly_rate')) || null,
     commission_open: g('commission_open'),

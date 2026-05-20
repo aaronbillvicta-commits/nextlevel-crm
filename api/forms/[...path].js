@@ -31,6 +31,8 @@ const VA_TEXT = [
   'first_name', 'last_name', 'email', 'phone', 'facebook_url', 'linkedin_url',
   'portfolio_url', 'other_profile_url', 'country_city', 'timezone',
   'english_self_level', 'english_efset_score', 'english_efset_link',
+  'experience_type', 'prior_company', 'prior_market', 'prior_industry', 'prior_years',
+  'weekend_availability',
   'years_experience', 'clients_worked_with', 'work_history_summary', 'best_result',
   'niche_specialization', 'cv_link', 'video_intro_link', 'references_available',
   'reference_links', 'other_tools', 'calls_per_day', 'appts_per_week',

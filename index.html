@@ -14190,6 +14190,9 @@ function openVaApplicantModal(id){
         linkField('Portfolio', v.portfolio_url, 'Link'), linkField('Other Profile', v.other_profile_url, 'Link'),
       ])}
       ${sec('Experience', [
+        field('VA Experience', v.experience_type), field('Prior Company', v.prior_company),
+        field('Prior Market', v.prior_market), field('Prior Industry', v.prior_industry),
+        field('Prior Yrs Experience', v.prior_years),
         field('Years Experience', v.years_experience), field('English Level', v.english_self_level),
         field('EF SET Score', v.english_efset_score), linkField('EF SET Link', v.english_efset_link, 'View'),
         field('Clients Worked With', v.clients_worked_with), field('Niche', v.niche_specialization),
@@ -14215,7 +14218,8 @@ function openVaApplicantModal(id){
         field('Hourly Rate', v.hourly_rate!=null? '$'+v.hourly_rate+'/hr':''),
         field('Monthly Rate', v.monthly_rate!=null? '$'+v.monthly_rate+'/mo':''),
         field('Commission Open', v.commission_open), field('Rate Negotiable', v.rate_negotiable),
-        chipField('Hire Arrangement', v.hire_arrangement), chipField('Timezone Overlap', v.timezone_overlap),
+        chipField('Hire Arrangement', v.hire_arrangement), field('Weekend Availability', v.weekend_availability),
+        chipField('Timezone Overlap', v.timezone_overlap),
         urlOrText('Internet Speed (test link)', v.internet_speed), field('Backup Internet', v.backup_internet),
         field('Time-Tracking Comfort', v.time_tracking_comfort), chipField('Time-Tracking Tools', v.time_tracking_tools),
         field('ID Verification Willing', v.id_verification_willing), chipField('ID Types Available', v.id_types_available),
