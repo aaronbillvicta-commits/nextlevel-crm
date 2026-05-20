@@ -14174,6 +14174,7 @@ function openVaApplicantModal(id){
   const chipField = (label, arr) => (Array.isArray(arr)&&arr.length)
     ? `<div style="grid-column:1/-1"><div style="${L};margin-bottom:4px">${label}</div><div>${arr.map(x=>`<span style="display:inline-block;background:var(--bg2);color:var(--text2);border-radius:6px;padding:2px 8px;font-size:11px;margin:2px">${esc(x)}</span>`).join('')}</div></div>` : '';
   const sec = (title, cells) => { const body = cells.filter(Boolean).join(''); return body ? `<div style="margin-top:16px"><div style="font-size:12px;font-weight:800;color:var(--accent2);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);padding-bottom:4px">${title}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:8px">${body}</div></div>` : ''; };
+  const urlOrText = (label, val) => safeUrl(val) ? linkField(label, val, 'Open link') : field(label, val);
   const submitted = v.submitted_at ? new Date(v.submitted_at).toLocaleString() : '';
 
   openModal(`
@@ -14215,7 +14216,7 @@ function openVaApplicantModal(id){
         field('Monthly Rate', v.monthly_rate!=null? '$'+v.monthly_rate+'/mo':''),
         field('Commission Open', v.commission_open), field('Rate Negotiable', v.rate_negotiable),
         chipField('Hire Arrangement', v.hire_arrangement), chipField('Timezone Overlap', v.timezone_overlap),
-        field('Internet Speed', v.internet_speed), field('Backup Internet', v.backup_internet),
+        urlOrText('Internet Speed (test link)', v.internet_speed), field('Backup Internet', v.backup_internet),
         field('Time-Tracking Comfort', v.time_tracking_comfort), chipField('Time-Tracking Tools', v.time_tracking_tools),
         field('ID Verification Willing', v.id_verification_willing), chipField('ID Types Available', v.id_types_available),
       ])}
@@ -14224,7 +14225,7 @@ function openVaApplicantModal(id){
         chipField('Preferred Client Type', v.preferred_client_type), field('Response Time', v.response_time),
         longField('Enjoys Most', v.enjoys_most), longField('Wish Clients Knew', v.wish_clients_knew),
         longField('Anything Else', v.anything_else), boolField('Direction Test Passed', v.direction_test_passed),
-        longField('Direction Test Answer', v.direction_test_answer),
+        longField('Direction Test Answer', v.direction_test_answer), urlOrText('DISC Assessment', v.disc_assessment),
       ])}
       <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:12px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
         <div style="flex:1;min-width:160px">

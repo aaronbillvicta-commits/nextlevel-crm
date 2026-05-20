@@ -39,7 +39,7 @@ const VA_TEXT = [
   'current_client_aware', 'notice_period', 'commission_open', 'rate_negotiable',
   'preferred_hours', 'internet_speed', 'backup_internet', 'time_tracking_comfort',
   'id_verification_willing', 'management_style', 'response_time', 'enjoys_most',
-  'wish_clients_knew', 'anything_else', 'direction_test_answer',
+  'wish_clients_knew', 'anything_else', 'direction_test_answer', 'disc_assessment',
 ];
 const VA_JSONB = [
   'industries', 'roles', 'tools_selected', 'sales_roles', 'hire_arrangement',

@@ -425,18 +425,18 @@
 
     <div class="info-box" style="margin-top:16px;">
       <span class="icon">💡</span>
-      <span>Applicants with a certified EF SET score are moved up the review queue. The test is free and takes 15 minutes — you'll get a shareable certificate link. <a href="https://www.efset.org/cert/" target="_blank" rel="noopener" style="color:#7a5a00;font-weight:600;">Take the free EF SET test at efset.org</a></span>
+      <span>A certified EF SET score is <b>required</b>. The test is free and gives you a shareable certificate link + score. Take the <b>50-minute certified test</b> (the 15-minute quick check does not certify). <a href="https://www.efset.org/ef-set-50/" target="_blank" rel="noopener" style="color:#7a5a00;font-weight:600;">Take the free EF SET certified test →</a></span>
     </div>
 
     <div class="field-row">
       <div class="field">
-        <label>EF SET score <span style="color:#999;font-weight:400;">(recommended)</span></label>
+        <label>EF SET score <span class="req">*</span></label>
         <input type="text" id="english_efset_score" placeholder="e.g. 62/100 — C1 Advanced">
       </div>
       <div class="field">
-        <label>EF SET certificate link</label>
-        <input type="url" id="english_efset_link" placeholder="efset.org/cert/...">
-        <span class="hint">Paste the shareable link from your EF SET results page.</span>
+        <label>EF SET certificate link <span class="req">*</span></label>
+        <input type="url" id="english_efset_link" placeholder="https://www.efset.org/cert/...">
+        <span class="hint">Paste the shareable certificate link from your EF SET results page.</span>
       </div>
     </div>
   </div>
@@ -498,11 +498,11 @@
 
     <div class="field-row" style="margin-top:16px;">
       <div class="field">
-        <label>CV / Resume link</label>
+        <label>CV / Resume link <span class="req">*</span></label>
         <input type="url" id="cv_link" placeholder="Google Drive, Dropbox, etc.">
       </div>
       <div class="field">
-        <label>Video intro link</label>
+        <label>Video intro link <span class="req">*</span></label>
         <input type="url" id="video_intro_link" placeholder="Loom, YouTube, Google Drive...">
       </div>
     </div>
@@ -543,13 +543,8 @@
 
     <div class="field" style="margin-top:20px;">
       <label>Tools you're proficient in <span class="req">*</span></label>
-      <div class="search-select" id="tools_select">
-        <div class="search-select-input" id="tools_input_box">
-          <input type="text" id="tools_search" placeholder="Search tools..." autocomplete="off">
-        </div>
-        <div class="search-dropdown" id="tools_dropdown"></div>
-      </div>
-      <span class="hint" style="margin-top:4px;">Search and select all tools you use regularly.</span>
+      <span class="hint" style="display:block;margin-bottom:8px;">Select all tools you use regularly, grouped by category.</span>
+      <div id="tools_grouped"></div>
     </div>
 
     <div class="field" style="margin-top:16px;">
@@ -709,14 +704,16 @@
         <label><input type="checkbox" value="CST"> Central (CST/CDT)</label>
         <label><input type="checkbox" value="MST"> Mountain (MST/MDT)</label>
         <label><input type="checkbox" value="PST"> Pacific (PST/PDT)</label>
+        <label><input type="checkbox" value="flexible"> Flexible (any US timezone)</label>
       </div>
     </div>
 
     <div class="section-label">Technical Setup</div>
     <div class="field-row">
       <div class="field">
-        <label>Internet speed (upload/download)</label>
-        <input type="text" id="internet_speed" placeholder="e.g. 50 Mbps / 100 Mbps">
+        <label>Internet speed test result link <span class="req">*</span></label>
+        <input type="url" id="internet_speed" placeholder="https://www.speedtest.net/result/...">
+        <span class="hint">Run a free test at <a href="https://www.speedtest.net/" target="_blank" rel="noopener">speedtest.net</a> or <a href="https://fast.com/" target="_blank" rel="noopener">fast.com</a>, then paste the shareable result link (shows your upload/download).</span>
       </div>
       <div class="field">
         <label>Backup internet?</label>
@@ -784,6 +781,16 @@
     </div>
 
     <div class="field">
+      <label>DISC personality assessment <span class="req">*</span></label>
+      <div class="info-box" style="margin:6px 0 10px;">
+        <span class="icon">🧭</span>
+        <span>Take a <b>free</b> DISC assessment and share your result. <a href="https://www.123test.com/disc-personality-test/" target="_blank" rel="noopener" style="font-weight:600;">Take the free DISC test →</a></span>
+      </div>
+      <input type="text" id="disc_assessment" placeholder="Paste your results link, or your DISC type (e.g. DI — Dominance/Influence)">
+      <span class="hint">A shareable results link is best; if your test doesn't give one, enter your DISC type.</span>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
       <label>Working style (select all that apply)</label>
       <div class="check-grid" id="working_style_grid">
         <label><input type="checkbox" value="self_starter"> Self-starter / proactive</label>
@@ -814,6 +821,7 @@
         <label><input type="checkbox" value="solopreneur"> Solopreneurs / coaches</label>
         <label><input type="checkbox" value="agency"> Agencies</label>
         <label><input type="checkbox" value="ecommerce"> E-commerce brands</label>
+        <label><input type="checkbox" value="flexible_any"> Flexible / Any</label>
       </div>
     </div>
 
@@ -869,7 +877,6 @@ const TABS = [
 ];
 let currentSection = 0;
 let formOptions = {};
-let toolsSelected = [];
 let allTools = [];
 
 // --- Init ---
@@ -883,7 +890,6 @@ async function init() {
     formOptions = {};
   }
   populateDynamicFields();
-  initToolsSearch();
   showSection(0);
 }
 
@@ -961,8 +967,9 @@ function populateDynamicFields() {
     tzSelect.innerHTML += `<option value="${opt.value}">${opt.label}</option>`;
   });
 
-  // Tools for search
+  // Tools — grouped checkboxes by category
   allTools = formOptions.tools || [];
+  renderToolGroups();
 }
 
 function checkLabel(value, label, name) {
@@ -983,63 +990,44 @@ document.addEventListener('change', e => {
   }
 });
 
-// --- Searchable tools select ---
-function initToolsSearch() {
-  const input = document.getElementById('tools_search');
-  const dropdown = document.getElementById('tools_dropdown');
-  const box = document.getElementById('tools_input_box');
+// --- Tools grouped by category (checkboxes, name="tools") ---
+const TOOL_CATEGORIES = [
+  ['CRM & Sales', ['hubspot','gohighlevel','salesforce','zoho_crm','pipedrive','close_crm','keap']],
+  ['Project Management', ['asana','trello','monday','clickup','notion','basecamp','jira']],
+  ['Communication', ['slack','zoom','google_meet','ms_teams','discord']],
+  ['Office & Docs', ['google_workspace','ms_office']],
+  ['Email & Marketing', ['mailchimp','klaviyo','activecampaign','convertkit','constant_contact']],
+  ['Social Media', ['buffer','hootsuite','later','sprout_social','meta_business']],
+  ['Ads', ['facebook_ads','google_ads','tiktok_ads']],
+  ['Design & Video', ['canva','photoshop','illustrator','figma','capcut','premiere_pro']],
+  ['Scheduling', ['calendly','acuity']],
+  ['Accounting', ['quickbooks','xero','freshbooks','wave']],
+  ['Automation & AI', ['zapier','make','chatgpt','claude','jasper']],
+  ['Website', ['wordpress','webflow','squarespace','wix']],
+  ['E-commerce', ['shopify','woocommerce','amazon_seller','etsy']],
+];
 
-  input.addEventListener('focus', () => renderDropdown(''));
-  input.addEventListener('input', () => renderDropdown(input.value));
-
-  document.addEventListener('mousedown', e => {
-    if (!document.getElementById('tools_select').contains(e.target)) {
-      dropdown.classList.remove('open');
-    }
+function renderToolGroups() {
+  const wrap = document.getElementById('tools_grouped');
+  if (!wrap) return;
+  const byValue = {};
+  allTools.forEach(t => { byValue[t.value] = t.label; });
+  const used = new Set();
+  const catTitle = c => `<div style="font-size:12px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;margin:14px 0 6px;">${c}</div>`;
+  let html = '';
+  TOOL_CATEGORIES.forEach(([cat, vals]) => {
+    const items = vals.filter(v => byValue[v]);
+    if (!items.length) return;
+    items.forEach(v => used.add(v));
+    html += catTitle(cat) + '<div class="check-grid">'
+      + items.map(v => checkLabel(v, byValue[v], 'tools')).join('') + '</div>';
   });
-
-  function renderDropdown(query) {
-    const q = query.toLowerCase();
-    const filtered = allTools.filter(t =>
-      t.label.toLowerCase().includes(q) && !toolsSelected.find(s => s.value === t.value)
-    );
-    if (filtered.length === 0) {
-      dropdown.innerHTML = '<div class="no-results">No tools found</div>';
-    } else {
-      dropdown.innerHTML = filtered.map(t =>
-        `<div class="search-dropdown-item" data-value="${t.value}" data-label="${t.label}" onmousedown="selectTool('${t.value}','${t.label.replace(/'/g,"\\'")}',event)">`
-        + `<span>${t.label}</span></div>`
-      ).join('');
-    }
-    dropdown.classList.add('open');
+  const others = allTools.filter(t => !used.has(t.value));
+  if (others.length) {
+    html += catTitle('Other') + '<div class="check-grid">'
+      + others.map(t => checkLabel(t.value, t.label, 'tools')).join('') + '</div>';
   }
-}
-
-function selectTool(value, label, e) {
-  e.preventDefault();
-  if (toolsSelected.find(t => t.value === value)) return;
-  toolsSelected.push({ value, label });
-  renderToolTags();
-  const input = document.getElementById('tools_search');
-  input.value = '';
-  document.getElementById('tools_dropdown').classList.remove('open');
-}
-
-function removeTool(value) {
-  toolsSelected = toolsSelected.filter(t => t.value !== value);
-  renderToolTags();
-}
-
-function renderToolTags() {
-  const box = document.getElementById('tools_input_box');
-  const input = document.getElementById('tools_search');
-  box.querySelectorAll('.tag').forEach(t => t.remove());
-  toolsSelected.forEach(t => {
-    const tag = document.createElement('span');
-    tag.className = 'tag';
-    tag.innerHTML = `${t.label}<button type="button" onclick="removeTool('${t.value}')" aria-label="Remove">×</button>`;
-    box.insertBefore(tag, input);
-  });
+  wrap.innerHTML = html || '<span class="hint">No tools available.</span>';
 }
 
 // --- Validation ---
@@ -1053,20 +1041,28 @@ function validateSection(i) {
     if (!document.querySelector('input[name="english_self_level"]:checked')) {
       showToast('Please select your English proficiency level'); return false;
     }
+    if (!document.getElementById('english_efset_score').value.trim()) { showToast('Please enter your EF SET score'); return false; }
+    if (!document.getElementById('english_efset_link').value.trim()) { showToast('Please paste your EF SET certificate link'); return false; }
   }
   if (i === 1) {
     if (!document.getElementById('years_experience').value) { showToast('Please select years of experience'); return false; }
     if (!document.querySelectorAll('#industries_grid input:checked').length) { showToast('Please select at least one industry'); return false; }
     if (!document.getElementById('work_history_summary').value.trim()) { showToast('Please add your work history summary'); return false; }
     if (!document.getElementById('best_result').value.trim()) { showToast('Please describe your best client result'); return false; }
+    if (!document.getElementById('cv_link').value.trim()) { showToast('Please add your CV / Resume link'); return false; }
+    if (!document.getElementById('video_intro_link').value.trim()) { showToast('Please add your video intro link'); return false; }
   }
   if (i === 2) {
     if (!document.querySelectorAll('#roles_grid input:checked').length) { showToast('Please select at least one role'); return false; }
-    if (!toolsSelected.length) { showToast('Please select at least one tool'); return false; }
+    if (!document.querySelectorAll('#tools_grouped input:checked').length) { showToast('Please select at least one tool'); return false; }
   }
   if (i === 3) {
     if (!document.getElementById('current_employment_status').value) { showToast('Please select your employment status'); return false; }
     if (!document.getElementById('hourly_rate').value) { showToast('Please enter your hourly rate'); return false; }
+    if (!document.getElementById('internet_speed').value.trim()) { showToast('Please paste your internet speed test result link'); return false; }
+  }
+  if (i === 4) {
+    if (!document.getElementById('disc_assessment').value.trim()) { showToast('Please complete the DISC assessment and add your result'); return false; }
   }
   return true;
 }
@@ -1103,7 +1099,7 @@ function collectData() {
     references_available: g('references_available'),
     reference_links: g('reference_links'),
     roles: gCheckboxGrid('roles_grid'),
-    tools_selected: toolsSelected.map(t => t.value),
+    tools_selected: gChecked('tools'),
     other_tools: g('other_tools'),
     is_sales_role: gRadio('is_sales_role') === 'yes',
     sales_roles: gCheckboxGrid('sales_roles_grid'),
@@ -1133,6 +1129,7 @@ function collectData() {
     working_style: gCheckboxGrid('working_style_grid'),
     management_style: g('management_style'),
     preferred_client_type: gCheckboxGrid('preferred_client_type_grid'),
+    disc_assessment: g('disc_assessment'),
     response_time: g('response_time'),
     enjoys_most: g('enjoys_most'),
     wish_clients_knew: g('wish_clients_knew'),
