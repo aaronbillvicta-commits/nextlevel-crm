@@ -876,7 +876,7 @@ let allTools = [];
 async function init() {
   renderTabs();
   try {
-    const r = await fetch('/api/form-options?form_type=va');
+    const r = await fetch('/api/forms/options?form_type=va');
     formOptions = await r.json();
   } catch(e) {
     console.error('Failed to load form options', e);
@@ -1147,7 +1147,7 @@ async function submitForm() {
   btn.textContent = 'Submitting...';
 
   try {
-    const r = await fetch('/api/va-apply', {
+    const r = await fetch('/api/forms/va', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(collectData()),

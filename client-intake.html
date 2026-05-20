@@ -413,7 +413,7 @@ let allTools = [];
 async function init() {
   renderTabs();
   try {
-    const r = await fetch('/api/form-options?form_type=client');
+    const r = await fetch('/api/forms/options?form_type=client');
     formOptions = await r.json();
   } catch(e) {
     formOptions = {};
@@ -596,7 +596,7 @@ async function submitForm() {
   btn.textContent = 'Submitting...';
 
   try {
-    const r = await fetch('/api/client-intake', {
+    const r = await fetch('/api/forms/client', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(collectData()),
