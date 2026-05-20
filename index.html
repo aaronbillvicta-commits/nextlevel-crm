@@ -10251,18 +10251,55 @@ function setToolsView(view){
   });
   renderToolsPage();
 }
+const TOOLS_FORMS = [
+  { icon:'📋', title:'VA Application', path:'/apply.html',
+    desc:'5-tab application for virtual assistants. Submissions land under Matching → VA Applicants.' },
+  { icon:'🤝', title:'Client Intake', path:'/client-intake.html',
+    desc:'3-tab intake for new clients. Submissions land under Matching → Client Intakes.' },
+];
+
 function renderToolsPage(){
   const el = document.getElementById('tools-content');
   if(!el) return;
   if(toolsView === 'form'){
     el.innerHTML = `
-      <div style="padding:48px 24px;text-align:center;color:var(--text3);border:1px dashed var(--border);border-radius:var(--radius)">
-        <div style="font-size:13px;color:var(--text2);margin-bottom:4px">Form tools</div>
-        <div style="font-size:12px">Coming soon — intake and application forms will land here.</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Public forms — anyone with the link can fill them in, no login required. Copy a link to share it, or open the form to view it.</div>
+      <div style="display:grid;gap:14px;max-width:760px">
+        ${TOOLS_FORMS.map(f=>{
+          const url = location.origin + f.path;
+          return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:16px">
+            <div style="display:flex;align-items:flex-start;gap:12px">
+              <div style="font-size:22px;line-height:1">${f.icon}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-weight:700;font-size:14px">${f.title}</div>
+                <div style="font-size:12px;color:var(--text3);margin-top:2px">${f.desc}</div>
+                <input class="form-input" readonly value="${url}" onclick="this.select()" style="margin-top:10px;width:100%;font-family:'DM Mono',monospace;font-size:12px"/>
+                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+                  <button class="btn btn-sm btn-primary" onclick="copyFormLink('${url}')">🔗 Copy link</button>
+                  <button class="btn btn-sm" onclick="window.open('${url}','_blank','noopener')">↗ Open form</button>
+                </div>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
       </div>`;
     return;
   }
   el.innerHTML = '';
+}
+
+async function copyFormLink(url){
+  try {
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(url);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy'); document.body.removeChild(ta);
+    }
+    showToast('Form link copied ✓', 'success');
+  } catch(e){ showToast('Could not copy link', 'error'); }
 }
 
 function renderTagsPage(){
