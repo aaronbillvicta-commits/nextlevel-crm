@@ -28,7 +28,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const ALLOWED_HOSTS = [
   'mynextlevel-crm.vercel.app',
-  'nlm-crm.vercel.app',
+  'qhva-crm.vercel.app',
   ...(process.env.ALLOWED_ORIGINS || '')
     .split(',')
     .map(s => s.trim())
