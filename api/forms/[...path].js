@@ -178,6 +178,82 @@ async function openaiEmbed(text) {
   return vec;
 }
 
+// ── pgvector match RPC + rule-based hybrid scoring ────────────────────────────
+async function supabaseRpc(fn, args) {
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!key) throw new Error('SUPABASE_SERVICE_KEY not set');
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(args),
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
+// Ordered English proficiency scale (higher = stronger).
+const ENGLISH_RANK = {
+  beginner_a1: 1, elementary_a2: 2, intermediate_b1: 3,
+  upper_intermediate_b2: 4, advanced_c1: 5, proficient_c2: 6, native: 7,
+};
+
+function lowerSet(arr) {
+  return new Set((Array.isArray(arr) ? arr : []).map(x => String(x).toLowerCase().trim()).filter(Boolean));
+}
+function overlap(clientArr, vaArr) {
+  const want = lowerSet(clientArr);
+  const have = lowerSet(vaArr);
+  const matched = [...want].filter(x => have.has(x));
+  return { matched, frac: want.size ? matched.length / want.size : null };
+}
+const round3 = (n) => Math.round((Number(n) || 0) * 1000) / 1000;
+
+// Compare one VA row (from the RPC) against the client intake. Returns a 0..1
+// rule score (or null if no structured signals are comparable) plus a
+// human-readable breakdown for the UI and future GPT explanations.
+function ruleScore(va, client) {
+  const sigs = []; // { w, v }
+  const detail = {};
+
+  const roleO = overlap(client.required_skills, va.roles);
+  if (roleO.frac != null && (va.roles || []).length) {
+    sigs.push({ w: 0.35, v: roleO.frac });
+    detail.roles = { matched: roleO.matched, required: client.required_skills || [] };
+  }
+  const toolO = overlap(client.required_tools, va.tools_selected);
+  if (toolO.frac != null && (va.tools_selected || []).length) {
+    sigs.push({ w: 0.25, v: toolO.frac });
+    detail.tools = { matched: toolO.matched, required: client.required_tools || [] };
+  }
+  if (client.industry && (va.industries || []).length) {
+    const ok = lowerSet(va.industries).has(String(client.industry).toLowerCase().trim());
+    sigs.push({ w: 0.15, v: ok ? 1 : 0 });
+    detail.industry = { required: client.industry, ok };
+  }
+  if (client.english_level_required && va.english_self_level) {
+    const need = ENGLISH_RANK[client.english_level_required] || 0;
+    const have = ENGLISH_RANK[va.english_self_level] || 0;
+    const ok = have >= need;
+    sigs.push({ w: 0.15, v: ok ? 1 : 0 });
+    detail.english = { required: client.english_level_required, has: va.english_self_level, ok };
+  }
+  const cap = va.hours_available_new || va.hours_per_week || null;
+  if (client.hours_per_week && cap) {
+    const v = cap >= client.hours_per_week ? 1 : Math.max(0, cap / client.hours_per_week);
+    sigs.push({ w: 0.10, v });
+    detail.hours = { required: client.hours_per_week, available: cap, ok: cap >= client.hours_per_week };
+  }
+  if (client.budget_max != null && va.hourly_rate != null) {
+    const ok = Number(va.hourly_rate) <= Number(client.budget_max);
+    sigs.push({ w: 0.10, v: ok ? 1 : 0 });
+    detail.budget = { max: client.budget_max, rate: va.hourly_rate, ok };
+  }
+
+  const totW = sigs.reduce((s, x) => s + x.w, 0);
+  const score = totW ? sigs.reduce((s, x) => s + x.w * x.v, 0) / totW : null;
+  return { score, detail };
+}
+
 // ── Route handlers ────────────────────────────────────────────────────────────
 async function handleOptions(req, res) {
   const { form_type } = req.query;
@@ -270,6 +346,65 @@ async function handleEmbed(req, res) {
   return res.status(200).json({ success: true, activated_at: patch.activated_at });
 }
 
+// Auth-gated: hybrid match — pgvector semantic similarity + rule-based scoring
+// of activated VA applicants against one activated client intake. Triggered by
+// the "Find Matches" button on a client intake in the CRM.
+async function handleMatch(req, res) {
+  const user = await requireAuth(req, res);
+  if (!user) return; // requireAuth already sent 401
+
+  const body = req.body || {};
+  const clientId = body.client_id;
+  if (!clientId || typeof clientId !== 'string') {
+    return res.status(400).json({ error: 'Body must be { client_id: "<uuid>" }' });
+  }
+
+  const client = await supabaseGetOne('client_intakes', clientId);
+  if (!client) return res.status(404).json({ error: 'Client intake not found' });
+  if (!client.activated_at) {
+    return res.status(422).json({ error: 'This client intake is not activated yet. Click "Activate for Matching" first.' });
+  }
+
+  const limit = Math.min(Math.max(parseInt(body.limit, 10) || 20, 1), 50);
+  let rows;
+  try {
+    rows = await supabaseRpc('match_vas_for_client', { p_client_id: clientId, match_count: limit });
+  } catch (e) {
+    console.error('[forms/match] rpc', e);
+    return res.status(502).json({ error: 'Match query failed' });
+  }
+  if (!Array.isArray(rows)) rows = [];
+
+  const SEMANTIC_W = 0.5, RULE_W = 0.5;
+  const results = rows.map(va => {
+    const semantic = typeof va.similarity === 'number' ? Math.max(0, Math.min(1, va.similarity)) : 0;
+    const { score: rs, detail } = ruleScore(va, client);
+    const rule = rs == null ? semantic : rs; // fall back to semantic when no structured data is comparable
+    const match = SEMANTIC_W * semantic + RULE_W * rule;
+    return {
+      id: va.id,
+      name: [va.first_name, va.last_name].filter(Boolean).join(' ').trim() || va.email,
+      email: va.email,
+      country_city: va.country_city,
+      english_self_level: va.english_self_level,
+      years_experience: va.years_experience,
+      roles: va.roles || [],
+      industries: va.industries || [],
+      tools_selected: va.tools_selected || [],
+      niche_specialization: va.niche_specialization,
+      hourly_rate: va.hourly_rate,
+      monthly_rate: va.monthly_rate,
+      review_status: va.review_status,
+      semantic_score: round3(semantic),
+      rule_score: round3(rule),
+      match_score: round3(match),
+      detail,
+    };
+  }).sort((a, b) => b.match_score - a.match_score);
+
+  return res.status(200).json({ client_id: clientId, count: results.length, results });
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 module.exports = async function handler(req, res) {
   applyCors(req, res, 'GET, POST, OPTIONS');
@@ -289,6 +424,7 @@ module.exports = async function handler(req, res) {
     if (action === 'va'      && req.method === 'POST') return await handleVaApply(req, res, ip);
     if (action === 'client'  && req.method === 'POST') return await handleClientIntake(req, res, ip);
     if (action === 'embed'   && req.method === 'POST') return await handleEmbed(req, res);
+    if (action === 'match'   && req.method === 'POST') return await handleMatch(req, res);
     return res.status(404).json({ error: 'Not found' });
   } catch (err) {
     console.error('[forms]', action, err);
