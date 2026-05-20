@@ -1,5 +1,9 @@
 {
   "version": 2,
+  "rewrites": [
+    { "source": "/apply", "destination": "/apply.html" },
+    { "source": "/client-intake", "destination": "/client-intake.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

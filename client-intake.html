@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Client Intake — Next Level Marketing</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f0ece4;
+    color: #1a1a1a;
+    min-height: 100vh;
+    padding: 32px 16px 80px;
+  }
+
+  .page-header {
+    text-align: center;
+    max-width: 680px;
+    margin: 0 auto 28px;
+  }
+  .page-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+  .page-header p { color: #666; font-size: 0.92rem; line-height: 1.5; }
+
+  .tab-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    max-width: 760px;
+    margin: 0 auto 28px;
+  }
+  .tab-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: #e0dbd0;
+    color: #666;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tab-pill .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; opacity: 0.5; }
+  .tab-pill.active { background: #fff; color: #1a1a1a; box-shadow: 0 1px 4px rgba(0,0,0,0.12); }
+  .tab-pill.active .dot { opacity: 1; background: #2563eb; }
+  .tab-pill.done .dot { background: #2563eb; opacity: 1; }
+
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 680px;
+    margin: 0 auto 20px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  }
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .card-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: #eff6ff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+  .card-title { font-size: 1rem; font-weight: 700; margin-bottom: 2px; }
+  .card-subtitle { font-size: 0.82rem; color: #888; }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .field-row.single { grid-template-columns: 1fr; }
+  @media (max-width: 520px) { .field-row { grid-template-columns: 1fr; } }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 0.8rem; font-weight: 600; color: #444; }
+  .field label .req { color: #e53e3e; margin-left: 2px; }
+  .field input, .field select, .field textarea {
+    padding: 9px 12px;
+    border: 1.5px solid #e0dbd0;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-family: inherit;
+    color: #1a1a1a;
+    background: #fff;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: #2563eb; }
+  .field input::placeholder, .field textarea::placeholder { color: #b0aa9e; }
+  .field textarea { resize: vertical; min-height: 90px; }
+  .field .hint { font-size: 0.76rem; color: #999; }
+
+  .check-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .check-grid label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.84rem;
+    font-weight: 400;
+    cursor: pointer;
+    color: #333;
+    padding: 7px 10px;
+    border: 1.5px solid #e8e3d9;
+    border-radius: 8px;
+    transition: border-color 0.1s, background 0.1s;
+  }
+  .check-grid label:hover { border-color: #2563eb; background: #eff6ff; }
+  .check-grid input[type=checkbox] { accent-color: #2563eb; cursor: pointer; flex-shrink: 0; }
+  .check-grid label.checked { border-color: #2563eb; background: #eff6ff; }
+
+  .search-select { position: relative; }
+  .search-select-input {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    padding: 7px 10px;
+    border: 1.5px solid #e0dbd0;
+    border-radius: 8px;
+    min-height: 42px;
+    cursor: text;
+    background: #fff;
+    transition: border-color 0.15s;
+  }
+  .search-select-input:focus-within { border-color: #2563eb; }
+  .search-select-input input {
+    border: none !important; padding: 2px 4px !important;
+    min-width: 120px; flex: 1;
+    font-size: 0.86rem; outline: none; background: transparent;
+  }
+  .tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .tag button { background: none; border: none; cursor: pointer; color: #1d4ed8; font-size: 1rem; line-height: 1; padding: 0; display: flex; align-items: center; }
+  .search-dropdown {
+    position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+    background: #fff; border: 1.5px solid #e0dbd0;
+    border-radius: 10px; box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    max-height: 240px; overflow-y: auto; z-index: 100; display: none;
+  }
+  .search-dropdown.open { display: block; }
+  .search-dropdown-item {
+    padding: 9px 14px; font-size: 0.86rem; cursor: pointer;
+    color: #333; transition: background 0.1s;
+  }
+  .search-dropdown-item:hover { background: #eff6ff; }
+  .no-results { padding: 12px 14px; color: #aaa; font-size: 0.84rem; }
+
+  .section-label {
+    font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #999; margin: 20px 0 12px;
+  }
+
+  .nav-buttons {
+    display: flex; justify-content: space-between;
+    max-width: 680px; margin: 24px auto 0; gap: 12px;
+  }
+  .btn {
+    padding: 11px 28px; border-radius: 10px;
+    font-size: 0.9rem; font-weight: 600; cursor: pointer;
+    border: none; transition: background 0.15s, opacity 0.15s;
+  }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-secondary { background: #e8e3d9; color: #555; }
+  .btn-secondary:hover { background: #d8d2c8; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .success-screen {
+    text-align: center; max-width: 500px; margin: 60px auto;
+    padding: 48px 32px; background: #fff; border-radius: 20px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08); display: none;
+  }
+  .success-screen .check { font-size: 3rem; margin-bottom: 16px; }
+  .success-screen h2 { font-size: 1.3rem; margin-bottom: 8px; }
+  .success-screen p { color: #666; font-size: 0.9rem; line-height: 1.6; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: #c53030; color: #fff; padding: 12px 22px; border-radius: 10px;
+    font-size: 0.88rem; font-weight: 500; z-index: 999; display: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+
+  .step-indicator { text-align: center; font-size: 0.8rem; color: #999; margin-bottom: 8px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Client Intake Form</h1>
+  <p>Tell us about your business and what you're looking for. We'll match you with the right VA from our talent pool.</p>
+</div>
+
+<div class="tab-nav" id="tabNav"></div>
+<div class="step-indicator" id="stepIndicator"></div>
+
+<!-- ===== SECTION 1: BUSINESS INFO ===== -->
+<div class="section" id="section-0">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🏢</div>
+      <div>
+        <div class="card-title">Business Information</div>
+        <div class="card-subtitle">Tell us about yourself and your company</div>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>First name <span class="req">*</span></label>
+        <input type="text" id="first_name" placeholder="John" autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label>Last name <span class="req">*</span></label>
+        <input type="text" id="last_name" placeholder="Smith" autocomplete="family-name">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Email address <span class="req">*</span></label>
+        <input type="email" id="email" placeholder="john@company.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Phone / WhatsApp</label>
+        <input type="tel" id="phone" placeholder="+1 555 000 0000" autocomplete="tel">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Company / Business name <span class="req">*</span></label>
+        <input type="text" id="company" placeholder="Acme Real Estate LLC">
+      </div>
+      <div class="field">
+        <label>Industry <span class="req">*</span></label>
+        <select id="industry"><option value="">Select your industry</option></select>
+      </div>
+    </div>
+
+    <div class="field field-row single" style="margin-top:0">
+      <label>How did you hear about us?</label>
+      <select id="how_did_you_hear">
+        <option value="">Select</option>
+        <option value="referral">Referral from someone</option>
+        <option value="google">Google search</option>
+        <option value="facebook">Facebook / Instagram</option>
+        <option value="linkedin">LinkedIn</option>
+        <option value="youtube">YouTube</option>
+        <option value="podcast">Podcast</option>
+        <option value="other">Other</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 2: REQUIREMENTS ===== -->
+<div class="section hidden" id="section-1">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📋</div>
+      <div>
+        <div class="card-title">Role Requirements</div>
+        <div class="card-subtitle">What you need your VA to do — be as specific as possible</div>
+      </div>
+    </div>
+
+    <div class="field field-row single">
+      <label>Describe the role <span class="req">*</span></label>
+      <textarea id="role_description" placeholder="e.g. I need an appointment setter who can call real estate leads from our CRM, qualify them, and book calls on my calendar. Must be comfortable with cold outreach and have real estate experience..."></textarea>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Skills required (select all that apply) <span class="req">*</span></label>
+      <div class="search-select" id="skills_select">
+        <div class="search-select-input" id="skills_input_box">
+          <input type="text" id="skills_search" placeholder="Search skills..." autocomplete="off">
+        </div>
+        <div class="search-dropdown" id="skills_dropdown"></div>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Tools your VA should know</label>
+      <div class="search-select" id="tools_select">
+        <div class="search-select-input" id="tools_input_box">
+          <input type="text" id="tools_search" placeholder="Search tools..." autocomplete="off">
+        </div>
+        <div class="search-dropdown" id="tools_dropdown"></div>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Minimum English level required</label>
+      <select id="english_level_required">
+        <option value="">No requirement / flexible</option>
+        <option value="native">Native / bilingual</option>
+        <option value="advanced_c1">Advanced — C1</option>
+        <option value="upper_intermediate_b2">Upper-intermediate — B2</option>
+        <option value="intermediate_b1">Intermediate — B1</option>
+      </select>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Additional notes or requirements</label>
+      <textarea id="additional_notes" placeholder="Anything else important — culture fit, communication style, specific tools, past experience required..."></textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 3: BUDGET & TIMELINE ===== -->
+<div class="section hidden" id="section-2">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">💰</div>
+      <div>
+        <div class="card-title">Budget &amp; Timeline</div>
+        <div class="card-subtitle">When you need someone and what you can invest</div>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Hours per week needed <span class="req">*</span></label>
+        <select id="hours_per_week">
+          <option value="">Select</option>
+          <option value="10">Up to 10 hrs/week</option>
+          <option value="20">~20 hrs/week (part-time)</option>
+          <option value="30">~30 hrs/week</option>
+          <option value="40">40 hrs/week (full-time)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Ideal start date</label>
+        <input type="date" id="start_date_preference">
+      </div>
+    </div>
+
+    <div class="section-label">Budget (USD per hour)</div>
+    <div class="field-row">
+      <div class="field">
+        <label>Minimum budget ($/hr)</label>
+        <input type="number" id="budget_min" placeholder="e.g. 6" min="1" step="0.5">
+      </div>
+      <div class="field">
+        <label>Maximum budget ($/hr)</label>
+        <input type="number" id="budget_max" placeholder="e.g. 12" min="1" step="0.5">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Preferred VA timezone(s)</label>
+      <div class="check-grid" id="timezone_grid"></div>
+    </div>
+  </div>
+</div>
+
+<div class="nav-buttons" id="navButtons">
+  <button class="btn btn-secondary hidden" id="btnBack" onclick="goBack()">← Back</button>
+  <div style="flex:1"></div>
+  <button class="btn btn-primary" id="btnNext" onclick="goNext()">Next →</button>
+</div>
+
+<div class="success-screen" id="successScreen">
+  <div class="check">🎉</div>
+  <h2>Request Received!</h2>
+  <p>Thank you! Our team will review your requirements and reach out within 1–2 business days with matched VA profiles.</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TABS = [
+  { label: 'Business info' },
+  { label: 'Requirements' },
+  { label: 'Budget & timeline' },
+];
+let currentSection = 0;
+let formOptions = {};
+let skillsSelected = [];
+let toolsSelected = [];
+let allSkills = [];
+let allTools = [];
+
+async function init() {
+  renderTabs();
+  try {
+    const r = await fetch('/api/form-options?form_type=client');
+    formOptions = await r.json();
+  } catch(e) {
+    formOptions = {};
+  }
+  populateDynamicFields();
+  initSearch('skills_search', 'skills_dropdown', 'skills_input_box', () => allSkills, () => skillsSelected, (v,l) => addSelection('skills', v, l), () => renderTags('skills'));
+  initSearch('tools_search', 'tools_dropdown', 'tools_input_box', () => allTools, () => toolsSelected, (v,l) => addSelection('tools', v, l), () => renderTags('tools'));
+  showSection(0);
+}
+
+function renderTabs() {
+  const nav = document.getElementById('tabNav');
+  nav.innerHTML = TABS.map((t, i) =>
+    `<button class="tab-pill" id="tab-${i}" onclick="jumpToSection(${i})"><span class="dot"></span>${t.label}</button>`
+  ).join('');
+}
+
+function updateTabs() {
+  TABS.forEach((_, i) => {
+    const el = document.getElementById(`tab-${i}`);
+    el.className = 'tab-pill' + (i === currentSection ? ' active' : i < currentSection ? ' done' : '');
+  });
+  document.getElementById('stepIndicator').textContent = `Step ${currentSection + 1} of ${TABS.length}`;
+}
+
+function jumpToSection(i) {
+  if (i > currentSection && !validateSection(currentSection)) return;
+  if (i <= currentSection) showSection(i);
+}
+
+function showSection(i) {
+  document.querySelectorAll('.section').forEach((s, idx) => s.classList.toggle('hidden', idx !== i));
+  currentSection = i;
+  updateTabs();
+  document.getElementById('btnBack').classList.toggle('hidden', i === 0);
+  document.getElementById('btnNext').textContent = i === TABS.length - 1 ? 'Submit Request' : 'Next →';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goNext() {
+  if (!validateSection(currentSection)) return;
+  if (currentSection < TABS.length - 1) showSection(currentSection + 1);
+  else submitForm();
+}
+
+function goBack() {
+  if (currentSection > 0) showSection(currentSection - 1);
+}
+
+function populateDynamicFields() {
+  const industrySelect = document.getElementById('industry');
+  (formOptions.industry || []).forEach(opt => {
+    industrySelect.innerHTML += `<option value="${opt.value}">${opt.label}</option>`;
+  });
+
+  allSkills = formOptions.skills || [];
+  allTools = formOptions.tools || [];
+
+  const tzGrid = document.getElementById('timezone_grid');
+  (formOptions.timezone || []).filter(t => t.value.includes('america') || t.label.includes('US')).forEach(opt => {
+    tzGrid.innerHTML += `<label><input type="checkbox" value="${opt.value}"> ${opt.label}</label>`;
+  });
+}
+
+document.addEventListener('change', e => {
+  if (e.target.type === 'checkbox') {
+    e.target.closest('label').classList.toggle('checked', e.target.checked);
+  }
+});
+
+// Generic searchable multi-select
+function initSearch(inputId, dropdownId, boxId, getAll, getSelected, onSelect, renderFn) {
+  const input = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+
+  input.addEventListener('focus', () => renderDropdown(''));
+  input.addEventListener('input', () => renderDropdown(input.value));
+
+  document.addEventListener('mousedown', e => {
+    if (!input.closest('.search-select').contains(e.target)) dropdown.classList.remove('open');
+  });
+
+  function renderDropdown(query) {
+    const q = query.toLowerCase();
+    const sel = getSelected();
+    const filtered = getAll().filter(t => t.label.toLowerCase().includes(q) && !sel.find(s => s.value === t.value));
+    if (!filtered.length) {
+      dropdown.innerHTML = '<div class="no-results">No results found</div>';
+    } else {
+      dropdown.innerHTML = filtered.map(t =>
+        `<div class="search-dropdown-item" onmousedown="event.preventDefault(); selectItem('${inputId}','${dropdownId}','${t.value}','${t.label.replace(/'/g,"\\'")}')">${t.label}</div>`
+      ).join('');
+    }
+    dropdown.classList.add('open');
+  }
+}
+
+function selectItem(inputId, dropdownId, value, label) {
+  const type = inputId.includes('skills') ? 'skills' : 'tools';
+  addSelection(type, value, label);
+  renderTags(type);
+  document.getElementById(inputId).value = '';
+  document.getElementById(dropdownId).classList.remove('open');
+}
+
+function addSelection(type, value, label) {
+  const arr = type === 'skills' ? skillsSelected : toolsSelected;
+  if (!arr.find(s => s.value === value)) arr.push({ value, label });
+}
+
+function removeSelection(type, value) {
+  if (type === 'skills') skillsSelected = skillsSelected.filter(s => s.value !== value);
+  else toolsSelected = toolsSelected.filter(s => s.value !== value);
+  renderTags(type);
+}
+
+function renderTags(type) {
+  const boxId = type === 'skills' ? 'skills_input_box' : 'tools_input_box';
+  const inputId = type === 'skills' ? 'skills_search' : 'tools_search';
+  const arr = type === 'skills' ? skillsSelected : toolsSelected;
+  const box = document.getElementById(boxId);
+  box.querySelectorAll('.tag').forEach(t => t.remove());
+  arr.forEach(t => {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.innerHTML = `${t.label}<button type="button" onclick="removeSelection('${type}','${t.value}')" aria-label="Remove">×</button>`;
+    box.insertBefore(tag, document.getElementById(inputId));
+  });
+}
+
+function validateSection(i) {
+  if (i === 0) {
+    for (const id of ['first_name','last_name','email','company']) {
+      const el = document.getElementById(id);
+      if (!el.value.trim()) { showToast(`Please fill in: ${id.replace(/_/g,' ')}`); el.focus(); return false; }
+    }
+    if (!document.getElementById('industry').value) { showToast('Please select your industry'); return false; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById('email').value)) {
+      showToast('Please enter a valid email address'); return false;
+    }
+  }
+  if (i === 1) {
+    if (!document.getElementById('role_description').value.trim()) { showToast('Please describe the role'); return false; }
+    if (!skillsSelected.length) { showToast('Please select at least one required skill'); return false; }
+  }
+  if (i === 2) {
+    if (!document.getElementById('hours_per_week').value) { showToast('Please select hours per week needed'); return false; }
+  }
+  return true;
+}
+
+function collectData() {
+  const g = id => (document.getElementById(id) || {}).value || '';
+  const gChecked = gridId => [...document.querySelectorAll(`#${gridId} input:checked`)].map(el => el.value);
+
+  return {
+    first_name: g('first_name'),
+    last_name: g('last_name'),
+    email: g('email'),
+    phone: g('phone'),
+    company: g('company'),
+    industry: g('industry'),
+    how_did_you_hear: g('how_did_you_hear'),
+    role_description: g('role_description'),
+    required_skills: skillsSelected.map(s => s.value),
+    required_tools: toolsSelected.map(t => t.value),
+    english_level_required: g('english_level_required'),
+    additional_notes: g('additional_notes'),
+    hours_per_week: parseInt(g('hours_per_week')) || null,
+    start_date_preference: g('start_date_preference') || null,
+    budget_min: parseFloat(g('budget_min')) || null,
+    budget_max: parseFloat(g('budget_max')) || null,
+    timezone_preferences: gChecked('timezone_grid'),
+  };
+}
+
+async function submitForm() {
+  const btn = document.getElementById('btnNext');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    const r = await fetch('/api/client-intake', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(collectData()),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Submission failed');
+
+    document.querySelector('.page-header').style.display = 'none';
+    document.getElementById('tabNav').style.display = 'none';
+    document.getElementById('stepIndicator').style.display = 'none';
+    document.getElementById('navButtons').style.display = 'none';
+    document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+    document.getElementById('successScreen').style.display = 'block';
+  } catch(e) {
+    showToast(e.message || 'Something went wrong. Please try again.');
+    btn.disabled = false;
+    btn.textContent = 'Submit Request';
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.display = 'none'; }, 4000);
+}
+
+init();
+</script>
+</body>
+</html>

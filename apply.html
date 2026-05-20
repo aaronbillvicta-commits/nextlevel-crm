@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VA Application — Next Level Marketing</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #f0ece4;
+    color: #1a1a1a;
+    min-height: 100vh;
+    padding: 32px 16px 80px;
+  }
+
+  .page-header {
+    text-align: center;
+    max-width: 680px;
+    margin: 0 auto 28px;
+  }
+  .page-header h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 6px; }
+  .page-header p { color: #666; font-size: 0.92rem; line-height: 1.5; }
+
+  /* Tab nav */
+  .tab-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    max-width: 760px;
+    margin: 0 auto 28px;
+  }
+  .tab-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: #e0dbd0;
+    color: #666;
+    transition: background 0.15s, color 0.15s;
+  }
+  .tab-pill .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.5;
+  }
+  .tab-pill.active {
+    background: #fff;
+    color: #1a1a1a;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+  }
+  .tab-pill.active .dot { opacity: 1; background: #4f7942; }
+  .tab-pill.done .dot { background: #4f7942; opacity: 1; }
+
+  /* Card */
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 28px;
+    max-width: 680px;
+    margin: 0 auto 20px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.07);
+  }
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .card-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: #f0ece4;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+  .card-title { font-size: 1rem; font-weight: 700; margin-bottom: 2px; }
+  .card-subtitle { font-size: 0.82rem; color: #888; }
+  .priority-badge {
+    display: inline-block;
+    background: #fef3c7;
+    color: #b45309;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 999px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+
+  /* Fields */
+  .field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  .field-row.single { grid-template-columns: 1fr; }
+  @media (max-width: 520px) { .field-row { grid-template-columns: 1fr; } }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #444;
+  }
+  .field label .req { color: #e53e3e; margin-left: 2px; }
+  .field input, .field select, .field textarea {
+    padding: 9px 12px;
+    border: 1.5px solid #e0dbd0;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-family: inherit;
+    color: #1a1a1a;
+    background: #fff;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    border-color: #4f7942;
+  }
+  .field input::placeholder, .field textarea::placeholder { color: #b0aa9e; }
+  .field textarea { resize: vertical; min-height: 90px; }
+  .field .hint { font-size: 0.76rem; color: #999; }
+
+  /* Radio group */
+  .radio-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .radio-group label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 0.85rem;
+    font-weight: 400;
+    cursor: pointer;
+    color: #333;
+  }
+  .radio-group input[type=radio] { accent-color: #4f7942; cursor: pointer; }
+
+  /* Checkbox grid */
+  .check-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .check-grid label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.84rem;
+    font-weight: 400;
+    cursor: pointer;
+    color: #333;
+    padding: 7px 10px;
+    border: 1.5px solid #e8e3d9;
+    border-radius: 8px;
+    transition: border-color 0.1s, background 0.1s;
+  }
+  .check-grid label:hover { border-color: #4f7942; background: #f7fbf5; }
+  .check-grid input[type=checkbox] { accent-color: #4f7942; cursor: pointer; flex-shrink: 0; }
+  .check-grid label.checked { border-color: #4f7942; background: #f7fbf5; }
+
+  /* Searchable multi-select */
+  .search-select { position: relative; }
+  .search-select-input {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+    padding: 7px 10px;
+    border: 1.5px solid #e0dbd0;
+    border-radius: 8px;
+    min-height: 42px;
+    cursor: text;
+    background: #fff;
+    transition: border-color 0.15s;
+  }
+  .search-select-input:focus-within { border-color: #4f7942; }
+  .search-select-input input {
+    border: none !important;
+    padding: 2px 4px !important;
+    min-width: 120px;
+    flex: 1;
+    font-size: 0.86rem;
+    outline: none;
+    background: transparent;
+  }
+  .tag {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #e8f5e2;
+    color: #2d6a20;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+  .tag button {
+    background: none; border: none; cursor: pointer;
+    color: #2d6a20; font-size: 1rem; line-height: 1;
+    padding: 0; display: flex; align-items: center;
+  }
+  .search-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: #fff;
+    border: 1.5px solid #e0dbd0;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+  }
+  .search-dropdown.open { display: block; }
+  .search-dropdown-item {
+    padding: 9px 14px;
+    font-size: 0.86rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #333;
+    transition: background 0.1s;
+  }
+  .search-dropdown-item:hover, .search-dropdown-item.focused {
+    background: #f7fbf5;
+  }
+  .search-dropdown-item.selected { color: #4f7942; font-weight: 600; }
+  .search-dropdown-item .check-icon { color: #4f7942; font-size: 0.8rem; }
+  .no-results { padding: 12px 14px; color: #aaa; font-size: 0.84rem; }
+
+  /* Info box */
+  .info-box {
+    background: #fef9ec;
+    border: 1px solid #f6d860;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.83rem;
+    color: #7a5a00;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .info-box .icon { flex-shrink: 0; font-size: 1rem; margin-top: 1px; }
+
+  /* Section divider */
+  .section-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #999;
+    margin: 20px 0 12px;
+  }
+
+  /* Navigation buttons */
+  .nav-buttons {
+    display: flex;
+    justify-content: space-between;
+    max-width: 680px;
+    margin: 24px auto 0;
+    gap: 12px;
+  }
+  .btn {
+    padding: 11px 28px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, opacity 0.15s;
+  }
+  .btn-primary { background: #2d6a20; color: #fff; }
+  .btn-primary:hover { background: #245718; }
+  .btn-secondary { background: #e8e3d9; color: #555; }
+  .btn-secondary:hover { background: #d8d2c8; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Success screen */
+  .success-screen {
+    text-align: center;
+    max-width: 500px;
+    margin: 60px auto;
+    padding: 48px 32px;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+    display: none;
+  }
+  .success-screen .check { font-size: 3rem; margin-bottom: 16px; }
+  .success-screen h2 { font-size: 1.3rem; margin-bottom: 8px; }
+  .success-screen p { color: #666; font-size: 0.9rem; line-height: 1.6; }
+
+  /* Error toast */
+  .toast {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    background: #c53030;
+    color: #fff;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    z-index: 999;
+    display: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+
+  /* Step indicator */
+  .step-indicator {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #999;
+    margin-bottom: 8px;
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Virtual Assistant Application</h1>
+  <p>Complete and honest answers get you matched faster. Takes about 10 minutes.</p>
+</div>
+
+<div class="tab-nav" id="tabNav"></div>
+<div class="step-indicator" id="stepIndicator"></div>
+
+<!-- ===== SECTION 1: PERSONAL INFO ===== -->
+<div class="section" id="section-0">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">👤</div>
+      <div>
+        <div class="card-title">Personal Information</div>
+        <div class="card-subtitle">Your basic profile &amp; contact details</div>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>First name <span class="req">*</span></label>
+        <input type="text" id="first_name" placeholder="Maria" autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label>Last name <span class="req">*</span></label>
+        <input type="text" id="last_name" placeholder="Santos" autocomplete="family-name">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Email address <span class="req">*</span></label>
+        <input type="email" id="email" placeholder="maria@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Phone / WhatsApp <span class="req">*</span></label>
+        <input type="tel" id="phone" placeholder="+63 912 345 6789" autocomplete="tel">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Facebook profile URL <span class="req">*</span></label>
+        <input type="url" id="facebook_url" placeholder="facebook.com/yourname">
+      </div>
+      <div class="field">
+        <label>LinkedIn profile</label>
+        <input type="url" id="linkedin_url" placeholder="linkedin.com/in/yourname">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Country &amp; city <span class="req">*</span></label>
+        <input type="text" id="country_city" placeholder="Philippines, Cebu City">
+      </div>
+      <div class="field">
+        <label>Timezone <span class="req">*</span></label>
+        <select id="timezone"><option value="">Select timezone</option></select>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Portfolio / website</label>
+        <input type="url" id="portfolio_url" placeholder="yourportfolio.com">
+      </div>
+      <div class="field">
+        <label>Upwork or other profile</label>
+        <input type="url" id="other_profile_url" placeholder="upwork.com/freelancers/...">
+      </div>
+    </div>
+
+    <div class="section-label">English Proficiency</div>
+    <div class="field">
+      <label>Self-assessed level <span class="req">*</span></label>
+      <div class="radio-group" id="english_self_level">
+        <label><input type="radio" name="english_self_level" value="native"> Native / bilingual</label>
+        <label><input type="radio" name="english_self_level" value="advanced_c1"> Advanced — C1</label>
+        <label><input type="radio" name="english_self_level" value="upper_intermediate_b2"> Upper-intermediate — B2</label>
+        <label><input type="radio" name="english_self_level" value="intermediate_b1"> Intermediate — B1</label>
+      </div>
+    </div>
+
+    <div class="info-box" style="margin-top:16px;">
+      <span class="icon">💡</span>
+      <span>Applicants with a certified EF SET score are moved up the review queue. The test is free and takes 15 minutes — you'll get a shareable certificate link. <a href="https://www.efset.org/cert/" target="_blank" rel="noopener" style="color:#7a5a00;font-weight:600;">Take the free EF SET test at efset.org</a></span>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>EF SET score <span style="color:#999;font-weight:400;">(recommended)</span></label>
+        <input type="text" id="english_efset_score" placeholder="e.g. 62/100 — C1 Advanced">
+      </div>
+      <div class="field">
+        <label>EF SET certificate link</label>
+        <input type="url" id="english_efset_link" placeholder="efset.org/cert/...">
+        <span class="hint">Paste the shareable link from your EF SET results page.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 2: EXPERIENCE ===== -->
+<div class="section hidden" id="section-1">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">🏆</div>
+      <div>
+        <div class="card-title">Experience &amp; Portfolio <span class="priority-badge">#1 priority</span></div>
+        <div class="card-subtitle">Your track record — numbers and specifics stand out</div>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Years of VA / remote experience <span class="req">*</span></label>
+        <select id="years_experience">
+          <option value="">Select</option>
+          <option value="less_than_1">Less than 1 year</option>
+          <option value="1_2">1–2 years</option>
+          <option value="2_5">2–5 years</option>
+          <option value="5_plus">5+ years</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Number of clients worked with</label>
+        <select id="clients_worked_with">
+          <option value="">Select</option>
+          <option value="1_3">1–3 clients</option>
+          <option value="4_10">4–10 clients</option>
+          <option value="11_20">11–20 clients</option>
+          <option value="20_plus">20+ clients</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Industry experience (select all that apply) <span class="req">*</span></label>
+      <div class="check-grid" id="industries_grid"></div>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Work history summary <span class="req">*</span></label>
+      <textarea id="work_history_summary" placeholder="Briefly describe your most relevant roles, clients, and what you did for them..."></textarea>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Best result you've delivered for a client <span class="req">*</span></label>
+      <textarea id="best_result" placeholder="e.g. Generated 40 qualified appointments in 30 days for a real estate coaching firm..."></textarea>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Niche / specialization</label>
+      <input type="text" id="niche_specialization" placeholder="e.g. Real estate investor outreach, Shopify brand management...">
+    </div>
+
+    <div class="field-row" style="margin-top:16px;">
+      <div class="field">
+        <label>CV / Resume link</label>
+        <input type="url" id="cv_link" placeholder="Google Drive, Dropbox, etc.">
+      </div>
+      <div class="field">
+        <label>Video intro link</label>
+        <input type="url" id="video_intro_link" placeholder="Loom, YouTube, Google Drive...">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>References available?</label>
+        <select id="references_available">
+          <option value="">Select</option>
+          <option value="yes_immediately">Yes, immediately</option>
+          <option value="yes_on_request">Yes, on request</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Reference links / contact info</label>
+        <input type="text" id="reference_links" placeholder="LinkedIn profiles or contact details">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 3: SKILLS & TOOLS ===== -->
+<div class="section hidden" id="section-2">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">⚙️</div>
+      <div>
+        <div class="card-title">Skills &amp; Tools</div>
+        <div class="card-subtitle">What you do best and what you work with</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Roles you can fill <span class="req">*</span></label>
+      <div class="check-grid" id="roles_grid"></div>
+    </div>
+
+    <div class="field" style="margin-top:20px;">
+      <label>Tools you're proficient in <span class="req">*</span></label>
+      <div class="search-select" id="tools_select">
+        <div class="search-select-input" id="tools_input_box">
+          <input type="text" id="tools_search" placeholder="Search tools..." autocomplete="off">
+        </div>
+        <div class="search-dropdown" id="tools_dropdown"></div>
+      </div>
+      <span class="hint" style="margin-top:4px;">Search and select all tools you use regularly.</span>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Other tools not listed</label>
+      <input type="text" id="other_tools" placeholder="List any other tools separated by commas">
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Are you open to a sales-focused role?</label>
+      <div class="radio-group">
+        <label><input type="radio" name="is_sales_role" value="yes"> Yes</label>
+        <label><input type="radio" name="is_sales_role" value="no"> No</label>
+      </div>
+    </div>
+
+    <div id="sales_section" class="hidden">
+      <div class="section-label">Sales Track Record</div>
+      <div class="field">
+        <label>Sales roles you can fill</label>
+        <div class="check-grid" id="sales_roles_grid">
+          <label><input type="checkbox" value="appointment_setter"> Appointment Setter</label>
+          <label><input type="checkbox" value="sdr"> SDR / Outreach</label>
+          <label><input type="checkbox" value="closer"> Closer</label>
+          <label><input type="checkbox" value="account_manager"> Account Manager</label>
+        </div>
+      </div>
+      <div class="field-row" style="margin-top:12px;">
+        <div class="field">
+          <label>Calls per day (typical)</label>
+          <input type="text" id="calls_per_day" placeholder="e.g. 80–100">
+        </div>
+        <div class="field">
+          <label>Appointments set per week</label>
+          <input type="text" id="appts_per_week" placeholder="e.g. 10–15">
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Highest ticket closed ($)</label>
+          <input type="text" id="highest_ticket_closed" placeholder="e.g. $25,000">
+        </div>
+        <div class="field">
+          <label>Close rate (%)</label>
+          <input type="text" id="close_rate" placeholder="e.g. 25%">
+        </div>
+      </div>
+      <div class="field">
+        <label>Best sales result</label>
+        <textarea id="best_sales_result" placeholder="Describe your proudest sales achievement..."></textarea>
+      </div>
+      <div class="field">
+        <label>Voice sample link</label>
+        <input type="url" id="voice_sample_link" placeholder="Loom, SoundCloud, Google Drive...">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 4: AVAILABILITY & RATES ===== -->
+<div class="section hidden" id="section-3">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">📅</div>
+      <div>
+        <div class="card-title">Availability &amp; Rates</div>
+        <div class="card-subtitle">When you can work and what you charge</div>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Current employment status <span class="req">*</span></label>
+        <select id="current_employment_status">
+          <option value="">Select</option>
+          <option value="fully_available">Fully available</option>
+          <option value="currently_employed">Currently employed / engaged</option>
+          <option value="part_time_available">Employed but available part-time</option>
+          <option value="freelancing">Freelancing / multiple clients</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Hours available for new work</label>
+        <select id="hours_available_new">
+          <option value="">Select</option>
+          <option value="10">Up to 10 hrs/week</option>
+          <option value="20">Up to 20 hrs/week</option>
+          <option value="30">Up to 30 hrs/week</option>
+          <option value="40">Full-time (40 hrs/week)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Preferred hire arrangement</label>
+      <div class="check-grid" id="hire_arrangement_grid"></div>
+    </div>
+
+    <div class="field-row" style="margin-top:16px;">
+      <div class="field">
+        <label>Hourly rate (USD) <span class="req">*</span></label>
+        <input type="number" id="hourly_rate" placeholder="e.g. 8" min="1" step="0.5">
+      </div>
+      <div class="field">
+        <label>Monthly rate (USD)</label>
+        <input type="number" id="monthly_rate" placeholder="e.g. 1200" min="0" step="50">
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Open to commission?</label>
+        <select id="commission_open">
+          <option value="">Select</option>
+          <option value="yes">Yes, open to commission</option>
+          <option value="no">No, base only</option>
+          <option value="base_plus">Base + commission preferred</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Rate negotiable?</label>
+        <select id="rate_negotiable">
+          <option value="">Select</option>
+          <option value="yes">Yes</option>
+          <option value="no">No, this is my rate</option>
+          <option value="depends">Depends on scope</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Available start date</label>
+        <input type="date" id="start_date">
+      </div>
+      <div class="field">
+        <label>Notice period</label>
+        <select id="notice_period">
+          <option value="">Select</option>
+          <option value="immediately">Immediately</option>
+          <option value="1_week">1 week</option>
+          <option value="2_weeks">2 weeks</option>
+          <option value="1_month">1 month</option>
+          <option value="more">More than 1 month</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Preferred working hours</label>
+      <input type="text" id="preferred_hours" placeholder="e.g. 8 AM – 5 PM PST, flexible">
+    </div>
+
+    <div class="field" style="margin-top:8px;">
+      <label>Timezone overlap (which US timezones can you cover?)</label>
+      <div class="check-grid" id="timezone_overlap_grid">
+        <label><input type="checkbox" value="EST"> Eastern (EST/EDT)</label>
+        <label><input type="checkbox" value="CST"> Central (CST/CDT)</label>
+        <label><input type="checkbox" value="MST"> Mountain (MST/MDT)</label>
+        <label><input type="checkbox" value="PST"> Pacific (PST/PDT)</label>
+      </div>
+    </div>
+
+    <div class="section-label">Technical Setup</div>
+    <div class="field-row">
+      <div class="field">
+        <label>Internet speed (upload/download)</label>
+        <input type="text" id="internet_speed" placeholder="e.g. 50 Mbps / 100 Mbps">
+      </div>
+      <div class="field">
+        <label>Backup internet?</label>
+        <select id="backup_internet">
+          <option value="">Select</option>
+          <option value="yes_mobile">Yes, mobile data</option>
+          <option value="yes_other">Yes, other connection</option>
+          <option value="no">No backup</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Comfortable with time tracking?</label>
+        <select id="time_tracking_comfort">
+          <option value="">Select</option>
+          <option value="yes_fine">Yes, no problem</option>
+          <option value="yes_screenshots">Yes, including screenshots</option>
+          <option value="prefer_not">Prefer not</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Time tracking tools used</label>
+        <div class="check-grid" id="time_tracking_grid">
+          <label><input type="checkbox" value="hubstaff"> Hubstaff</label>
+          <label><input type="checkbox" value="time_doctor"> Time Doctor</label>
+          <label><input type="checkbox" value="toggl"> Toggl</label>
+          <label><input type="checkbox" value="clockify"> Clockify</label>
+        </div>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label>Willing to complete ID verification?</label>
+        <select id="id_verification_willing">
+          <option value="">Select</option>
+          <option value="yes">Yes</option>
+          <option value="no">No</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Government ID types available</label>
+        <div class="check-grid" id="id_types_grid">
+          <label><input type="checkbox" value="passport"> Passport</label>
+          <label><input type="checkbox" value="drivers_license"> Driver's license</label>
+          <label><input type="checkbox" value="national_id"> National ID</label>
+          <label><input type="checkbox" value="postal_id"> Postal ID</label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SECTION 5: FIT & PERSONALITY ===== -->
+<div class="section hidden" id="section-4">
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon">✨</div>
+      <div>
+        <div class="card-title">Fit &amp; Personality</div>
+        <div class="card-subtitle">Help us find clients you'll thrive with</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Working style (select all that apply)</label>
+      <div class="check-grid" id="working_style_grid">
+        <label><input type="checkbox" value="self_starter"> Self-starter / proactive</label>
+        <label><input type="checkbox" value="detail_oriented"> Detail-oriented</label>
+        <label><input type="checkbox" value="creative"> Creative thinker</label>
+        <label><input type="checkbox" value="structured"> Structured / systems-oriented</label>
+        <label><input type="checkbox" value="collaborative"> Collaborative</label>
+        <label><input type="checkbox" value="fast_paced"> Works well under pressure</label>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Preferred management style</label>
+      <select id="management_style">
+        <option value="">Select</option>
+        <option value="autonomous">Autonomous — minimal check-ins</option>
+        <option value="regular_checkins">Regular check-ins, clear direction</option>
+        <option value="hands_on">Hands-on — frequent feedback</option>
+        <option value="flexible">Flexible, adapts to client</option>
+      </select>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Preferred client type</label>
+      <div class="check-grid" id="preferred_client_type_grid">
+        <label><input type="checkbox" value="startup"> Startups / small biz</label>
+        <label><input type="checkbox" value="corporate"> Corporate / enterprise</label>
+        <label><input type="checkbox" value="solopreneur"> Solopreneurs / coaches</label>
+        <label><input type="checkbox" value="agency"> Agencies</label>
+        <label><input type="checkbox" value="ecommerce"> E-commerce brands</label>
+      </div>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Typical response time during work hours</label>
+      <select id="response_time">
+        <option value="">Select</option>
+        <option value="under_15min">Under 15 minutes</option>
+        <option value="under_1hr">Under 1 hour</option>
+        <option value="same_day">Same day</option>
+        <option value="next_day">Next business day</option>
+      </select>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>What do you enjoy most about VA / remote work?</label>
+      <textarea id="enjoys_most" placeholder="Share what drives you..."></textarea>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>What do you wish clients knew before hiring you?</label>
+      <textarea id="wish_clients_knew" placeholder="Anything that sets the right expectations..."></textarea>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
+      <label>Anything else you'd like to share?</label>
+      <textarea id="anything_else" placeholder="Optional..."></textarea>
+    </div>
+  </div>
+</div>
+
+<div class="nav-buttons" id="navButtons">
+  <button class="btn btn-secondary hidden" id="btnBack" onclick="goBack()">← Back</button>
+  <div style="flex:1"></div>
+  <button class="btn btn-primary" id="btnNext" onclick="goNext()">Next →</button>
+</div>
+
+<div class="success-screen" id="successScreen">
+  <div class="check">✅</div>
+  <h2>Application Submitted!</h2>
+  <p>Thank you for applying. Our team will review your application and reach out if you're a good fit for any of our current clients.</p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const TABS = [
+  { label: 'Personal info', icon: '👤' },
+  { label: 'Experience', icon: '🏆' },
+  { label: 'Skills & tools', icon: '⚙️' },
+  { label: 'Availability & rates', icon: '📅' },
+  { label: 'Fit & personality', icon: '✨' },
+];
+let currentSection = 0;
+let formOptions = {};
+let toolsSelected = [];
+let allTools = [];
+
+// --- Init ---
+async function init() {
+  renderTabs();
+  try {
+    const r = await fetch('/api/form-options?form_type=va');
+    formOptions = await r.json();
+  } catch(e) {
+    console.error('Failed to load form options', e);
+    formOptions = {};
+  }
+  populateDynamicFields();
+  initToolsSearch();
+  showSection(0);
+}
+
+function renderTabs() {
+  const nav = document.getElementById('tabNav');
+  nav.innerHTML = TABS.map((t, i) =>
+    `<button class="tab-pill" id="tab-${i}" onclick="jumpToSection(${i})">`
+    + `<span class="dot"></span>${t.label}</button>`
+  ).join('');
+}
+
+function updateTabs() {
+  TABS.forEach((_, i) => {
+    const el = document.getElementById(`tab-${i}`);
+    el.className = 'tab-pill' + (i === currentSection ? ' active' : i < currentSection ? ' done' : '');
+  });
+  document.getElementById('stepIndicator').textContent =
+    `Step ${currentSection + 1} of ${TABS.length}`;
+}
+
+function jumpToSection(i) {
+  if (i > currentSection && !validateSection(currentSection)) return;
+  if (i <= currentSection) showSection(i);
+}
+
+function showSection(i) {
+  document.querySelectorAll('.section').forEach((s, idx) => {
+    s.classList.toggle('hidden', idx !== i);
+  });
+  currentSection = i;
+  updateTabs();
+  const btnBack = document.getElementById('btnBack');
+  const btnNext = document.getElementById('btnNext');
+  btnBack.classList.toggle('hidden', i === 0);
+  btnNext.textContent = i === TABS.length - 1 ? 'Submit Application' : 'Next →';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goNext() {
+  if (!validateSection(currentSection)) return;
+  if (currentSection < TABS.length - 1) {
+    showSection(currentSection + 1);
+  } else {
+    submitForm();
+  }
+}
+
+function goBack() {
+  if (currentSection > 0) showSection(currentSection - 1);
+}
+
+// --- Dynamic fields ---
+function populateDynamicFields() {
+  // Industries
+  const industryGrid = document.getElementById('industries_grid');
+  (formOptions.industry || []).forEach(opt => {
+    industryGrid.innerHTML += checkLabel(opt.value, opt.label, 'industries');
+  });
+
+  // Roles
+  const rolesGrid = document.getElementById('roles_grid');
+  (formOptions.roles || []).forEach(opt => {
+    rolesGrid.innerHTML += checkLabel(opt.value, opt.label, 'roles');
+  });
+
+  // Hire arrangement
+  const hireGrid = document.getElementById('hire_arrangement_grid');
+  (formOptions.hire_arrangement || []).forEach(opt => {
+    hireGrid.innerHTML += checkLabel(opt.value, opt.label, 'hire_arr');
+  });
+
+  // Timezone dropdown
+  const tzSelect = document.getElementById('timezone');
+  (formOptions.timezone || []).forEach(opt => {
+    tzSelect.innerHTML += `<option value="${opt.value}">${opt.label}</option>`;
+  });
+
+  // Tools for search
+  allTools = formOptions.tools || [];
+}
+
+function checkLabel(value, label, name) {
+  return `<label><input type="checkbox" name="${name}" value="${value}"> ${label}</label>`;
+}
+
+// Add visual feedback for checkboxes
+document.addEventListener('change', e => {
+  if (e.target.type === 'checkbox') {
+    e.target.closest('label').classList.toggle('checked', e.target.checked);
+  }
+});
+
+// Sales role toggle
+document.addEventListener('change', e => {
+  if (e.target.name === 'is_sales_role') {
+    document.getElementById('sales_section').classList.toggle('hidden', e.target.value !== 'yes');
+  }
+});
+
+// --- Searchable tools select ---
+function initToolsSearch() {
+  const input = document.getElementById('tools_search');
+  const dropdown = document.getElementById('tools_dropdown');
+  const box = document.getElementById('tools_input_box');
+
+  input.addEventListener('focus', () => renderDropdown(''));
+  input.addEventListener('input', () => renderDropdown(input.value));
+
+  document.addEventListener('mousedown', e => {
+    if (!document.getElementById('tools_select').contains(e.target)) {
+      dropdown.classList.remove('open');
+    }
+  });
+
+  function renderDropdown(query) {
+    const q = query.toLowerCase();
+    const filtered = allTools.filter(t =>
+      t.label.toLowerCase().includes(q) && !toolsSelected.find(s => s.value === t.value)
+    );
+    if (filtered.length === 0) {
+      dropdown.innerHTML = '<div class="no-results">No tools found</div>';
+    } else {
+      dropdown.innerHTML = filtered.map(t =>
+        `<div class="search-dropdown-item" data-value="${t.value}" data-label="${t.label}" onmousedown="selectTool('${t.value}','${t.label.replace(/'/g,"\\'")}',event)">`
+        + `<span>${t.label}</span></div>`
+      ).join('');
+    }
+    dropdown.classList.add('open');
+  }
+}
+
+function selectTool(value, label, e) {
+  e.preventDefault();
+  if (toolsSelected.find(t => t.value === value)) return;
+  toolsSelected.push({ value, label });
+  renderToolTags();
+  const input = document.getElementById('tools_search');
+  input.value = '';
+  document.getElementById('tools_dropdown').classList.remove('open');
+}
+
+function removeTool(value) {
+  toolsSelected = toolsSelected.filter(t => t.value !== value);
+  renderToolTags();
+}
+
+function renderToolTags() {
+  const box = document.getElementById('tools_input_box');
+  const input = document.getElementById('tools_search');
+  box.querySelectorAll('.tag').forEach(t => t.remove());
+  toolsSelected.forEach(t => {
+    const tag = document.createElement('span');
+    tag.className = 'tag';
+    tag.innerHTML = `${t.label}<button type="button" onclick="removeTool('${t.value}')" aria-label="Remove">×</button>`;
+    box.insertBefore(tag, input);
+  });
+}
+
+// --- Validation ---
+function validateSection(i) {
+  if (i === 0) {
+    const req = ['first_name','last_name','email','phone','country_city','timezone'];
+    for (const id of req) {
+      const el = document.getElementById(id);
+      if (!el || !el.value.trim()) { showToast(`Please fill in: ${id.replace(/_/g,' ')}`); el?.focus(); return false; }
+    }
+    if (!document.querySelector('input[name="english_self_level"]:checked')) {
+      showToast('Please select your English proficiency level'); return false;
+    }
+  }
+  if (i === 1) {
+    if (!document.getElementById('years_experience').value) { showToast('Please select years of experience'); return false; }
+    if (!document.querySelectorAll('#industries_grid input:checked').length) { showToast('Please select at least one industry'); return false; }
+    if (!document.getElementById('work_history_summary').value.trim()) { showToast('Please add your work history summary'); return false; }
+    if (!document.getElementById('best_result').value.trim()) { showToast('Please describe your best client result'); return false; }
+  }
+  if (i === 2) {
+    if (!document.querySelectorAll('#roles_grid input:checked').length) { showToast('Please select at least one role'); return false; }
+    if (!toolsSelected.length) { showToast('Please select at least one tool'); return false; }
+  }
+  if (i === 3) {
+    if (!document.getElementById('current_employment_status').value) { showToast('Please select your employment status'); return false; }
+    if (!document.getElementById('hourly_rate').value) { showToast('Please enter your hourly rate'); return false; }
+  }
+  return true;
+}
+
+// --- Collect form data ---
+function collectData() {
+  const g = id => (document.getElementById(id) || {}).value || '';
+  const gChecked = (name) => [...document.querySelectorAll(`input[name="${name}"]:checked`)].map(el => el.value);
+  const gCheckboxGrid = (gridId) => [...document.querySelectorAll(`#${gridId} input:checked`)].map(el => el.value);
+  const gRadio = (name) => { const el = document.querySelector(`input[name="${name}"]:checked`); return el ? el.value : ''; };
+
+  return {
+    first_name: g('first_name'),
+    last_name: g('last_name'),
+    email: g('email'),
+    phone: g('phone'),
+    facebook_url: g('facebook_url'),
+    linkedin_url: g('linkedin_url'),
+    portfolio_url: g('portfolio_url'),
+    other_profile_url: g('other_profile_url'),
+    country_city: g('country_city'),
+    timezone: g('timezone'),
+    english_self_level: gRadio('english_self_level'),
+    english_efset_score: g('english_efset_score'),
+    english_efset_link: g('english_efset_link'),
+    years_experience: g('years_experience'),
+    clients_worked_with: g('clients_worked_with'),
+    industries: gCheckboxGrid('industries_grid'),
+    work_history_summary: g('work_history_summary'),
+    best_result: g('best_result'),
+    niche_specialization: g('niche_specialization'),
+    cv_link: g('cv_link'),
+    video_intro_link: g('video_intro_link'),
+    references_available: g('references_available'),
+    reference_links: g('reference_links'),
+    roles: gCheckboxGrid('roles_grid'),
+    tools_selected: toolsSelected.map(t => t.value),
+    other_tools: g('other_tools'),
+    is_sales_role: gRadio('is_sales_role') === 'yes',
+    sales_roles: gCheckboxGrid('sales_roles_grid'),
+    calls_per_day: g('calls_per_day'),
+    appts_per_week: g('appts_per_week'),
+    highest_ticket_closed: g('highest_ticket_closed'),
+    close_rate: g('close_rate'),
+    best_sales_result: g('best_sales_result'),
+    voice_sample_link: g('voice_sample_link'),
+    current_employment_status: g('current_employment_status'),
+    hours_available_new: parseInt(g('hours_available_new')) || null,
+    hire_arrangement: gCheckboxGrid('hire_arrangement_grid'),
+    hourly_rate: parseFloat(g('hourly_rate')) || null,
+    monthly_rate: parseFloat(g('monthly_rate')) || null,
+    commission_open: g('commission_open'),
+    rate_negotiable: g('rate_negotiable'),
+    start_date: g('start_date') || null,
+    notice_period: g('notice_period'),
+    preferred_hours: g('preferred_hours'),
+    timezone_overlap: gCheckboxGrid('timezone_overlap_grid'),
+    internet_speed: g('internet_speed'),
+    backup_internet: g('backup_internet'),
+    time_tracking_comfort: g('time_tracking_comfort'),
+    time_tracking_tools: gCheckboxGrid('time_tracking_grid'),
+    id_verification_willing: g('id_verification_willing'),
+    id_types_available: gCheckboxGrid('id_types_grid'),
+    working_style: gCheckboxGrid('working_style_grid'),
+    management_style: g('management_style'),
+    preferred_client_type: gCheckboxGrid('preferred_client_type_grid'),
+    response_time: g('response_time'),
+    enjoys_most: g('enjoys_most'),
+    wish_clients_knew: g('wish_clients_knew'),
+    anything_else: g('anything_else'),
+  };
+}
+
+// --- Submit ---
+async function submitForm() {
+  const btn = document.getElementById('btnNext');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    const r = await fetch('/api/va-apply', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(collectData()),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Submission failed');
+
+    document.querySelector('.page-header').style.display = 'none';
+    document.getElementById('tabNav').style.display = 'none';
+    document.getElementById('stepIndicator').style.display = 'none';
+    document.getElementById('navButtons').style.display = 'none';
+    document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+    document.getElementById('successScreen').style.display = 'block';
+  } catch(e) {
+    showToast(e.message || 'Something went wrong. Please try again.');
+    btn.disabled = false;
+    btn.textContent = 'Submit Application';
+  }
+}
+
+// --- Toast ---
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => { t.style.display = 'none'; }, 4000);
+}
+
+init();
+</script>
+</body>
+</html>
