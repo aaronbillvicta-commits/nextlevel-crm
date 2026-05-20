@@ -1299,6 +1299,15 @@ table th[onclick]{transition:background .15s,color .15s}
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
       Active Clients
     </div>
+    <div class="nav-sec">Matching</div>
+    <div class="nav-item" data-page="va-applicants">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      VA Applicants
+    </div>
+    <div class="nav-item" data-page="client-intakes">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+      Client Intakes
+    </div>
     <div class="nav-sec">Settings</div>
     <div class="nav-item" data-page="tools">
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
@@ -1749,6 +1758,81 @@ table th[onclick]{transition:background .15s,color .15s}
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- VA APPLICANTS PAGE -->
+    <div class="page" id="page-va-applicants">
+      <div class="sec-head">
+        <div>
+          <div class="sec-title">VA Applicants <span id="va-count-label" style="color:var(--text3);font-weight:400;font-size:14px"></span></div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Review applicants and activate them for the matching pool</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <a href="/apply" target="_blank" class="btn btn-sm" style="font-size:12px;padding:6px 14px;background:var(--accent2);color:#fff;border-radius:8px;text-decoration:none">📋 Share Form</a>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+        <div style="position:relative;max-width:280px;flex:1">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="form-input" id="va-search" type="search" style="padding-left:32px" placeholder="Search applicants…" oninput="renderVaApplicantsPage()" autocomplete="off" data-form-type="other"/>
+        </div>
+        <div id="va-status-filters" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Location</th>
+              <th>Roles</th>
+              <th>Rate/hr</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="va-tbody"></tbody>
+        </table>
+      </div>
+      <div id="va-empty" style="display:none;text-align:center;padding:48px;color:var(--text3);font-size:14px">No applicants yet. Share the form link to start receiving applications.</div>
+    </div>
+
+    <!-- CLIENT INTAKES PAGE -->
+    <div class="page" id="page-client-intakes">
+      <div class="sec-head">
+        <div>
+          <div class="sec-title">Client Intakes <span id="ci-count-label" style="color:var(--text3);font-weight:400;font-size:14px"></span></div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">Review client requirements and activate them for matching</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <a href="/client-intake" target="_blank" class="btn btn-sm" style="font-size:12px;padding:6px 14px;background:var(--accent2);color:#fff;border-radius:8px;text-decoration:none">📋 Share Form</a>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+        <div style="position:relative;max-width:280px;flex:1">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="form-input" id="ci-search" type="search" style="padding-left:32px" placeholder="Search client intakes…" oninput="renderClientIntakesPage()" autocomplete="off" data-form-type="other"/>
+        </div>
+        <div id="ci-status-filters" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Company</th>
+              <th>Industry</th>
+              <th>Budget/hr</th>
+              <th>Hours/wk</th>
+              <th>Status</th>
+              <th>Submitted</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="ci-tbody"></tbody>
+        </table>
+      </div>
+      <div id="ci-empty" style="display:none;text-align:center;padding:48px;color:var(--text3);font-size:14px">No client intakes yet. Share the form link to start receiving requests.</div>
     </div>
 
     <div class="page" id="page-tools">
@@ -13689,12 +13773,321 @@ document.addEventListener('click', function(e){
   }
 });
 
-// Update navigate to handle new pages
+// ── VA APPLICANTS PAGE ──────────────────────────────────────────────────────
+
+const VA_STATUSES = ['new','reviewing','shortlisted','interviewed','placed','rejected','archived'];
+const VA_STATUS_LABELS = { new:'New', reviewing:'Reviewing', shortlisted:'Shortlisted', interviewed:'Interviewed', placed:'Placed', rejected:'Rejected', archived:'Archived' };
+const VA_STATUS_COLORS = { new:'#2563eb', reviewing:'#d97706', shortlisted:'#059669', interviewed:'#7c3aed', placed:'#16a34a', rejected:'#dc2626', archived:'#6b7280' };
+
+let vaApplicants = [];
+let vaStatusFilter = 'all';
+
+async function fetchVaApplicants(){
+  const r = await supabase.from('va_applicants').select('*').order('submitted_at',{ascending:false});
+  vaApplicants = r.data || [];
+}
+
+function renderVaApplicantsPage(){
+  const tbody = document.getElementById('va-tbody'); if(!tbody) return;
+  const emptyEl = document.getElementById('va-empty');
+  const q = (document.getElementById('va-search')?.value || '').toLowerCase();
+
+  // Status filter pills
+  const filterDiv = document.getElementById('va-status-filters');
+  if(filterDiv && !filterDiv.dataset.built){
+    filterDiv.dataset.built = '1';
+    filterDiv.innerHTML = ['all',...VA_STATUSES].map(s =>
+      `<button onclick="vaStatusFilter='${s}';renderVaApplicantsPage()" id="vaF-${s}"
+        style="padding:4px 12px;border-radius:999px;border:1.5px solid;font-size:11px;font-weight:600;cursor:pointer;background:transparent">${s==='all'?'All':VA_STATUS_LABELS[s]}</button>`
+    ).join('');
+  }
+  // Highlight active filter
+  ['all',...VA_STATUSES].forEach(s => {
+    const btn = document.getElementById('vaF-'+s);
+    if(!btn) return;
+    const active = s === vaStatusFilter;
+    const col = s==='all' ? '#374151' : VA_STATUS_COLORS[s];
+    btn.style.borderColor = active ? col : '#e5e7eb';
+    btn.style.color = active ? col : 'var(--text2)';
+    btn.style.background = active ? col+'18' : 'transparent';
+  });
+
+  fetchVaApplicants().then(() => {
+    let list = vaApplicants;
+    if(vaStatusFilter !== 'all') list = list.filter(v => v.review_status === vaStatusFilter);
+    if(q) list = list.filter(v =>
+      (`${v.first_name} ${v.last_name}`).toLowerCase().includes(q) ||
+      (v.email||'').toLowerCase().includes(q) ||
+      (v.country_city||'').toLowerCase().includes(q)
+    );
+    const countEl = document.getElementById('va-count-label');
+    if(countEl) countEl.textContent = `(${list.length})`;
+    if(!list.length){ tbody.innerHTML=''; emptyEl.style.display='block'; return; }
+    emptyEl.style.display = 'none';
+    tbody.innerHTML = list.map(v => {
+      const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email;
+      const roles = (v.roles||[]).slice(0,2).join(', ') + ((v.roles||[]).length>2?` +${v.roles.length-2}`:'');
+      const rate = v.hourly_rate ? `$${v.hourly_rate}/hr` : '—';
+      const statusCol = VA_STATUS_COLORS[v.review_status] || '#6b7280';
+      const statusLabel = VA_STATUS_LABELS[v.review_status] || v.review_status;
+      const submitted = v.submitted_at ? new Date(v.submitted_at).toLocaleDateString() : '—';
+      const isActive = !!v.activated_at;
+      return `<tr>
+        <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openVaApplicantModal('${v.id}')">${name}</span><br><span style="font-size:11px;color:var(--text3)">${v.email||''}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${v.country_city||'—'}</td>
+        <td style="font-size:12px;color:var(--text2)">${roles||'—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${rate}</td>
+        <td><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;background:${statusCol}18;color:${statusCol}">${statusLabel}</span></td>
+        <td style="font-size:11px;color:var(--text3)">${submitted}</td>
+        <td style="white-space:nowrap;display:flex;gap:6px;align-items:center">
+          <button class="btn btn-sm" onclick="openVaApplicantModal('${v.id}')">View</button>
+          ${!isActive
+            ? `<button class="btn btn-sm" style="font-size:11px;background:#059669;color:#fff;border:none" onclick="activateVaForMatching('${v.id}')">⚡ Activate</button>`
+            : `<span style="font-size:11px;color:#059669;font-weight:600">✓ Active</span>`}
+        </td>
+      </tr>`;
+    }).join('');
+  });
+}
+
+async function activateVaForMatching(id){
+  const { error } = await supabase.from('va_applicants').update({
+    review_status: 'shortlisted',
+    activated_at: new Date().toISOString()
+  }).eq('id', id);
+  if(error){ showToast('Update failed: '+error.message, 'error'); return; }
+  showToast('VA activated for matching pool ✓', 'success');
+  renderVaApplicantsPage();
+}
+
+function openVaApplicantModal(id){
+  const v = vaApplicants.find(x => x.id === id); if(!v) return;
+  const name = `${v.first_name||''} ${v.last_name||''}`.trim();
+  const statusOptions = VA_STATUSES.map(s =>
+    `<option value="${s}" ${v.review_status===s?'selected':''}>${VA_STATUS_LABELS[s]}</option>`
+  ).join('');
+
+  const field = (label, val) => val
+    ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${label}</div><div style="font-size:13px;color:var(--text)">${val}</div></div>`
+    : '';
+  const chips = (arr) => (arr||[]).map(x=>`<span style="display:inline-block;background:var(--bg2);color:var(--text2);border-radius:6px;padding:2px 8px;font-size:11px;margin:2px">${x}</span>`).join('');
+
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">VA Applicant — ${name}</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:4px 0 12px">
+      <div>
+        ${field('Email', v.email)}
+        ${field('Phone', v.phone)}
+        ${field('Location', v.country_city)}
+        ${field('Timezone', v.timezone)}
+        ${field('Facebook', v.facebook_url ? `<a href="${v.facebook_url}" target="_blank" style="color:var(--accent2)">${v.facebook_url}</a>` : '')}
+        ${field('LinkedIn', v.linkedin_url ? `<a href="${v.linkedin_url}" target="_blank" style="color:var(--accent2)">Profile</a>` : '')}
+        ${field('Portfolio', v.portfolio_url ? `<a href="${v.portfolio_url}" target="_blank" style="color:var(--accent2)">Link</a>` : '')}
+        ${field('English Level', v.english_self_level)}
+        ${field('EF SET Score', v.english_efset_score)}
+      </div>
+      <div>
+        ${field('Years Experience', v.years_experience)}
+        ${field('Hourly Rate', v.hourly_rate ? '$'+v.hourly_rate+'/hr' : '')}
+        ${field('Monthly Rate', v.monthly_rate ? '$'+v.monthly_rate+'/mo' : '')}
+        ${field('Hours Available', v.hours_available_new ? v.hours_available_new+' hrs/wk' : '')}
+        ${field('Start Date', v.start_date)}
+        ${field('Notice Period', v.notice_period)}
+        ${field('Employment Status', v.current_employment_status)}
+        ${field('CV', v.cv_link ? `<a href="${v.cv_link}" target="_blank" style="color:var(--accent2)">Download</a>` : '')}
+        ${field('Video Intro', v.video_intro_link ? `<a href="${v.video_intro_link}" target="_blank" style="color:var(--accent2)">Watch</a>` : '')}
+      </div>
+    </div>
+    ${v.roles?.length ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Roles</div>${chips(v.roles)}</div>` : ''}
+    ${v.tools_selected?.length ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Tools</div>${chips(v.tools_selected)}</div>` : ''}
+    ${v.industries?.length ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Industries</div>${chips(v.industries)}</div>` : ''}
+    ${field('Work History', v.work_history_summary)}
+    ${field('Best Result', v.best_result)}
+    ${field('Niche', v.niche_specialization)}
+    <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;display:flex;gap:12px;align-items:center">
+      <div style="flex:1">
+        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">Status</label>
+        <select class="form-select" style="margin-top:4px;font-size:13px" onchange="updateVaStatus('${id}',this.value)">${statusOptions}</select>
+      </div>
+      <div style="flex:1">
+        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">Reviewer Notes</label>
+        <textarea class="form-input" id="va-notes-${id}" style="margin-top:4px;font-size:13px;min-height:60px" placeholder="Internal notes...">${v.reviewer_notes||''}</textarea>
+      </div>
+      <button class="btn" style="background:var(--accent);color:#fff;align-self:flex-end" onclick="saveVaNotes('${id}')">Save Notes</button>
+    </div>
+    <div style="margin-top:12px;text-align:right">
+      ${!v.activated_at
+        ? `<button class="btn" style="background:#059669;color:#fff" onclick="activateVaForMatching('${id}');closeModal()">⚡ Activate for Matching</button>`
+        : `<span style="font-size:13px;color:#059669;font-weight:600">✓ In matching pool since ${new Date(v.activated_at).toLocaleDateString()}</span>`}
+    </div>
+  `);
+}
+
+async function updateVaStatus(id, status){
+  const { error } = await supabase.from('va_applicants').update({ review_status: status }).eq('id', id);
+  if(error){ showToast('Update failed', 'error'); return; }
+  const v = vaApplicants.find(x => x.id === id);
+  if(v) v.review_status = status;
+  showToast('Status updated', 'success');
+}
+
+async function saveVaNotes(id){
+  const notes = document.getElementById('va-notes-'+id)?.value || '';
+  const { error } = await supabase.from('va_applicants').update({ reviewer_notes: notes }).eq('id', id);
+  if(error){ showToast('Save failed', 'error'); return; }
+  const v = vaApplicants.find(x => x.id === id);
+  if(v) v.reviewer_notes = notes;
+  showToast('Notes saved', 'success');
+}
+
+// ── CLIENT INTAKES PAGE ─────────────────────────────────────────────────────
+
+const CI_STATUSES = ['new','reviewing','matched','active','closed','archived'];
+const CI_STATUS_LABELS = { new:'New', reviewing:'Reviewing', matched:'Matched', active:'Active', closed:'Closed', archived:'Archived' };
+const CI_STATUS_COLORS = { new:'#2563eb', reviewing:'#d97706', matched:'#7c3aed', active:'#16a34a', closed:'#6b7280', archived:'#9ca3af' };
+
+let clientIntakes = [];
+let ciStatusFilter = 'all';
+
+async function fetchClientIntakes(){
+  const r = await supabase.from('client_intakes').select('*').order('submitted_at',{ascending:false});
+  clientIntakes = r.data || [];
+}
+
+function renderClientIntakesPage(){
+  const tbody = document.getElementById('ci-tbody'); if(!tbody) return;
+  const emptyEl = document.getElementById('ci-empty');
+  const q = (document.getElementById('ci-search')?.value || '').toLowerCase();
+
+  const filterDiv = document.getElementById('ci-status-filters');
+  if(filterDiv && !filterDiv.dataset.built){
+    filterDiv.dataset.built = '1';
+    filterDiv.innerHTML = ['all',...CI_STATUSES].map(s =>
+      `<button onclick="ciStatusFilter='${s}';renderClientIntakesPage()" id="ciF-${s}"
+        style="padding:4px 12px;border-radius:999px;border:1.5px solid;font-size:11px;font-weight:600;cursor:pointer;background:transparent">${s==='all'?'All':CI_STATUS_LABELS[s]}</button>`
+    ).join('');
+  }
+  ['all',...CI_STATUSES].forEach(s => {
+    const btn = document.getElementById('ciF-'+s);
+    if(!btn) return;
+    const active = s === ciStatusFilter;
+    const col = s==='all' ? '#374151' : CI_STATUS_COLORS[s];
+    btn.style.borderColor = active ? col : '#e5e7eb';
+    btn.style.color = active ? col : 'var(--text2)';
+    btn.style.background = active ? col+'18' : 'transparent';
+  });
+
+  fetchClientIntakes().then(() => {
+    let list = clientIntakes;
+    if(ciStatusFilter !== 'all') list = list.filter(c => c.review_status === ciStatusFilter);
+    if(q) list = list.filter(c =>
+      (`${c.first_name} ${c.last_name}`).toLowerCase().includes(q) ||
+      (c.company||'').toLowerCase().includes(q) ||
+      (c.email||'').toLowerCase().includes(q) ||
+      (c.industry||'').toLowerCase().includes(q)
+    );
+    const countEl = document.getElementById('ci-count-label');
+    if(countEl) countEl.textContent = `(${list.length})`;
+    if(!list.length){ tbody.innerHTML=''; emptyEl.style.display='block'; return; }
+    emptyEl.style.display = 'none';
+    tbody.innerHTML = list.map(c => {
+      const name = `${c.first_name||''} ${c.last_name||''}`.trim() || c.email;
+      const budget = (c.budget_min||c.budget_max)
+        ? `$${c.budget_min||'?'}–$${c.budget_max||'?'}/hr`
+        : '—';
+      const statusCol = CI_STATUS_COLORS[c.review_status] || '#6b7280';
+      const statusLabel = CI_STATUS_LABELS[c.review_status] || c.review_status;
+      const submitted = c.submitted_at ? new Date(c.submitted_at).toLocaleDateString() : '—';
+      return `<tr>
+        <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openClientIntakeModal('${c.id}')">${name}</span><br><span style="font-size:11px;color:var(--text3)">${c.email||''}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${c.company||'—'}</td>
+        <td style="font-size:12px;color:var(--text2)">${c.industry||'—'}</td>
+        <td style="font-family:'DM Mono',monospace;font-size:12px">${budget}</td>
+        <td style="font-size:12px;color:var(--text2)">${c.hours_per_week ? c.hours_per_week+' hrs' : '—'}</td>
+        <td><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;background:${statusCol}18;color:${statusCol}">${statusLabel}</span></td>
+        <td style="font-size:11px;color:var(--text3)">${submitted}</td>
+        <td><button class="btn btn-sm" onclick="openClientIntakeModal('${c.id}')">View</button></td>
+      </tr>`;
+    }).join('');
+  });
+}
+
+function openClientIntakeModal(id){
+  const c = clientIntakes.find(x => x.id === id); if(!c) return;
+  const name = `${c.first_name||''} ${c.last_name||''}`.trim();
+  const statusOptions = CI_STATUSES.map(s =>
+    `<option value="${s}" ${c.review_status===s?'selected':''}>${CI_STATUS_LABELS[s]}</option>`
+  ).join('');
+  const field = (label, val) => val
+    ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${label}</div><div style="font-size:13px;color:var(--text)">${val}</div></div>`
+    : '';
+  const chips = (arr) => (arr||[]).map(x=>`<span style="display:inline-block;background:var(--bg2);color:var(--text2);border-radius:6px;padding:2px 8px;font-size:11px;margin:2px">${x}</span>`).join('');
+
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">Client Intake — ${name}</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:4px 0 12px">
+      <div>
+        ${field('Email', c.email)}
+        ${field('Phone', c.phone)}
+        ${field('Company', c.company)}
+        ${field('Industry', c.industry)}
+        ${field('How they heard', c.how_did_you_hear)}
+      </div>
+      <div>
+        ${field('Hours/week', c.hours_per_week ? c.hours_per_week+' hrs' : '')}
+        ${field('Budget', (c.budget_min||c.budget_max) ? `$${c.budget_min||'?'}–$${c.budget_max||'?'}/hr` : '')}
+        ${field('English required', c.english_level_required)}
+        ${field('Start date', c.start_date_preference)}
+      </div>
+    </div>
+    ${c.required_skills?.length ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Required Skills</div>${chips(c.required_skills)}</div>` : ''}
+    ${c.required_tools?.length ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Required Tools</div>${chips(c.required_tools)}</div>` : ''}
+    ${c.timezone_preferences?.length ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Timezone Preferences</div>${chips(c.timezone_preferences)}</div>` : ''}
+    ${field('Role Description', c.role_description)}
+    ${field('Additional Notes', c.additional_notes)}
+    <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;display:flex;gap:12px;align-items:center">
+      <div style="flex:1">
+        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">Status</label>
+        <select class="form-select" style="margin-top:4px;font-size:13px" onchange="updateCiStatus('${id}',this.value)">${statusOptions}</select>
+      </div>
+      <div style="flex:1">
+        <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">Notes</label>
+        <textarea class="form-input" id="ci-notes-${id}" style="margin-top:4px;font-size:13px;min-height:60px" placeholder="Internal notes...">${c.reviewer_notes||''}</textarea>
+      </div>
+      <button class="btn" style="background:var(--accent);color:#fff;align-self:flex-end" onclick="saveCiNotes('${id}')">Save</button>
+    </div>
+  `);
+}
+
+async function updateCiStatus(id, status){
+  const { error } = await supabase.from('client_intakes').update({ review_status: status }).eq('id', id);
+  if(error){ showToast('Update failed', 'error'); return; }
+  const c = clientIntakes.find(x => x.id === id);
+  if(c) c.review_status = status;
+  showToast('Status updated', 'success');
+}
+
+async function saveCiNotes(id){
+  const notes = document.getElementById('ci-notes-'+id)?.value || '';
+  const { error } = await supabase.from('client_intakes').update({ reviewer_notes: notes }).eq('id', id);
+  if(error){ showToast('Save failed', 'error'); return; }
+  const c = clientIntakes.find(x => x.id === id);
+  if(c) c.reviewer_notes = notes;
+  showToast('Notes saved', 'success');
+}
+
 const PAGE_TITLES = {
   dashboard:'Dashboard', contacts:'Contacts', pipeline:'Pipeline & Deal',
   calendar:'Calendar', dialer:'Dialer', conversations:'Conversations', email:'Email',
   automations:'Automations', social:'Social Planner', campaigns:'Campaigns',
   clients:'Active Clients',
+  'va-applicants':'VA Applicants', 'client-intakes':'Client Intakes',
   tools:'Tools', tags:'Tags', integrations:'Integrations', 'custom-fields':'Custom Fields', settings:'Settings'
 };
 
@@ -13735,6 +14128,8 @@ function navigate(page){
   if(page==='social') renderSocialPlanner();
   if(page==='campaigns') renderCampaignsPage();
   if(page==='clients') renderClientsPage();
+  if(page==='va-applicants') renderVaApplicantsPage();
+  if(page==='client-intakes') renderClientIntakesPage();
   if(page==='tools') renderToolsPage();
   if(page==='tags') renderTagsPage();
   if(page==='custom-fields') renderCustomFieldsPage();
