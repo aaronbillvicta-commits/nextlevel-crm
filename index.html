@@ -13825,8 +13825,8 @@ let vaApplicants = [];
 let vaStatusFilter = 'all';
 
 async function fetchVaApplicants(){
-  const r = await supabase.from('va_applicants').select('*').order('submitted_at',{ascending:false});
-  vaApplicants = r.data || [];
+  try { vaApplicants = await sb.get('va_applicants', '?select=*&order=submitted_at.desc'); }
+  catch(e){ console.error('fetchVaApplicants', e); vaApplicants = []; }
 }
 
 function renderVaApplicantsPage(){
@@ -13976,8 +13976,8 @@ function openVaApplicantModal(id){
 }
 
 async function updateVaStatus(id, status){
-  const { error } = await supabase.from('va_applicants').update({ review_status: status }).eq('id', id);
-  if(error){ showToast('Update failed', 'error'); return; }
+  try { await sb.patch('va_applicants', id, { review_status: status }); }
+  catch(e){ showToast('Update failed', 'error'); return; }
   const v = vaApplicants.find(x => x.id === id);
   if(v) v.review_status = status;
   showToast('Status updated', 'success');
@@ -13985,8 +13985,8 @@ async function updateVaStatus(id, status){
 
 async function saveVaNotes(id){
   const notes = document.getElementById('va-notes-'+id)?.value || '';
-  const { error } = await supabase.from('va_applicants').update({ reviewer_notes: notes }).eq('id', id);
-  if(error){ showToast('Save failed', 'error'); return; }
+  try { await sb.patch('va_applicants', id, { reviewer_notes: notes }); }
+  catch(e){ showToast('Save failed', 'error'); return; }
   const v = vaApplicants.find(x => x.id === id);
   if(v) v.reviewer_notes = notes;
   showToast('Notes saved', 'success');
@@ -14002,8 +14002,8 @@ let clientIntakes = [];
 let ciStatusFilter = 'all';
 
 async function fetchClientIntakes(){
-  const r = await supabase.from('client_intakes').select('*').order('submitted_at',{ascending:false});
-  clientIntakes = r.data || [];
+  try { clientIntakes = await sb.get('client_intakes', '?select=*&order=submitted_at.desc'); }
+  catch(e){ console.error('fetchClientIntakes', e); clientIntakes = []; }
 }
 
 function renderClientIntakesPage(){
@@ -14126,8 +14126,8 @@ function openClientIntakeModal(id){
 }
 
 async function updateCiStatus(id, status){
-  const { error } = await supabase.from('client_intakes').update({ review_status: status }).eq('id', id);
-  if(error){ showToast('Update failed', 'error'); return; }
+  try { await sb.patch('client_intakes', id, { review_status: status }); }
+  catch(e){ showToast('Update failed', 'error'); return; }
   const c = clientIntakes.find(x => x.id === id);
   if(c) c.review_status = status;
   showToast('Status updated', 'success');
@@ -14135,8 +14135,8 @@ async function updateCiStatus(id, status){
 
 async function saveCiNotes(id){
   const notes = document.getElementById('ci-notes-'+id)?.value || '';
-  const { error } = await supabase.from('client_intakes').update({ reviewer_notes: notes }).eq('id', id);
-  if(error){ showToast('Save failed', 'error'); return; }
+  try { await sb.patch('client_intakes', id, { reviewer_notes: notes }); }
+  catch(e){ showToast('Save failed', 'error'); return; }
   const c = clientIntakes.find(x => x.id === id);
   if(c) c.reviewer_notes = notes;
   showToast('Notes saved', 'success');
@@ -14176,12 +14176,8 @@ let fomOptions = [];
 let fomCategoryFilter = 'all';
 
 async function fetchFormOptions(){
-  const { data } = await supabase
-    .from('form_field_options')
-    .select('*')
-    .order('category', { ascending: true })
-    .order('sort_order', { ascending: true });
-  fomOptions = data || [];
+  try { fomOptions = await sb.get('form_field_options', '?select=*&order=category.asc,sort_order.asc'); }
+  catch(e){ console.error('fetchFormOptions', e); fomOptions = []; }
 }
 
 function renderFormOptionsMgr(){
@@ -14320,8 +14316,8 @@ function fomCollect(){
 
 async function saveNewFormOption(){
   const payload = fomCollect(); if(!payload) return;
-  const { error } = await supabase.from('form_field_options').insert(payload);
-  if(error){ showToast('Error: '+error.message, 'error'); return; }
+  try { await sb.post('form_field_options', payload); }
+  catch(e){ showToast('Error: '+(e.message||'save failed'), 'error'); return; }
   showToast('Option added ✓', 'success');
   closeModal();
   renderFormOptionsMgr();
@@ -14329,16 +14325,16 @@ async function saveNewFormOption(){
 
 async function saveEditFormOption(id){
   const payload = fomCollect(); if(!payload) return;
-  const { error } = await supabase.from('form_field_options').update(payload).eq('id', id);
-  if(error){ showToast('Error: '+error.message, 'error'); return; }
+  try { await sb.patch('form_field_options', id, payload); }
+  catch(e){ showToast('Error: '+(e.message||'update failed'), 'error'); return; }
   showToast('Option updated ✓', 'success');
   closeModal();
   renderFormOptionsMgr();
 }
 
 async function toggleFormOption(id, active){
-  const { error } = await supabase.from('form_field_options').update({ active }).eq('id', id);
-  if(error){ showToast('Error: '+error.message, 'error'); return; }
+  try { await sb.patch('form_field_options', id, { active }); }
+  catch(e){ showToast('Error: '+(e.message||'update failed'), 'error'); return; }
   showToast(active ? 'Option activated ✓' : 'Option deactivated', 'success');
   renderFormOptionsMgr();
 }
