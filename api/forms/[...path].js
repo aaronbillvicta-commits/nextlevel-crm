@@ -112,6 +112,16 @@ async function supabaseGetOne(table, id) {
   return rows[0] || null;
 }
 
+async function supabaseSelect(query) {
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!key) throw new Error('SUPABASE_SERVICE_KEY not set');
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${query}`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}` },
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+}
+
 async function supabasePatch(table, id, payload) {
   const key = process.env.SUPABASE_SERVICE_KEY;
   if (!key) throw new Error('SUPABASE_SERVICE_KEY not set');
@@ -405,6 +415,53 @@ async function handleMatch(req, res) {
   return res.status(200).json({ client_id: clientId, count: results.length, results });
 }
 
+// ── Custom form builder: public render + submit ───────────────────────────────
+// GET /api/forms/render?slug=<slug> — returns a PUBLISHED form definition (public).
+async function handleFormRender(req, res) {
+  const slug = (req.query.slug || '').toString().trim().toLowerCase();
+  if (!slug) return res.status(400).json({ error: 'Missing slug' });
+  const rows = await supabaseSelect(
+    `forms?slug=eq.${encodeURIComponent(slug)}&status=eq.published`
+    + `&select=id,name,description,fields,submit_message&limit=1`
+  );
+  const form = rows[0];
+  if (!form) return res.status(404).json({ error: 'Form not found' });
+  res.setHeader('Cache-Control', 'no-store');
+  return res.status(200).json(form);
+}
+
+// POST /api/forms/respond { slug, data } — stores a submission (public, rate-limited).
+async function handleFormRespond(req, res, ip) {
+  if (rateLimited(ip)) return res.status(429).json({ error: 'Too many submissions. Please try again later.' });
+  const body = req.body || {};
+  const slug = (body.slug || '').toString().trim().toLowerCase();
+  const data = (body.data && typeof body.data === 'object' && !Array.isArray(body.data)) ? body.data : null;
+  if (!slug || !data) return res.status(400).json({ error: 'Body must be { slug, data }' });
+  if (JSON.stringify(data).length > 64 * 1024) return res.status(413).json({ error: 'Response too large' });
+
+  const rows = await supabaseSelect(
+    `forms?slug=eq.${encodeURIComponent(slug)}&status=eq.published&select=id,fields&limit=1`
+  );
+  const form = rows[0];
+  if (!form) return res.status(404).json({ error: 'Form not found' });
+
+  const fields = Array.isArray(form.fields) ? form.fields : [];
+  const clean = {};
+  for (const f of fields) {
+    if (!f || !f.key) continue;
+    let v = data[f.key];
+    if (Array.isArray(v)) v = v.slice(0, 100).map(x => String(x).slice(0, 500));
+    else if (v != null) v = String(v).slice(0, 5000);
+    else v = (f.type === 'checkbox') ? [] : '';
+    const empty = Array.isArray(v) ? v.length === 0 : String(v).trim() === '';
+    if (f.required && empty) return res.status(400).json({ error: `Missing required field: ${f.label || f.key}` });
+    if (!empty) clean[f.key] = v;
+  }
+
+  await supabasePost('form_responses', { form_id: form.id, data: clean });
+  return res.status(200).json({ success: true });
+}
+
 // ── Main handler ──────────────────────────────────────────────────────────────
 module.exports = async function handler(req, res) {
   applyCors(req, res, 'GET, POST, OPTIONS');
@@ -425,6 +482,8 @@ module.exports = async function handler(req, res) {
     if (action === 'client'  && req.method === 'POST') return await handleClientIntake(req, res, ip);
     if (action === 'embed'   && req.method === 'POST') return await handleEmbed(req, res);
     if (action === 'match'   && req.method === 'POST') return await handleMatch(req, res);
+    if (action === 'render'  && req.method === 'GET')  return await handleFormRender(req, res);
+    if (action === 'respond' && req.method === 'POST') return await handleFormRespond(req, res, ip);
     return res.status(404).json({ error: 'Not found' });
   } catch (err) {
     console.error('[forms]', action, err);

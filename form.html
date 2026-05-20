@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Form</title>
+<style>
+  :root{ --accent:#4f46e5; --bg:#f3f4f6; --card:#fff; --text:#111827; --text2:#6b7280; --border:#e5e7eb; --err:#dc2626; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;padding:24px 14px}
+  .wrap{max-width:640px;margin:0 auto}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+  h1{font-size:22px;margin:0 0 6px}
+  .desc{color:var(--text2);font-size:14px;margin:0 0 20px;white-space:pre-wrap}
+  .field{margin-bottom:18px}
+  label.q{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
+  .req{color:var(--err)}
+  input[type=text],input[type=email],input[type=tel],input[type=number],input[type=date],textarea,select{
+    width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;background:#fff;color:var(--text)}
+  textarea{min-height:96px;resize:vertical}
+  .opt{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:14px}
+  .opt input{width:auto}
+  button.submit{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:12px 20px;font-size:15px;font-weight:600;cursor:pointer;width:100%;margin-top:6px}
+  button.submit:disabled{opacity:.6;cursor:default}
+  .msg{padding:14px;border-radius:8px;font-size:14px;margin-bottom:14px}
+  .msg.err{background:#fef2f2;color:var(--err);border:1px solid #fecaca}
+  .done{text-align:center;padding:30px 10px}
+  .done .check{font-size:42px;color:#059669}
+  .powered{text-align:center;color:var(--text2);font-size:11px;margin-top:16px}
+  .loading{text-align:center;color:var(--text2);padding:40px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="root"><div class="loading">Loading…</div></div>
+  <div class="powered">Powered by NLM CRM</div>
+</div>
+<script>
+const API='/api/forms';
+function esc(s){return (s==null?'':String(s)).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function getSlug(){
+  const u=new URL(location.href);
+  let s=u.searchParams.get('slug');
+  if(!s){ const m=location.pathname.match(/\/f\/([^/?#]+)/); if(m) s=decodeURIComponent(m[1]); }
+  return (s||'').trim().toLowerCase();
+}
+const root=document.getElementById('root');
+let FORM=null;
+const slug=getSlug();
+
+async function load(){
+  if(!slug){ root.innerHTML='<div class="msg err">No form specified.</div>'; return; }
+  try{
+    const r=await fetch(API+'/render?slug='+encodeURIComponent(slug));
+    if(r.status===404){ root.innerHTML='<div class="msg err">This form was not found or is not published.</div>'; return; }
+    if(!r.ok) throw new Error('load failed');
+    FORM=await r.json();
+    document.title=FORM.name||'Form';
+    renderForm();
+  }catch(e){ root.innerHTML='<div class="msg err">Could not load the form. Please try again later.</div>'; }
+}
+
+function fieldHtml(f,i){
+  const id='f_'+i;
+  const req=f.required?' <span class="req">*</span>':'';
+  let input='';
+  const t=f.type;
+  if(t==='textarea') input='<textarea id="'+id+'" '+(f.placeholder?'placeholder="'+esc(f.placeholder)+'"':'')+'></textarea>';
+  else if(t==='select') input='<select id="'+id+'"><option value="">— Select —</option>'+(f.options||[]).map(o=>'<option value="'+esc(o)+'">'+esc(o)+'</option>').join('')+'</select>';
+  else if(t==='checkbox') input='<div>'+(f.options||[]).map(o=>'<label class="opt"><input type="checkbox" name="'+id+'" value="'+esc(o)+'"> '+esc(o)+'</label>').join('')+'</div>';
+  else if(t==='radio') input='<div>'+(f.options||[]).map(o=>'<label class="opt"><input type="radio" name="'+id+'" value="'+esc(o)+'"> '+esc(o)+'</label>').join('')+'</div>';
+  else {
+    const map={email:'email',phone:'tel',number:'number',date:'date'};
+    const it=map[t]||'text';
+    input='<input type="'+it+'" id="'+id+'" '+(f.placeholder?'placeholder="'+esc(f.placeholder)+'"':'')+'>';
+  }
+  return '<div class="field"><label class="q">'+esc(f.label)+req+'</label>'+input+'</div>';
+}
+
+function renderForm(){
+  const fields=Array.isArray(FORM.fields)?FORM.fields:[];
+  root.innerHTML=
+    '<h1>'+esc(FORM.name)+'</h1>'+
+    (FORM.description?'<p class="desc">'+esc(FORM.description)+'</p>':'')+
+    '<div id="formerr"></div>'+
+    '<form id="theform">'+
+      fields.map(fieldHtml).join('')+
+      '<button class="submit" id="submitbtn" type="submit">Submit</button>'+
+    '</form>';
+  document.getElementById('theform').addEventListener('submit',submit);
+}
+
+function collect(){
+  const fields=FORM.fields||[];
+  const data={}; const errs=[];
+  fields.forEach((f,i)=>{
+    const id='f_'+i;
+    let val;
+    if(f.type==='checkbox') val=Array.from(document.querySelectorAll('input[name="'+id+'"]:checked')).map(el=>el.value);
+    else if(f.type==='radio'){ const c=document.querySelector('input[name="'+id+'"]:checked'); val=c?c.value:''; }
+    else { const el=document.getElementById(id); val=el?el.value:''; }
+    const empty=Array.isArray(val)?val.length===0:String(val).trim()==='';
+    if(f.required&&empty) errs.push(f.label);
+    if(!empty && f.key) data[f.key]=val;
+  });
+  return {data,errs};
+}
+
+async function submit(e){
+  e.preventDefault();
+  const {data,errs}=collect();
+  const errEl=document.getElementById('formerr');
+  if(errs.length){ errEl.innerHTML='<div class="msg err">Please fill in: '+errs.map(esc).join(', ')+'</div>'; window.scrollTo(0,0); return; }
+  errEl.innerHTML='';
+  const btn=document.getElementById('submitbtn'); btn.disabled=true; btn.textContent='Submitting…';
+  try{
+    const r=await fetch(API+'/respond',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slug:slug,data:data})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok){ errEl.innerHTML='<div class="msg err">'+esc(j.error||'Submission failed. Please try again.')+'</div>'; btn.disabled=false; btn.textContent='Submit'; window.scrollTo(0,0); return; }
+    root.innerHTML='<div class="done"><div class="check">✓</div><h1>Thank you!</h1><p class="desc" style="text-align:center">'+esc(FORM.submit_message||'Your response has been recorded.')+'</p></div>';
+    window.scrollTo(0,0);
+  }catch(err){ errEl.innerHTML='<div class="msg err">Network error. Please try again.</div>'; btn.disabled=false; btn.textContent='Submit'; }
+}
+
+load();
+</script>
+</body>
+</html>

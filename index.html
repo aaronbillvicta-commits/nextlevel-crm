@@ -10258,35 +10258,103 @@ const TOOLS_FORMS = [
     desc:'3-tab intake for new clients. Submissions land under Matching → Client Intakes.' },
 ];
 
+// ── Custom form builder state ─────────────────────────────────────────────────
+let customForms = [];
+let builderForm = null; // working copy of the form being created/edited
+const BUILDER_FIELD_TYPES = [
+  { v:'text', label:'Short text' }, { v:'textarea', label:'Long text' },
+  { v:'email', label:'Email' }, { v:'phone', label:'Phone' },
+  { v:'number', label:'Number' }, { v:'date', label:'Date' },
+  { v:'select', label:'Dropdown' }, { v:'radio', label:'Multiple choice' },
+  { v:'checkbox', label:'Checkboxes' },
+];
+const BUILDER_OPTION_TYPES = ['select','radio','checkbox'];
+function slugify(s){ return String(s||'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,60); }
+
 function renderToolsPage(){
   const el = document.getElementById('tools-content');
   if(!el) return;
-  if(toolsView === 'form'){
-    el.innerHTML = `
-      <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Public forms — anyone with the link can fill them in, no login required. Copy a link to share it, or open the form to view it.</div>
-      <div style="display:grid;gap:14px;max-width:760px">
-        ${TOOLS_FORMS.map(f=>{
-          const url = location.origin + f.path;
-          return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:16px">
-            <div style="display:flex;align-items:flex-start;gap:12px">
-              <div style="font-size:22px;line-height:1">${f.icon}</div>
-              <div style="flex:1;min-width:0">
-                <div style="font-weight:700;font-size:14px">${f.title}</div>
-                <div style="font-size:12px;color:var(--text3);margin-top:2px">${f.desc}</div>
-                <input class="form-input" readonly value="${url}" onclick="this.select()" style="margin-top:10px;width:100%;font-family:'DM Mono',monospace;font-size:12px"/>
-                <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
-                  <button class="btn btn-sm btn-primary" onclick="copyFormLink('${url}')">🔗 Copy link</button>
-                  <button class="btn btn-sm" onclick="window.open('${url}','_blank','noopener')">↗ Open form</button>
-                </div>
-              </div>
-            </div>
-          </div>`;
-        }).join('')}
-      </div>`;
+  if(toolsView !== 'form'){ el.innerHTML = ''; return; }
+  if(builderForm){ renderFormBuilder(el); return; }
+
+  const matchingCards = TOOLS_FORMS.map(f=>{
+    const url = location.origin + f.path;
+    return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:16px">
+      <div style="display:flex;align-items:flex-start;gap:12px">
+        <div style="font-size:22px;line-height:1">${f.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:700;font-size:14px">${f.title}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">${f.desc}</div>
+          <input class="form-input" readonly value="${url}" onclick="this.select()" style="margin-top:10px;width:100%;font-family:'DM Mono',monospace;font-size:12px"/>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
+            <button class="btn btn-sm btn-primary" onclick="copyFormLink('${url}')">🔗 Copy link</button>
+            <button class="btn btn-sm" onclick="window.open('${url}','_blank','noopener')">↗ Open form</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="font-size:13px;font-weight:800;color:var(--accent2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Application Forms</div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Built-in public forms that feed the Matching engine.</div>
+    <div style="display:grid;gap:14px;max-width:760px;margin-bottom:28px">${matchingCards}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;max-width:760px;margin-bottom:10px">
+      <div>
+        <div style="font-size:13px;font-weight:800;color:var(--accent2);text-transform:uppercase;letter-spacing:.06em">Custom Forms</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">Build your own forms — surveys, lead capture, intakes. Responses appear here.</div>
+      </div>
+      <button class="btn btn-primary btn-sm" style="white-space:nowrap" onclick="newCustomForm()">+ New Form</button>
+    </div>
+    <div id="custom-forms-list" style="max-width:760px"><div style="color:var(--text3);font-size:13px;padding:14px">Loading…</div></div>`;
+  loadCustomForms();
+}
+
+async function loadCustomForms(){
+  const wrap = document.getElementById('custom-forms-list'); if(!wrap) return;
+  try { customForms = await sb.get('forms', '?select=*&order=created_at.desc'); }
+  catch(e){ customForms = []; }
+  const counts = {};
+  try { (await sb.get('form_responses', '?select=form_id')).forEach(r=>{ counts[r.form_id]=(counts[r.form_id]||0)+1; }); } catch(e){}
+  if(!wrap) return;
+  if(!customForms.length){
+    wrap.innerHTML = `<div style="border:1px dashed var(--border);border-radius:var(--radius);padding:28px;text-align:center;color:var(--text3);font-size:13px">No custom forms yet. Click <b>+ New Form</b> to build one.</div>`;
     return;
   }
-  el.innerHTML = '';
+  wrap.innerHTML = customForms.map(f=>{
+    const url = location.origin + '/f/' + f.slug;
+    const pub = f.status === 'published';
+    const n = counts[f.id] || 0;
+    const nq = (f.fields||[]).length;
+    return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div style="flex:1;min-width:160px">
+          <div style="font-weight:700;font-size:14px">${escapeHtml(f.name)}
+            <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;margin-left:6px;${pub?'background:#d1fae5;color:#065f46':'background:#f3f4f6;color:#6b7280'}">${pub?'Published':'Draft'}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">${nq} question${nq===1?'':'s'} · ${n} response${n===1?'':'s'}</div>
+        </div>
+        <button class="btn btn-sm" onclick="editCustomForm('${f.id}')">Edit</button>
+        <button class="btn btn-sm" onclick="viewFormResponses('${f.id}')">Responses (${n})</button>
+        ${pub?`<button class="btn btn-sm" onclick="copyFormLink('${url}')">🔗 Copy</button><button class="btn btn-sm" onclick="window.open('${url}','_blank','noopener')">↗ Open</button>`:''}
+        <button class="btn btn-sm" style="color:#dc2626" onclick="deleteCustomForm('${f.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
 }
+
+function newCustomForm(){
+  builderForm = { name:'', slug:'', description:'', submit_message:'Thanks! Your response has been recorded.', status:'draft', fields:[] };
+  renderToolsPage();
+}
+function editCustomForm(id){
+  const f = customForms.find(x=>x.id===id);
+  if(!f){ showToast('Form not found','error'); return; }
+  builderForm = JSON.parse(JSON.stringify(f));
+  if(!Array.isArray(builderForm.fields)) builderForm.fields = [];
+  renderToolsPage();
+}
+function closeBuilder(){ builderForm = null; renderToolsPage(); }
 
 async function copyFormLink(url){
   try {
@@ -10300,6 +10368,146 @@ async function copyFormLink(url){
     }
     showToast('Form link copied ✓', 'success');
   } catch(e){ showToast('Could not copy link', 'error'); }
+}
+
+// ── Form builder: field operations (mutate builderForm, re-render on structure) ─
+function builderAddField(){
+  builderForm.fields.push({ key:'q_'+Math.random().toString(36).slice(2,8), label:'', type:'text', required:false, options:[] });
+  renderToolsPage();
+}
+function builderRemoveField(i){ builderForm.fields.splice(i,1); renderToolsPage(); }
+function builderMoveField(i,dir){
+  const j=i+dir; if(j<0||j>=builderForm.fields.length) return;
+  const t=builderForm.fields[i]; builderForm.fields[i]=builderForm.fields[j]; builderForm.fields[j]=t;
+  renderToolsPage();
+}
+function builderSetFieldProp(i,prop,val){
+  const f=builderForm.fields[i]; if(!f) return;
+  if(prop==='options') f.options = String(val).split('\n').map(s=>s.trim()).filter(Boolean);
+  else f[prop]=val;
+}
+function builderChangeType(i,val){ if(builderForm.fields[i]){ builderForm.fields[i].type=val; renderToolsPage(); } }
+function builderSetMeta(prop,val){ if(builderForm) builderForm[prop]=val; }
+function builderMaybeSlug(){
+  if(builderForm && !builderForm.slug && builderForm.name){
+    builderForm.slug = slugify(builderForm.name);
+    const sl=document.getElementById('bf-slug'); if(sl) sl.value=builderForm.slug;
+    const pv=document.getElementById('bf-slug-preview'); if(pv) pv.textContent=builderForm.slug||'…';
+  }
+}
+
+function renderFormBuilder(el){
+  const f = builderForm;
+  const isEdit = !!f.id;
+  const typeOpts = (cur)=>BUILDER_FIELD_TYPES.map(t=>`<option value="${t.v}" ${cur===t.v?'selected':''}>${t.label}</option>`).join('');
+  const fieldsHtml = f.fields.map((fld,i)=>{
+    const needsOpts = BUILDER_OPTION_TYPES.includes(fld.type);
+    return `<div style="border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:10px;background:var(--bg2)">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--text3);font-weight:700">Q${i+1}</span>
+        <input class="form-input" style="flex:1;min-width:160px;font-size:13px" placeholder="Question label" value="${escapeHtml(fld.label)}" onchange="builderSetFieldProp(${i},'label',this.value)">
+        <select class="form-select" style="width:auto;font-size:12px" onchange="builderChangeType(${i},this.value)">${typeOpts(fld.type)}</select>
+        <label style="font-size:11px;display:flex;align-items:center;gap:4px;white-space:nowrap"><input type="checkbox" ${fld.required?'checked':''} onchange="builderSetFieldProp(${i},'required',this.checked)"> Required</label>
+        <button class="btn btn-sm" onclick="builderMoveField(${i},-1)" title="Move up">↑</button>
+        <button class="btn btn-sm" onclick="builderMoveField(${i},1)" title="Move down">↓</button>
+        <button class="btn btn-sm" style="color:#dc2626" onclick="builderRemoveField(${i})" title="Delete">✕</button>
+      </div>
+      ${needsOpts ? `<textarea class="form-input" style="margin-top:8px;font-size:12px;min-height:64px" placeholder="One option per line" onchange="builderSetFieldProp(${i},'options',this.value)">${escapeHtml((fld.options||[]).join('\n'))}</textarea>` : ''}
+    </div>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div style="max-width:760px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <button class="btn btn-sm" onclick="closeBuilder()">← Back</button>
+        <div style="font-weight:800;font-size:15px">${isEdit?'Edit Form':'New Form'}</div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:18px">
+        <div class="form-row" style="margin-bottom:10px">
+          <label class="form-label">Form name *</label>
+          <input class="form-input" id="bf-name" value="${escapeHtml(f.name)}" placeholder="e.g. Newsletter Signup" onchange="builderSetMeta('name',this.value);builderMaybeSlug()">
+        </div>
+        <div class="form-row" style="margin-bottom:10px">
+          <label class="form-label">Link slug <span style="font-weight:400;color:var(--text3)">— ${location.origin}/f/<b id="bf-slug-preview">${escapeHtml(f.slug||'…')}</b></span></label>
+          <input class="form-input" id="bf-slug" value="${escapeHtml(f.slug)}" placeholder="newsletter-signup" oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9-]/g,'-')" onchange="builderSetMeta('slug',this.value);document.getElementById('bf-slug-preview').textContent=this.value||'…'">
+        </div>
+        <div class="form-row" style="margin-bottom:10px">
+          <label class="form-label">Description <span style="font-weight:400;color:var(--text3)">(optional)</span></label>
+          <textarea class="form-input" style="min-height:50px" onchange="builderSetMeta('description',this.value)">${escapeHtml(f.description||'')}</textarea>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Thank-you message</label>
+          <input class="form-input" value="${escapeHtml(f.submit_message||'')}" onchange="builderSetMeta('submit_message',this.value)">
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-weight:800;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent2)">Questions</div>
+        <button class="btn btn-sm btn-primary" onclick="builderAddField()">+ Add question</button>
+      </div>
+      ${f.fields.length ? fieldsHtml : `<div style="border:1px dashed var(--border);border-radius:var(--radius);padding:24px;text-align:center;color:var(--text3);font-size:13px">No questions yet. Click <b>+ Add question</b>.</div>`}
+      <div style="display:flex;gap:10px;margin-top:18px;border-top:1px solid var(--border);padding-top:14px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="saveCustomForm('draft')">Save draft</button>
+        <button class="btn" style="background:#059669;color:#fff" onclick="saveCustomForm('published')">Save &amp; Publish</button>
+        ${isEdit && f.status==='published' ? `<span style="font-size:12px;color:#059669;align-self:center">● Published — live at /f/${escapeHtml(f.slug)}</span>`:''}
+      </div>
+    </div>`;
+}
+
+async function saveCustomForm(status){
+  const f = builderForm; if(!f) return;
+  const nameEl=document.getElementById('bf-name'); if(nameEl) f.name=nameEl.value.trim();
+  const slugEl=document.getElementById('bf-slug'); if(slugEl) f.slug=slugEl.value.trim();
+  if(!f.name){ showToast('Give the form a name','error'); return; }
+  if(!f.slug) f.slug = slugify(f.name);
+  if(!f.slug){ showToast('Set a link slug','error'); return; }
+  if(!f.fields.length){ showToast('Add at least one question','error'); return; }
+  for(const fld of f.fields){
+    if(!fld.label || !fld.label.trim()){ showToast('Every question needs a label','error'); return; }
+    if(BUILDER_OPTION_TYPES.includes(fld.type) && (!fld.options || !fld.options.length)){ showToast(`"${fld.label}" needs at least one option`,'error'); return; }
+  }
+  if(customForms.find(x=>x.slug===f.slug && x.id!==f.id)){ showToast('That slug is already used by another form','error'); return; }
+
+  const payload = { name:f.name, slug:f.slug, description:f.description||null, submit_message:f.submit_message||null, fields:f.fields, status, updated_at:new Date().toISOString() };
+  try {
+    if(f.id) await sb.patch('forms', f.id, payload);
+    else await sb.post('forms', Object.assign({}, payload, { created_by:(typeof currentUser!=='undefined'&&currentUser)?currentUser.id:null }));
+    showToast(status==='published'?'Form published ✓':'Draft saved ✓','success');
+    builderForm = null;
+    renderToolsPage();
+  } catch(e){ showToast('Save failed: '+((e&&(e.message||e.hint))||'error'),'error'); }
+}
+
+async function deleteCustomForm(id){
+  const f = customForms.find(x=>x.id===id);
+  if(!confirm(`Delete "${f?f.name:'this form'}" and all its responses? This cannot be undone.`)) return;
+  try { await sb.del('forms', id); showToast('Form deleted','success'); loadCustomForms(); }
+  catch(e){ showToast('Delete failed','error'); }
+}
+
+async function viewFormResponses(id){
+  const f = customForms.find(x=>x.id===id);
+  let rows = [];
+  try { rows = await sb.get('form_responses', `?form_id=eq.${id}&select=*&order=submitted_at.desc`); }
+  catch(e){ showToast('Could not load responses','error'); return; }
+  const fields = (f && f.fields) || [];
+  const esc = (s)=>escapeHtml(s==null?'':String(s));
+  const fmt = (v)=>Array.isArray(v)?v.map(esc).join(', '):esc(v);
+  const body = rows.length ? rows.map((r,idx)=>{
+    const d = r.data || {};
+    const lines = fields.map(fl=>{
+      const v = d[fl.key];
+      if(v==null || (Array.isArray(v)&&!v.length) || String(v).trim()==='') return '';
+      return `<div style="margin-bottom:6px"><span style="font-size:11px;font-weight:700;color:var(--text3)">${esc(fl.label)}: </span><span style="font-size:13px">${fmt(v)}</span></div>`;
+    }).filter(Boolean).join('');
+    return `<div style="border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">#${rows.length-idx} · ${new Date(r.submitted_at).toLocaleString()}</div>
+      ${lines || '<span style="color:var(--text3);font-size:12px">(empty)</span>'}
+    </div>`;
+  }).join('') : `<div style="padding:30px;text-align:center;color:var(--text3)">No responses yet.</div>`;
+  openModal(`
+    <div class="modal-head"><div class="modal-title">Responses — ${esc(f?f.name:'')} (${rows.length})</div><button class="modal-close" onclick="closeModal()">✕</button></div>
+    <div style="max-height:64vh;overflow-y:auto;padding:4px 2px">${body}</div>
+  `, true);
 }
 
 function renderTagsPage(){
