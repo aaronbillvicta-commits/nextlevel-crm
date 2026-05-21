@@ -6769,7 +6769,8 @@ function openDealDetail(dealId){
       </div>`:''}
     </div>
     <div class="modal-foot">
-      <button class="btn btn-sm" style="color:var(--red);margin-right:auto" onclick="deleteDeal('${dealId}')">Delete Deal</button>
+      <button class="btn btn-sm" style="color:var(--red)" onclick="deleteDeal('${dealId}')">Delete Deal</button>
+      <button class="btn btn-sm" style="margin-right:auto" onclick="openTransferDealModal('${dealId}')">⇄ Transfer Pipeline</button>
       <button class="btn" onclick="closeModal()">Cancel</button>
       <button class="btn btn-primary" onclick="saveDeal('${dealId}')">Save Changes</button>
     </div>`,true);
@@ -6816,6 +6817,53 @@ async function deleteDeal(dealId){
     pipeline.deals=pipeline.deals.filter(d=>d.id!==dealId);
     closeModal(); renderBoard(); refreshPipelineHeader(); showToast('Deal deleted');
   } catch(e){showToast('Error deleting deal','error');}
+}
+
+// ─── TRANSFER DEAL BETWEEN PIPELINES ───
+function openTransferDealModal(dealId){
+  if(!requirePerm('edit','You have view-only access — editing is disabled')) return;
+  const pipeline=getActivePipeline();
+  const deal=pipeline?.deals.find(d=>d.id===dealId); if(!deal) return;
+  const others=pipelines.filter(p=>p.id!==pipeline.id);
+  if(!others.length){ showToast('No other pipeline to transfer to — create another pipeline first','error'); return; }
+  const plOpts=others.map(p=>`<option value="${p.id}">${pName(p.name)}</option>`).join('');
+  openModal(`
+    <div class="modal-head"><div class="modal-title">Transfer Deal</div><span class="modal-close" onclick="openDealDetail('${dealId}')">×</span></div>
+    <div class="modal-body">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Move <strong>${pName(deal.name)}</strong> from <strong>${pName(pipeline.name)}</strong> to another pipeline. Its value, tags, custom fields, and linked contact are kept — just pick the stage it should land in.</div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Target Pipeline</label><select class="form-select" id="td-pipeline" onchange="updateTransferStages()">${plOpts}</select></div>
+        <div class="form-group"><label class="form-label">Landing Stage</label><select class="form-select" id="td-stage"></select></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="openDealDetail('${dealId}')">Cancel</button>
+      <button class="btn btn-primary" onclick="transferDeal('${dealId}')">Transfer Deal</button>
+    </div>`,true);
+  updateTransferStages();
+}
+function updateTransferStages(){
+  const plId=document.getElementById('td-pipeline')?.value;
+  const pl=pipelines.find(p=>p.id===plId);
+  const stageSel=document.getElementById('td-stage'); if(!stageSel) return;
+  stageSel.innerHTML=(pl?.stages||[]).map(s=>`<option value="${s.id}">${escapeHtml(s.label)}</option>`).join('');
+}
+async function transferDeal(dealId){
+  if(!requirePerm('edit','You have view-only access — editing is disabled')) return;
+  const src=getActivePipeline();
+  const deal=src?.deals.find(d=>d.id===dealId); if(!deal) return;
+  const targetPlId=document.getElementById('td-pipeline')?.value;
+  const targetStage=document.getElementById('td-stage')?.value;
+  const target=pipelines.find(p=>p.id===targetPlId);
+  if(!target||!targetStage){ showToast('Pick a target pipeline and stage','error'); return; }
+  try {
+    await sb.patch('deals',dealId,{pipeline_id:targetPlId,stage_id:targetStage});
+    src.deals=src.deals.filter(d=>d.id!==dealId);
+    deal.pipeline_id=targetPlId; deal.stage=targetStage;
+    target.deals.push(deal);
+    closeModal(); renderBoard(); refreshPipelineHeader();
+    showToast(`Deal moved to ${target.name}`);
+  } catch(e){showToast('Error transferring deal','error');console.error(e);}
 }
 
 // ─── PIPELINE STAGES MODAL (was: SETTINGS PIPELINE) ───
