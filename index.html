@@ -2616,6 +2616,9 @@ table th[onclick]{transition:background .15s,color .15s}
           </div>
         </div>
 
+        <!-- Subscriptions & Expenses — owner-only; rendered by renderSubscriptionsCard() -->
+        <div id="subs-card-wrap"></div>
+
         <div class="settings-card">
           <div class="settings-card-head">
             <div>
@@ -6961,6 +6964,214 @@ function renderSettingsPage(){
   loadStorageStats();
   // Render version history
   renderVersionHistory();
+  // Subscriptions / expenses (owner-only personal tracker)
+  renderSubscriptionsCard();
+  loadSubscriptions();
+}
+
+// ═══════════════════════════════════════════════
+// SUBSCRIPTIONS / EXPENSES — owner-only personal expense tracker
+// Data: public.subscriptions, RLS locked to auth.uid()=user_id (only the owner can read
+// their own rows, even via the REST API — verified by anon curl, see BUGLOG RLS rule).
+// UI is also gated to the owner's email so the card never renders for other team members.
+// ═══════════════════════════════════════════════
+const SUBS_OWNER_EMAIL = 'aaronbill.victa@gmail.com';
+let subsData = [];
+
+const SUB_CURRENCIES = { USD:'$', PHP:'₱', EUR:'€', GBP:'£', CAD:'C$', AUD:'A$' };
+function subCurSym(c){ return SUB_CURRENCIES[c] || (c ? c+' ' : '$'); }
+function fmtMoney(n, c){ return subCurSym(c) + Number(n||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function subMonthly(s){ const cost = Number(s.cost||0); return s.cycle==='yearly' ? cost/12 : cost; }
+function isSubsOwner(){ return !!currentUser && currentUser.email === SUBS_OWNER_EMAIL; }
+
+function subsTotalsByCurrency(list){
+  const m = {};
+  list.forEach(s=>{ const c=s.currency||'USD'; m[c] = (m[c]||0) + subMonthly(s); });
+  return m;
+}
+function fmtTotalsMap(m){
+  const keys = Object.keys(m);
+  if(!keys.length) return '$0.00';
+  return keys.map(c=>fmtMoney(m[c], c)).join('  ·  ');
+}
+function daysUntil(d){
+  if(!d) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const t = new Date(d+'T00:00:00');
+  return Math.round((t - today)/86400000);
+}
+
+async function loadSubscriptions(){
+  if(!isSubsOwner()) return;
+  try { subsData = await sb.get('subscriptions','?order=created_at.desc'); }
+  catch(e){ subsData = []; }
+  renderSubscriptionsCard();
+}
+
+function renderSubscriptionsCard(){
+  const wrap = document.getElementById('subs-card-wrap');
+  if(!wrap) return;
+  if(!isSubsOwner()){ wrap.innerHTML=''; return; }
+
+  const active = subsData.filter(s=>s.status!=='cancelled');
+  const totalStr = fmtTotalsMap(subsTotalsByCurrency(active));
+  const cancelledCount = subsData.length - active.length;
+
+  // category breakdown chips
+  const byCat = {};
+  active.forEach(s=>{ const k=(s.category&&s.category.trim())||'Uncategorized'; (byCat[k]=byCat[k]||[]).push(s); });
+  const catChips = Object.keys(byCat)
+    .map(k=>({k, list:byCat[k], sum:byCat[k].reduce((a,s)=>a+subMonthly(s),0)}))
+    .sort((a,b)=>b.sum-a.sum)
+    .map(c=>`<span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px">
+        <span style="color:var(--text)">${escapeHtml(c.k)}</span>
+        <span style="color:var(--text3)">${fmtTotalsMap(subsTotalsByCurrency(c.list))}/mo</span>
+      </span>`).join('');
+
+  const th = 'text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);font-weight:600';
+  const rows = subsData.map(s=>{
+    const cancelled = s.status==='cancelled';
+    const du = daysUntil(s.next_renewal);
+    let renewCell = s.next_renewal
+      ? new Date(s.next_renewal+'T00:00:00').toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'})
+      : '<span style="color:var(--text3)">—</span>';
+    if(!cancelled && du!==null){
+      if(du<0) renewCell = `<span style="color:var(--red)">${renewCell} · overdue</span>`;
+      else if(du===0) renewCell = `<span style="color:var(--amber)">${renewCell} · today</span>`;
+      else if(du<=7) renewCell = `<span style="color:var(--amber)">${renewCell} · in ${du}d</span>`;
+    }
+    return `<tr style="border-bottom:1px solid var(--border);${cancelled?'opacity:.45':''}">
+      <td style="padding:9px 8px">
+        <div style="font-size:13px;color:var(--text);font-weight:500">${escapeHtml(s.name)}</div>
+        ${s.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${escapeHtml(s.notes)}</div>`:''}
+      </td>
+      <td style="padding:9px 8px;font-size:12px;color:var(--text2)">${s.category?escapeHtml(s.category):'<span style=\"color:var(--text3)\">—</span>'}</td>
+      <td style="padding:9px 8px;font-size:12px;color:var(--text2);white-space:nowrap">${fmtMoney(s.cost,s.currency)} <span style="color:var(--text3)">/ ${s.cycle==='yearly'?'yr':'mo'}</span></td>
+      <td style="padding:9px 8px;font-size:12px;color:var(--text);white-space:nowrap">${fmtMoney(subMonthly(s),s.currency)}<span style="color:var(--text3)">/mo</span></td>
+      <td style="padding:9px 8px;font-size:12px;white-space:nowrap">${renewCell}</td>
+      <td style="padding:9px 8px;text-align:right;white-space:nowrap">
+        <button class="btn btn-sm" onclick="toggleSubStatus('${s.id}')" title="${cancelled?'Reactivate':'Mark cancelled'}" style="font-size:10px;padding:2px 8px">${cancelled?'Cancelled':'Active'}</button>
+        <button class="btn btn-sm" onclick="openSubModal('${s.id}')" title="Edit" style="padding:2px 8px">✎</button>
+        <button class="btn btn-sm" onclick="deleteSub('${s.id}')" title="Delete" style="padding:2px 8px;color:var(--red)">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="settings-card">
+      <div class="settings-card-head">
+        <div>
+          <div class="settings-card-title">Subscriptions &amp; Expenses 🔒</div>
+          <div class="settings-card-sub">Private to you — track your recurring monthly costs</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="openSubModal()">+ Add</button>
+      </div>
+
+      <div style="display:flex;align-items:baseline;gap:10px;margin:4px 0 12px">
+        <span style="font-size:24px;font-weight:700;color:var(--text)">${totalStr}</span>
+        <span style="font-size:12px;color:var(--text3)">/ month · ${active.length} active${cancelledCount?` · ${cancelledCount} cancelled`:''}</span>
+      </div>
+
+      ${catChips?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">${catChips}</div>`:''}
+
+      ${subsData.length ? `
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse">
+            <thead><tr>
+              <th style="${th}">Service</th><th style="${th}">Category</th><th style="${th}">Cost</th>
+              <th style="${th}">Monthly</th><th style="${th}">Next renewal</th><th></th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>`
+      : `<div style="font-size:12px;color:var(--text3);padding:14px 0;text-align:center">No subscriptions yet. Click <strong>+ Add</strong> to track your first expense.</div>`}
+    </div>`;
+}
+
+function openSubModal(id){
+  if(!isSubsOwner()) return;
+  const s = id ? subsData.find(x=>x.id===id) : null;
+  const cats = [...new Set(subsData.map(x=>x.category).filter(Boolean))];
+  const curOpts = Object.keys(SUB_CURRENCIES).map(c=>`<option value="${c}" ${(s?s.currency:'USD')===c?'selected':''}>${c}</option>`).join('');
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">${id?'Edit':'Add'} Subscription</div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body" style="padding:4px 20px 0">
+      <div class="form-group"><label class="form-label">Service name</label>
+        <input class="form-input" id="sub-name" value="${s?escapeHtml(s.name):''}" placeholder="e.g. Vercel Pro"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        <div class="form-group"><label class="form-label">Cost</label>
+          <input class="form-input" id="sub-cost" type="number" step="0.01" min="0" value="${s?s.cost:''}" placeholder="0.00"/></div>
+        <div class="form-group"><label class="form-label">Currency</label>
+          <select class="form-select" id="sub-currency">${curOpts}</select></div>
+        <div class="form-group"><label class="form-label">Billing</label>
+          <select class="form-select" id="sub-cycle">
+            <option value="monthly" ${!s||s.cycle==='monthly'?'selected':''}>Monthly</option>
+            <option value="yearly" ${s&&s.cycle==='yearly'?'selected':''}>Yearly</option>
+          </select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group"><label class="form-label">Category</label>
+          <input class="form-input" id="sub-category" list="sub-cat-list" value="${s?escapeHtml(s.category||''):''}" placeholder="e.g. Hosting"/>
+          <datalist id="sub-cat-list">${cats.map(c=>`<option value="${escapeHtml(c)}"></option>`).join('')}</datalist></div>
+        <div class="form-group"><label class="form-label">Next renewal</label>
+          <input class="form-input" id="sub-renewal" type="date" value="${s&&s.next_renewal?s.next_renewal:''}"/></div>
+      </div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select class="form-select" id="sub-status">
+          <option value="active" ${!s||s.status==='active'?'selected':''}>Active</option>
+          <option value="cancelled" ${s&&s.status==='cancelled'?'selected':''}>Cancelled</option>
+        </select></div>
+      <div class="form-group"><label class="form-label">Notes</label>
+        <textarea class="form-input" id="sub-notes" rows="2" placeholder="Optional">${s?escapeHtml(s.notes||''):''}</textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSub('${id||''}')">${id?'Save':'Add'}</button>
+    </div>`);
+}
+
+async function saveSub(id){
+  if(!isSubsOwner()) return;
+  const name = document.getElementById('sub-name').value.trim();
+  const cost = parseFloat(document.getElementById('sub-cost').value);
+  if(!name){ showToast('Enter a service name','error'); return; }
+  if(isNaN(cost)||cost<0){ showToast('Enter a valid cost','error'); return; }
+  const body = {
+    name,
+    cost,
+    currency: document.getElementById('sub-currency').value,
+    cycle: document.getElementById('sub-cycle').value,
+    category: document.getElementById('sub-category').value.trim() || null,
+    next_renewal: document.getElementById('sub-renewal').value || null,
+    status: document.getElementById('sub-status').value,
+    notes: document.getElementById('sub-notes').value.trim() || null
+  };
+  try {
+    if(id) await sb.patch('subscriptions', id, body);
+    else await sb.post('subscriptions', body);
+    closeModal();
+    showToast(id?'Subscription updated':'Subscription added');
+    loadSubscriptions();
+  } catch(e){ showToast('Save failed: '+(e.message||e.hint||'check connection'),'error'); }
+}
+
+async function deleteSub(id){
+  if(!isSubsOwner()) return;
+  const s = subsData.find(x=>x.id===id);
+  if(!confirm(`Delete "${s?s.name:'this subscription'}"? This cannot be undone.`)) return;
+  try { await sb.del('subscriptions', id); showToast('Subscription deleted'); loadSubscriptions(); }
+  catch(e){ showToast('Delete failed','error'); }
+}
+
+async function toggleSubStatus(id){
+  if(!isSubsOwner()) return;
+  const s = subsData.find(x=>x.id===id); if(!s) return;
+  const status = s.status==='active' ? 'cancelled' : 'active';
+  try { await sb.patch('subscriptions', id, {status}); loadSubscriptions(); }
+  catch(e){ showToast('Update failed','error'); }
 }
 
 // ═══════════════════════════════════════════════
