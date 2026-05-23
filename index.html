@@ -3647,13 +3647,19 @@ function saveCallHistory(){
   localStorage.setItem('nlm_call_history', JSON.stringify(callHistory.slice(0,100)));
 }
 
-function logCall(direction, number, contactName, durationSecs, status){
+// fromNumber = which of OUR SignalWire numbers handled this call (outbound: the
+// caller-ID line we dialed from; inbound: the DID the contact reached). Stored
+// so call history can show which line was used. Optional — older callers/entries
+// simply leave it blank.
+function logCall(direction, number, contactName, durationSecs, status, fromNumber){
   const id = 'ch_'+Date.now();
+  const from = fromNumber || '';
   callHistory.unshift({
     id, direction, number,
     contactName: contactName||number,
     duration: durationSecs,
     status, // 'completed'|'missed'|'failed'
+    from,   // our SignalWire line used for this call (caller ID)
     ts: new Date().toISOString()
   });
   saveCallHistory();
@@ -3661,7 +3667,8 @@ function logCall(direction, number, contactName, durationSecs, status){
   if(sb) sb.post('call_history', {
     id, direction, number,
     contact_name: contactName||number,
-    duration_secs: durationSecs||0, status
+    duration_secs: durationSecs||0, status,
+    from_number: from || null
   }).catch(()=>{});
   renderCallHistory();
   // Stamp last activity on the matching contact
@@ -3669,6 +3676,25 @@ function logCall(direction, number, contactName, durationSecs, status){
   if(matched) touchContactActivity(matched.id, 'call');
   // Refresh the conversation list if Calls tab is active
   if(convFilter === 'calls' && typeof renderConvList === 'function') renderConvList();
+}
+
+// Returns display HTML for which of OUR SignalWire numbers handled a call entry
+// (the `from` field set by logCall). Shows the number's saved label when we can
+// match it to a configured line, plus the formatted number (blurred in privacy
+// mode via pPhone). Empty string when the call predates from-number logging.
+function callFromHtml(c){
+  const num = c && c.from;
+  if(!num) return '';
+  let label = '';
+  try {
+    const phones = (typeof getSwPhones === 'function' ? getSwPhones() : []);
+    const tail = (num+'').replace(/\D/g,'').slice(-10);
+    const hit = phones.find(p => (p.number||'').replace(/\D/g,'').slice(-10) === tail);
+    if(hit && hit.label) label = (hit.label+'').replace(/</g,'&lt;');
+  } catch(_){}
+  const fmt = (typeof fmtPhoneDisplay === 'function' ? fmtPhoneDisplay(num) : num);
+  const numHtml = (typeof pPhone === 'function' ? pPhone(fmt) : fmt);
+  return label ? `${label} · ${numHtml}` : numHtml;
 }
 
 function fmtDuration(secs){
@@ -3734,11 +3760,13 @@ function renderCallHistory(){
       ? `openContactDetail('${contact.id}')`
       : `openUnknownNumberDetail('${numStr}')`;
     const titleAttr = contact ? 'Open contact' : 'Open caller details';
+    const fromHtml = callFromHtml(c);
     return `<div class="call-hist-item" onclick="${onClick}" title="${titleAttr}">
       <span style="font-size:14px;width:16px;text-align:center;flex-shrink:0">${icon}</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:11px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${title}</div>
         <div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sub}</div>
+        ${fromHtml?`<div style="font-size:9px;color:var(--text3);opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Line used">📲 ${fromHtml}</div>`:''}
       </div>
       <div style="font-size:10px;color:${statusColor};flex-shrink:0">${detail}</div>
     </div>`;
@@ -4413,6 +4441,14 @@ function handleIncomingInvite(notification){
       notification.from        || '';
     // Strip the SIP URI wrapper Fabric emits — sip:+18325832601@sip.signalwire.com → +18325832601
     const from = cleanCallerNumber(fromRaw);
+    // Which of OUR numbers the caller dialed (the DID that rang). Best-effort
+    // across SDK field shapes; falls back to our primary line so history always
+    // shows the line involved.
+    const toRaw =
+      details.to_number || details.to || details.callee_id_number ||
+      params.to_number  || params.to  || params.callee_id_number  ||
+      invite.to         || '';
+    const toNum = cleanCallerNumber(toRaw) || (typeof getPrimarySwPhone === 'function' ? getPrimarySwPhone() : '');
     const callerName =
       details.caller_id_name || details.from_name ||
       params.caller_id_name  || params.from_name  ||
@@ -4424,6 +4460,7 @@ function handleIncomingInvite(notification){
     // have to re-derive (the SDK clears .details after accept on some builds)
     invite._resolvedFrom = from;
     invite._resolvedName = displayName;
+    invite._resolvedTo   = toNum;
     showIncomingCallUI(displayName, from, matched);
     startRingtone();
 
@@ -4438,7 +4475,7 @@ function handleIncomingInvite(notification){
       pendingInvite = null;
       stopRingtone();
       hideIncomingCallUI();
-      if(typeof logCall === 'function') logCall('inbound', from, displayName, 0, 'missed');
+      if(typeof logCall === 'function') logCall('inbound', from, displayName, 0, 'missed', toNum);
     };
     const CANCEL_EVENTS = ['cancelled','cancel','ended','end','expired','reject','rejected','destroy','destroyed','timeout'];
     if(typeof invite.on === 'function'){
@@ -4511,8 +4548,10 @@ async function acceptIncomingCall(){
   const matched = (typeof findContactByPhone === 'function') ? findContactByPhone(from) : null;
   const displayName = matched?.name || invite._resolvedName ||
     details.caller_id_name || details.params?.caller_id_name || from || 'Incoming';
-  if(matched) activeCallContact = { id: matched.id, name: matched.name, phone: from };
-  else activeCallContact = { id: null, name: displayName, phone: from };
+  // The DID the caller reached (stashed on the invite) — recorded as our line.
+  const ourLine = invite._resolvedTo || (typeof getPrimarySwPhone === 'function' ? getPrimarySwPhone() : '');
+  if(matched) activeCallContact = { id: matched.id, name: matched.name, phone: from, ourLine };
+  else activeCallContact = { id: null, name: displayName, phone: from, ourLine };
   activeCallDirection = 'inbound';
   openDialpad();
   setCallActive(displayName, from);
@@ -4527,7 +4566,8 @@ async function acceptIncomingCall(){
     if(activeCallContact?.id){
       let conv=conversations.find(c=>c.contactId===activeCallContact.id);
       if(!conv){conv={id:'conv_'+Date.now(),contactId:activeCallContact.id,messages:[]};conversations.push(conv);}
-      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'inbound',body:`📞 Inbound call from ${from||'unknown'}`,ts:new Date().toISOString(),status:'received'});
+      const _toDisp = ourLine ? ` to ${(typeof fmtPhoneDisplay === 'function' ? fmtPhoneDisplay(ourLine) : ourLine)}` : '';
+      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'inbound',body:`📞 Inbound call from ${from||'unknown'}${_toDisp}`,ts:new Date().toISOString(),status:'received'});
       saveConversations();
     }
   } catch(e){
@@ -4551,7 +4591,8 @@ async function declineIncomingCall(){
     const matched = (typeof findContactByPhone === 'function') ? findContactByPhone(from) : null;
     const displayName = matched?.name || invite._resolvedName ||
       details.caller_id_name || from || 'Unknown';
-    logCall('inbound', from, displayName, 0, 'missed');
+    const toNum = invite._resolvedTo || (typeof getPrimarySwPhone === 'function' ? getPrimarySwPhone() : '');
+    logCall('inbound', from, displayName, 0, 'missed', toNum);
   }
 }
 
@@ -4645,14 +4686,16 @@ async function startCall(){
     if(activeCallContact?.id){
       let conv=conversations.find(c=>c.contactId===activeCallContact.id);
       if(!conv){conv={id:'conv_'+Date.now(),contactId:activeCallContact.id,messages:[]};conversations.push(conv);}
-      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'outbound',body:`📞 Outbound call to ${number}`,ts:new Date().toISOString(),status:'sent'});
+      const _fromLine = (typeof getDialerActiveNumber === 'function' ? getDialerActiveNumber() : '');
+      const _fromDisp = _fromLine ? ` from ${(typeof fmtPhoneDisplay === 'function' ? fmtPhoneDisplay(_fromLine) : _fromLine)}` : '';
+      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'outbound',body:`📞 Outbound call to ${number}${_fromDisp}`,ts:new Date().toISOString(),status:'sent'});
       saveConversations();
     }
   } catch(e){
     if(swCall){ try{ await swCall.leave(); }catch(_){} swCall=null; }
     // If we somehow still got an auth error here (e.g. start() threw), force-refresh next time
     if(isExpiredTokenError(e)){ swClient = null; incomingCallsRegistered = false; updateOnlineIndicator(); }
-    logCall('outbound', dialTo, activeCallContact?.name||'', 0, 'failed');
+    logCall('outbound', dialTo, activeCallContact?.name||'', 0, 'failed', (typeof getDialerActiveNumber === 'function' ? getDialerActiveNumber() : ''));
     showToast('Call failed: '+(e.message||'Unknown error'),'error');
     logError('startCall', e.message, e.stack, { to: dialTo, contact: activeCallContact?.name });
     // Reset the in-call UI we optimistically opened
@@ -4748,7 +4791,12 @@ function endCall(){
   // Log to call history
   const calledNumber = activeCallContact?.phone || document.getElementById('call-dial-number')?.value || '';
   const dir = activeCallDirection || 'outbound';
-  logCall(dir, calledNumber, activeCallContact?.name||'', callSeconds, callSeconds>0?'completed':'missed');
+  // Which of OUR SignalWire numbers handled this call: outbound = the line we
+  // dialed from; inbound = the DID the caller reached (stashed on accept).
+  const ourLine = (dir === 'outbound')
+    ? (typeof getDialerActiveNumber === 'function' ? getDialerActiveNumber() : '')
+    : (activeCallContact?.ourLine || (typeof getPrimarySwPhone === 'function' ? getPrimarySwPhone() : ''));
+  logCall(dir, calledNumber, activeCallContact?.name||'', callSeconds, callSeconds>0?'completed':'missed', ourLine);
   if(activeCallContact?.id){
     let conv=conversations.find(c=>c.contactId===activeCallContact.id);
     if(conv){
@@ -6027,11 +6075,12 @@ function openUnknownNumberDetail(rawNumber){
           ? (c.status==='missed' ? '<span style="color:var(--red)">↙</span>' : '<span style="color:var(--green)">↙</span>')
           : (c.status==='failed' ? '<span style="color:var(--red)">↗</span>' : '<span style="color:var(--accent2)">↗</span>');
         const detail = c.status==='missed' ? 'Missed' : c.status==='failed' ? 'Failed' : (c.duration ? fmtDuration(c.duration) : 'Connected');
+        const fromHtml = callFromHtml(c);
         return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px">
           <span style="width:16px;text-align:center;flex-shrink:0;font-size:14px">${icon}</span>
           <div style="flex:1;min-width:0">
             <div style="color:var(--text)">${isIn?'Inbound':'Outbound'}</div>
-            <div style="font-size:10px;color:var(--text3)">${fmtCallTime(c.ts)}</div>
+            <div style="font-size:10px;color:var(--text3)">${fmtCallTime(c.ts)}${fromHtml?` · 📲 ${fromHtml}`:''}</div>
           </div>
           <div style="font-size:11px;color:var(--text3);flex-shrink:0">${detail}</div>
         </div>`;
@@ -11521,6 +11570,7 @@ function renderConvList(){
         ? `openConversation('${contact.id}')`
         : `dialpadSetNumber('${c.number}');openDialpad()`;
 
+      const fromHtml = callFromHtml(c);
       return `<div class="conv-item" onclick="${onClick}" title="${contact?'Open conversation':'Redial '+c.number}">
         <div class="conv-item-av" style="background:${avBg};color:${avClr}">${av}</div>
         <div class="conv-item-info">
@@ -11528,6 +11578,7 @@ function renderConvList(){
             <span style="color:${iconColor};font-weight:700;margin-right:4px">${icon}</span>${displayName}
           </div>
           <div class="conv-item-preview" style="color:${statusColor}">${statusText} · ${numberLine}</div>
+          ${fromHtml?`<div class="conv-item-preview" style="color:var(--text3);font-size:10px">📲 via ${fromHtml}</div>`:''}
         </div>
         <div class="conv-item-meta">
           <span class="conv-item-time">${relativeTime(c.ts)}</span>
@@ -13440,6 +13491,7 @@ function dialerHistRowHTML(c){
     ? `<div class="av-sm ${getAv(contact.id)}" style="flex-shrink:0">${initials(contact.name)}</div>`
     : `<div class="av-sm" style="flex-shrink:0;background:var(--bg4);color:var(--text3)">☎</div>`;
   const numStr = (c.number||'').replace(/'/g,'');
+  const fromHtml = callFromHtml(c);
   const onClick = contact
     ? `openContactDetail('${contact.id}')`
     : `openUnknownNumberDetail('${numStr}')`;
@@ -13448,7 +13500,7 @@ function dialerHistRowHTML(c){
     ${av}
     <div style="flex:1;min-width:0">
       <div style="font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${displayName}${dispoPill}</div>
-      <div style="font-size:11px;color:var(--text3)">${(contact||hasName)?(pPhone(phoneFmt)+' · '):''}${statusText}${!contact?' · not in contacts':''}</div>
+      <div style="font-size:11px;color:var(--text3)">${(contact||hasName)?(pPhone(phoneFmt)+' · '):''}${statusText}${fromHtml?` · 📲 ${fromHtml}`:''}${!contact?' · not in contacts':''}</div>
     </div>
     <div style="font-size:11px;color:var(--text3);flex-shrink:0">${time}</div>
   </div>`;
