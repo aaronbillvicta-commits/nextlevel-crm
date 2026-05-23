@@ -14489,16 +14489,19 @@ function renderVaApplicantsPage(){
     if(!list.length){ tbody.innerHTML=''; emptyEl.style.display='block'; return; }
     emptyEl.style.display = 'none';
     tbody.innerHTML = list.map(v => {
-      const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email;
-      const roles = (v.roles||[]).slice(0,2).join(', ') + ((v.roles||[]).length>2?` +${v.roles.length-2}`:'');
+      // Public-form data is untrusted — escape every rendered field (BUG-024 rule).
+      const esc = (s) => escapeHtml(s == null ? '' : String(s));
+      const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email || '';
+      const roleArr = (v.roles||[]);
+      const roles = roleArr.slice(0,2).map(esc).join(', ') + (roleArr.length>2?` +${roleArr.length-2}`:'');
       const rate = v.hourly_rate ? `$${v.hourly_rate}/hr` : '—';
       const statusCol = VA_STATUS_COLORS[v.review_status] || '#6b7280';
       const statusLabel = VA_STATUS_LABELS[v.review_status] || v.review_status;
       const submitted = v.submitted_at ? new Date(v.submitted_at).toLocaleDateString() : '—';
       const isActive = !!v.activated_at;
       return `<tr>
-        <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openVaApplicantModal('${v.id}')">${name}</span><br><span style="font-size:11px;color:var(--text3)">${v.email||''}</span></td>
-        <td style="font-size:12px;color:var(--text2)">${v.country_city||'—'}</td>
+        <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openVaApplicantModal('${v.id}')">${esc(name)}</span><br><span style="font-size:11px;color:var(--text3)">${esc(v.email||'')}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${v.country_city ? esc(v.country_city) : '—'}</td>
         <td style="font-size:12px;color:var(--text2)">${roles||'—'}</td>
         <td style="font-family:'DM Mono',monospace;font-size:12px">${rate}</td>
         <td><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;background:${statusCol}18;color:${statusCol}">${statusLabel}</span></td>
@@ -14913,7 +14916,9 @@ function renderClientIntakesPage(){
     if(!list.length){ tbody.innerHTML=''; emptyEl.style.display='block'; return; }
     emptyEl.style.display = 'none';
     tbody.innerHTML = list.map(c => {
-      const name = `${c.first_name||''} ${c.last_name||''}`.trim() || c.email;
+      // Public-form data is untrusted — escape every rendered field (BUG-024 rule).
+      const esc = (s) => escapeHtml(s == null ? '' : String(s));
+      const name = `${c.first_name||''} ${c.last_name||''}`.trim() || c.email || '';
       const budget = (c.budget_min||c.budget_max)
         ? `$${c.budget_min||'?'}–$${c.budget_max||'?'}/hr`
         : '—';
@@ -14922,9 +14927,9 @@ function renderClientIntakesPage(){
       const submitted = c.submitted_at ? new Date(c.submitted_at).toLocaleDateString() : '—';
       const isActive = !!c.activated_at;
       return `<tr>
-        <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openClientIntakeModal('${c.id}')">${name}</span><br><span style="font-size:11px;color:var(--text3)">${c.email||''}</span></td>
-        <td style="font-size:12px;color:var(--text2)">${c.company||'—'}</td>
-        <td style="font-size:12px;color:var(--text2)">${c.industry||'—'}</td>
+        <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openClientIntakeModal('${c.id}')">${esc(name)}</span><br><span style="font-size:11px;color:var(--text3)">${esc(c.email||'')}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${c.company ? esc(c.company) : '—'}</td>
+        <td style="font-size:12px;color:var(--text2)">${c.industry ? esc(c.industry) : '—'}</td>
         <td style="font-family:'DM Mono',monospace;font-size:12px">${budget}</td>
         <td style="font-size:12px;color:var(--text2)">${c.hours_per_week ? c.hours_per_week+' hrs' : '—'}</td>
         <td><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;background:${statusCol}18;color:${statusCol}">${statusLabel}</span></td>
