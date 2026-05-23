@@ -74,7 +74,7 @@ export function renderClientsPage(){
   const countEl = document.getElementById('clients-count-label');
   if(countEl) countEl.textContent = `(${filtered.length}${q ? ' of ' + all.length : ''})`;
   if(filtered.length === 0){
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:32px">${q ? 'No active clients match your search' : 'No active clients yet — mark a contact\'s status as "Client" to see them here.'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;color:var(--text3);padding:32px">${q ? 'No active clients match your search' : 'No active clients yet — mark a contact\'s status as "Client" to see them here.'}</td></tr>`;
     return;
   }
   const sym = (typeof window.getCurrencySymbol === 'function') ? window.getCurrencySymbol() : '$';
@@ -82,6 +82,8 @@ export function renderClientsPage(){
     const depositTxt = (c.deposit != null && c.deposit !== '') ? `${sym}${Number(c.deposit).toLocaleString()}` : '<span style="opacity:.4">—</span>';
     const paymentTxt = c.payment_structure ? c.payment_structure.charAt(0).toUpperCase() + c.payment_structure.slice(1) : '<span style="opacity:.4">—</span>';
     const vaTxt = c.assigned_va ? c.assigned_va : '<span style="opacity:.4">—</span>';
+    const vaRateTxt = (c.va_rate != null && c.va_rate !== '') ? `${sym}${Number(c.va_rate).toLocaleString()}` : '<span style="opacity:.4">—</span>';
+    const agencyCutTxt = (c.agency_cut != null && c.agency_cut !== '') ? `${sym}${Number(c.agency_cut).toLocaleString()}` : '<span style="opacity:.4">—</span>';
     const lastAct = c.last_activity ? window.fmtLastActivity(c.last_activity) : '<span style="opacity:.4">—</span>';
     return `<tr>
       <td><div class="td-name" onclick="openContactDetail('${c.id}')" style="cursor:pointer"><div class="av-sm ${window.getAv(c.id)}">${window.initials(c.name)}</div><span style="color:var(--text);font-weight:500">${window.pName(c.name)}</span></div></td>
@@ -92,6 +94,8 @@ export function renderClientsPage(){
       <td onclick="editClientCell('${c.id}','deposit')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit deposit">${depositTxt}</td>
       <td onclick="editClientCell('${c.id}','payment_structure')" style="cursor:pointer;font-size:12px" title="Click to set payment cadence">${paymentTxt}</td>
       <td onclick="editClientCell('${c.id}','assigned_va')" style="cursor:pointer;font-size:12px" title="Click to assign VA">${vaTxt}</td>
+      <td onclick="editClientCell('${c.id}','va_rate')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit VA rate">${vaRateTxt}</td>
+      <td onclick="editClientCell('${c.id}','agency_cut')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit agency cut">${agencyCutTxt}</td>
       <td style="font-size:11px;color:var(--text3)">${lastAct}</td>
       <td style="white-space:nowrap"><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">💬</button></td>
     </tr>`;
@@ -114,10 +118,11 @@ export function editClientCell(contactId, field){
     input.innerHTML = `<option value="">—</option><option value="weekly">Weekly</option><option value="bi-weekly">Bi-weekly</option><option value="monthly">Monthly</option>`;
     input.value = current;
   } else {
+    const isMoney = (field === 'deposit' || field === 'va_rate' || field === 'agency_cut');
     input = document.createElement('input');
     input.className = 'form-input';
-    input.type = (field === 'deposit') ? 'number' : 'text';
-    if(field === 'deposit'){ input.step = '0.01'; input.min = '0'; }
+    input.type = isMoney ? 'number' : 'text';
+    if(isMoney){ input.step = '0.01'; input.min = '0'; }
     input.style.cssText = 'width:100%;padding:2px 4px;font-size:12px';
     input.value = current;
   }
@@ -132,7 +137,7 @@ export function editClientCell(contactId, field){
   const commit = async () => {
     if(finished) return; finished = true;
     let val = input.value.trim();
-    if(field === 'deposit') val = val === '' ? null : Number(val);
+    if(field === 'deposit' || field === 'va_rate' || field === 'agency_cut') val = val === '' ? null : Number(val);
     if(field === 'payment_structure' && val === '') val = null;
     await saveClientField(contactId, field, val);
     renderClientsPage();

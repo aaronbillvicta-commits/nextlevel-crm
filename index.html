@@ -1322,6 +1322,10 @@ table th[onclick]{transition:background .15s,color .15s}
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
       Client Intakes
     </div>
+    <div class="nav-item" data-page="active-vas">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+      Active VAs
+    </div>
     <div class="nav-sec">Settings</div>
     <div class="nav-item" data-page="tools">
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="1.6" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
@@ -2309,11 +2313,44 @@ table th[onclick]{transition:background .15s,color .15s}
               <th>Deposit</th>
               <th>Payment</th>
               <th>Assigned VA</th>
+              <th>VA Rate</th>
+              <th>Agency Cut</th>
               <th>Last Activity</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="clients-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="page" id="page-active-vas">
+      <div class="sec-head">
+        <div>
+          <div class="sec-title">Active VAs <span id="active-vas-count-label" style="color:var(--text3);font-weight:400;font-size:14px"></span></div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">VA applicants marked <strong>Placed</strong> — assign a client, set the agreed rate, and record payout details</div>
+        </div>
+      </div>
+
+      <div style="position:relative;max-width:320px;margin-bottom:14px">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-input" id="active-vas-search" type="search" style="padding-left:32px" placeholder="Search active VAs…" oninput="renderActiveVasPage()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" data-form-type="other" name="crm-search-active-vas"/>
+      </div>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Role</th>
+              <th>Client Assigned</th>
+              <th>Rate</th>
+              <th>Payment Method</th>
+              <th>Payment Details</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="active-vas-tbody"></tbody>
         </table>
       </div>
     </div>
@@ -5836,6 +5873,12 @@ function openContactDetail(contactId, tab='info') {
           <label class="form-label">Assigned VA</label>
           <input class="form-input" id="cd-assigned-va" value="${(c.assigned_va||'').replace(/"/g,'&quot;')}" placeholder="e.g. Maria Cruz"/>
         </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">VA Rate (${getCurrencySymbol()})</label>
+            <input class="form-input" id="cd-va-rate" type="number" step="0.01" min="0" value="${c.va_rate ?? ''}" placeholder="0.00"/></div>
+          <div class="form-group"><label class="form-label">Agency Cut (${getCurrencySymbol()})</label>
+            <input class="form-input" id="cd-agency-cut" type="number" step="0.01" min="0" value="${c.agency_cut ?? ''}" placeholder="0.00"/></div>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Notes</label>
@@ -5995,6 +6038,8 @@ async function saveContactDetail(contactId){
   const depositEl = document.getElementById('cd-deposit');
   const paymentEl = document.getElementById('cd-payment-structure');
   const vaEl      = document.getElementById('cd-assigned-va');
+  const vaRateEl  = document.getElementById('cd-va-rate');
+  const agencyEl  = document.getElementById('cd-agency-cut');
   const clientPatch = {};
   if(depositEl){
     const dv = depositEl.value.trim();
@@ -6005,6 +6050,8 @@ async function saveContactDetail(contactId){
     clientPatch.payment_structure = pv === '' ? null : pv;
   }
   if(vaEl){ clientPatch.assigned_va = vaEl.value.trim() || null; }
+  if(vaRateEl){ const rv = vaRateEl.value.trim(); clientPatch.va_rate = rv === '' ? null : Number(rv); }
+  if(agencyEl){ const av = agencyEl.value.trim(); clientPatch.agency_cut = av === '' ? null : Number(av); }
   try {
     await sb.patch('contacts', contactId, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct,...clientPatch});
     Object.assign(c, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct,...clientPatch});
@@ -11139,7 +11186,7 @@ function renderClientsPage(){
   const countEl = document.getElementById('clients-count-label');
   if(countEl) countEl.textContent = `(${filtered.length}${q ? ' of ' + all.length : ''})`;
   if(filtered.length === 0){
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:32px">${q ? 'No active clients match your search' : 'No active clients yet — mark a contact\'s status as "Client" to see them here.'}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="12" style="text-align:center;color:var(--text3);padding:32px">${q ? 'No active clients match your search' : 'No active clients yet — mark a contact\'s status as "Client" to see them here.'}</td></tr>`;
     return;
   }
   const sym = (typeof getCurrencySymbol === 'function') ? getCurrencySymbol() : '$';
@@ -11147,6 +11194,8 @@ function renderClientsPage(){
     const depositTxt = (c.deposit != null && c.deposit !== '') ? `${sym}${Number(c.deposit).toLocaleString()}` : '<span style="opacity:.4">—</span>';
     const paymentTxt = c.payment_structure ? c.payment_structure.charAt(0).toUpperCase() + c.payment_structure.slice(1) : '<span style="opacity:.4">—</span>';
     const vaTxt = c.assigned_va ? c.assigned_va : '<span style="opacity:.4">—</span>';
+    const vaRateTxt = (c.va_rate != null && c.va_rate !== '') ? `${sym}${Number(c.va_rate).toLocaleString()}` : '<span style="opacity:.4">—</span>';
+    const agencyCutTxt = (c.agency_cut != null && c.agency_cut !== '') ? `${sym}${Number(c.agency_cut).toLocaleString()}` : '<span style="opacity:.4">—</span>';
     const lastAct = c.last_activity ? fmtLastActivity(c.last_activity) : '<span style="opacity:.4">—</span>';
     return `<tr>
       <td><div class="td-name" onclick="openContactDetail('${c.id}')" style="cursor:pointer"><div class="av-sm ${getAv(c.id)}">${initials(c.name)}</div><span style="color:var(--text);font-weight:500">${pName(c.name)}</span></div></td>
@@ -11157,6 +11206,8 @@ function renderClientsPage(){
       <td onclick="editClientCell('${c.id}','deposit')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit deposit">${depositTxt}</td>
       <td onclick="editClientCell('${c.id}','payment_structure')" style="cursor:pointer;font-size:12px" title="Click to set payment cadence">${paymentTxt}</td>
       <td onclick="editClientCell('${c.id}','assigned_va')" style="cursor:pointer;font-size:12px" title="Click to assign VA">${vaTxt}</td>
+      <td onclick="editClientCell('${c.id}','va_rate')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit VA rate">${vaRateTxt}</td>
+      <td onclick="editClientCell('${c.id}','agency_cut')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit agency cut">${agencyCutTxt}</td>
       <td style="font-size:11px;color:var(--text3)">${lastAct}</td>
       <td style="white-space:nowrap"><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">💬</button></td>
     </tr>`;
@@ -11180,10 +11231,11 @@ function editClientCell(contactId, field){
     input.innerHTML = `<option value="">—</option><option value="weekly">Weekly</option><option value="bi-weekly">Bi-weekly</option><option value="monthly">Monthly</option>`;
     input.value = current;
   } else {
+    const isMoney = (field === 'deposit' || field === 'va_rate' || field === 'agency_cut');
     input = document.createElement('input');
     input.className = 'form-input';
-    input.type = (field === 'deposit') ? 'number' : 'text';
-    if(field === 'deposit'){ input.step = '0.01'; input.min = '0'; }
+    input.type = isMoney ? 'number' : 'text';
+    if(isMoney){ input.step = '0.01'; input.min = '0'; }
     input.style.cssText = 'width:100%;padding:2px 4px;font-size:12px';
     input.value = current;
   }
@@ -11198,7 +11250,7 @@ function editClientCell(contactId, field){
   const commit = async () => {
     if(finished) return; finished = true;
     let val = input.value.trim();
-    if(field === 'deposit') val = val === '' ? null : Number(val);
+    if(field === 'deposit' || field === 'va_rate' || field === 'agency_cut') val = val === '' ? null : Number(val);
     if(field === 'payment_structure' && val === '') val = null;
     await saveClientField(contactId, field, val);
     renderClientsPage();
@@ -14654,6 +14706,162 @@ async function deleteVaApplicant(id){
   showToast('Applicant deleted', 'success');
 }
 
+// ── ACTIVE VAs PAGE ─────────────────────────────────────────────────────────
+// Lists VA applicants whose review_status === 'placed'. Lets an operator assign
+// the client, set the agreed engagement rate (active_rate, falls back to the
+// application hourly_rate), record a Philippine payout method + details, and
+// open the full application (openVaApplicantModal — "the VA applicant form").
+const VA_PAY_METHODS = [
+  {value:'gcash',label:'GCash'}, {value:'maya',label:'Maya (PayMaya)'}, {value:'bank',label:'Bank transfer'},
+  {value:'instapay',label:'InstaPay'}, {value:'pesonet',label:'PESONet'}, {value:'paypal',label:'PayPal'},
+  {value:'wise',label:'Wise'}, {value:'remitly',label:'Remitly'}, {value:'coins_ph',label:'Coins.ph'},
+  {value:'unionbank',label:'UnionBank'}, {value:'bpi',label:'BPI'}, {value:'bdo',label:'BDO'}, {value:'other',label:'Other'},
+];
+
+function renderActiveVasPage(){
+  const tbody = document.getElementById('active-vas-tbody'); if(!tbody) return;
+  const q = (document.getElementById('active-vas-search')?.value || '').toLowerCase();
+  const esc = (s) => (typeof escapeHtml === 'function') ? escapeHtml(s == null ? '' : String(s)) : String(s == null ? '' : s);
+  fetchVaApplicants().then(() => {
+    const activeClients = contacts.filter(c => c.status === 'done');
+    let list = vaApplicants.filter(v => v.review_status === 'placed');
+    if(q) list = list.filter(v => {
+      const name   = `${v.first_name||''} ${v.last_name||''}`.toLowerCase();
+      const roles  = (v.roles||[]).join(' ').toLowerCase();
+      const client = (contacts.find(c => c.id === v.assigned_to_contact_id)?.name || '').toLowerCase();
+      return name.includes(q) || roles.includes(q) || client.includes(q) || (v.email||'').toLowerCase().includes(q);
+    });
+    const countEl = document.getElementById('active-vas-count-label');
+    if(countEl) countEl.textContent = `(${list.length})`;
+    if(!list.length){
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">${q ? 'No active VAs match your search' : 'No active VAs yet — open a VA applicant and set their status to "Placed" to manage them here.'}</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = list.map(v => {
+      const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email || 'VA';
+      const roles = (v.roles||[]).map(esc).join(', ') || '<span style="opacity:.4">—</span>';
+      // Client picker — active clients, plus the assigned contact if it's no longer 'done'
+      const assignedId = v.assigned_to_contact_id || '';
+      let clientOpts = `<option value="">— Unassigned</option>`;
+      const seen = new Set();
+      activeClients.forEach(c => { seen.add(c.id); clientOpts += `<option value="${c.id}" ${c.id===assignedId?'selected':''}>${esc(c.name)}</option>`; });
+      if(assignedId && !seen.has(assignedId)){
+        const ac = contacts.find(c => c.id === assignedId);
+        if(ac) clientOpts += `<option value="${ac.id}" selected>${esc(ac.name)}</option>`;
+      }
+      const clientSel = `<select class="form-select" style="font-size:12px;padding:2px 4px;max-width:180px" onchange="assignVaClient('${v.id}', this.value)">${clientOpts}</select>`;
+      // Rate — agreed active_rate, falling back to the application hourly_rate (shown muted)
+      const usingFallback = (v.active_rate == null || v.active_rate === '') && (v.hourly_rate != null && v.hourly_rate !== '');
+      const rateNum = (v.active_rate != null && v.active_rate !== '') ? v.active_rate : v.hourly_rate;
+      const rateTxt = (rateNum != null && rateNum !== '') ? `$${Number(rateNum).toLocaleString()}` : '<span style="opacity:.4">—</span>';
+      const rateCell = usingFallback
+        ? `<span style="opacity:.6" title="From application rate — click to set the agreed rate">${rateTxt}</span>`
+        : rateTxt;
+      // Payment method select
+      let payOpts = `<option value="">—</option>`;
+      VA_PAY_METHODS.forEach(m => { payOpts += `<option value="${m.value}" ${v.payment_method===m.value?'selected':''}>${m.label}</option>`; });
+      const paySel = `<select class="form-select" style="font-size:12px;padding:2px 4px;max-width:160px" onchange="saveVaField('${v.id}','payment_method', this.value || null)">${payOpts}</select>`;
+      // Payment details (click to edit)
+      const payDet = (v.payment_details != null && String(v.payment_details).trim() !== '') ? esc(v.payment_details) : '<span style="opacity:.4">Add details…</span>';
+      return `<tr>
+        <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openVaApplicantModal('${v.id}')">${esc(name)}</span><br><span style="font-size:11px;color:var(--text3)">${esc(v.email||'')}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${roles}</td>
+        <td>${clientSel}</td>
+        <td onclick="editVaCell('${v.id}','active_rate')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to set agreed rate">${rateCell}</td>
+        <td>${paySel}</td>
+        <td onclick="editVaCell('${v.id}','payment_details')" style="cursor:pointer;font-size:12px;max-width:200px" title="Click to edit payment details">${payDet}</td>
+        <td style="white-space:nowrap"><button class="btn btn-sm" onclick="openVaApplicantModal('${v.id}')">View Details</button></td>
+      </tr>`;
+    }).join('');
+  });
+}
+
+// Swap an Active-VA cell to an input, save on blur/Enter, cancel on Escape.
+// Mirrors editClientCell but targets active-vas-tbody + va_applicants fields.
+function editVaCell(id, field){
+  if(typeof requirePerm === 'function' && !requirePerm('edit','You don\'t have permission to edit VAs')) return;
+  const v = vaApplicants.find(x => x.id === id); if(!v) return;
+  const tbody = document.getElementById('active-vas-tbody'); if(!tbody) return;
+  const cell = [...tbody.querySelectorAll('td')].find(td =>
+    td.getAttribute('onclick') === `editVaCell('${id}','${field}')`);
+  if(!cell || cell.querySelector('input,select')) return;
+  const current = v[field] != null ? v[field] : '';
+  const input = document.createElement('input');
+  input.className = 'form-input';
+  input.type = (field === 'active_rate') ? 'number' : 'text';
+  if(field === 'active_rate'){ input.step = '0.01'; input.min = '0'; }
+  input.style.cssText = 'width:100%;padding:2px 4px;font-size:12px';
+  input.value = current;
+  const oldHTML = cell.innerHTML;
+  const oldOnclick = cell.getAttribute('onclick');
+  cell.removeAttribute('onclick');
+  cell.innerHTML = '';
+  cell.appendChild(input);
+  input.focus();
+  if(input.select) input.select();
+  let finished = false;
+  const commit = async () => {
+    if(finished) return; finished = true;
+    let val = input.value.trim();
+    if(field === 'active_rate') val = val === '' ? null : Number(val);
+    else val = val === '' ? null : val;
+    await saveVaField(id, field, val);
+    renderActiveVasPage();
+  };
+  const cancel = () => {
+    if(finished) return; finished = true;
+    cell.innerHTML = oldHTML;
+    if(oldOnclick) cell.setAttribute('onclick', oldOnclick);
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
+    else if(e.key === 'Escape'){ e.preventDefault(); cancel(); }
+  });
+}
+
+async function saveVaField(id, field, value){
+  const v = vaApplicants.find(x => x.id === id); if(!v) return;
+  v[field] = value;
+  try {
+    await sb.patch('va_applicants', id, { [field]: value });
+    showToast('Saved');
+  } catch(e){
+    logError('saveVaField', e.message, e.stack, { id, field });
+    showToast(`Save failed: ${e.message || 'unknown'}`, 'error');
+  }
+}
+
+// Assign (or clear) the client a placed VA is working for. Two-way sync: writes
+// the VA's name into the client's free-text Assigned VA field, and clears it on
+// the previously-assigned client when it still matches this VA.
+async function assignVaClient(id, contactId){
+  if(typeof requirePerm === 'function' && !requirePerm('edit','You don\'t have permission to assign clients')) return;
+  const v = vaApplicants.find(x => x.id === id); if(!v) return;
+  const newId = contactId || null;
+  const prevId = v.assigned_to_contact_id || null;
+  if(newId === prevId) return;
+  v.assigned_to_contact_id = newId;
+  try {
+    await sb.patch('va_applicants', id, { assigned_to_contact_id: newId });
+    const vaName = `${v.first_name||''} ${v.last_name||''}`.trim();
+    if(newId){
+      const c = contacts.find(x => x.id === newId);
+      if(c){ c.assigned_va = vaName || c.assigned_va; await sb.patch('contacts', newId, { assigned_va: vaName }); }
+    }
+    if(prevId && prevId !== newId){
+      const pc = contacts.find(x => x.id === prevId);
+      if(pc && (pc.assigned_va || '') === vaName){ pc.assigned_va = null; await sb.patch('contacts', prevId, { assigned_va: null }); }
+    }
+    showToast(newId ? 'Client assigned ✓' : 'Client unassigned');
+    renderActiveVasPage();
+    if(typeof renderClientsPage === 'function') renderClientsPage();
+  } catch(e){
+    logError('assignVaClient', e.message, e.stack, { id, contactId });
+    showToast(`Assign failed: ${e.message || 'unknown'}`, 'error');
+  }
+}
+
 // ── CLIENT INTAKES PAGE ─────────────────────────────────────────────────────
 
 const CI_STATUSES = ['new','reviewing','matched','active','closed','archived'];
@@ -15088,7 +15296,7 @@ const PAGE_TITLES = {
   calendar:'Calendar', dialer:'Dialer', conversations:'Conversations', email:'Email',
   automations:'Automations', social:'Social Planner', campaigns:'Campaigns',
   clients:'Active Clients',
-  'va-applicants':'VA Applicants', 'client-intakes':'Client Intakes',
+  'va-applicants':'VA Applicants', 'client-intakes':'Client Intakes', 'active-vas':'Active VAs',
   tools:'Tools', tags:'Tags', integrations:'Integrations', 'custom-fields':'Custom Fields', 'form-options-mgr':'Form Options', settings:'Settings'
 };
 
@@ -15130,6 +15338,7 @@ function navigate(page){
   if(page==='campaigns') renderCampaignsPage();
   if(page==='clients') renderClientsPage();
   if(page==='va-applicants') renderVaApplicantsPage();
+  if(page==='active-vas') renderActiveVasPage();
   if(page==='client-intakes') renderClientIntakesPage();
   if(page==='form-options-mgr') renderFormOptionsMgr();
   if(page==='tools') renderToolsPage();
