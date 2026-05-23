@@ -2345,7 +2345,6 @@ table th[onclick]{transition:background .15s,color .15s}
               <th>Role</th>
               <th>Client Assigned</th>
               <th>Rate</th>
-              <th>Payment Method</th>
               <th>Payment Details</th>
               <th>Actions</th>
             </tr>
@@ -14710,16 +14709,10 @@ async function deleteVaApplicant(id){
 }
 
 // ── ACTIVE VAs PAGE ─────────────────────────────────────────────────────────
-// Lists VA applicants whose review_status === 'placed'. Lets an operator assign
-// the client, set the agreed engagement rate (active_rate, falls back to the
-// application hourly_rate), record a Philippine payout method + details, and
-// open the full application (openVaApplicantModal — "the VA applicant form").
-const VA_PAY_METHODS = [
-  {value:'gcash',label:'GCash'}, {value:'maya',label:'Maya (PayMaya)'}, {value:'bank',label:'Bank transfer'},
-  {value:'instapay',label:'InstaPay'}, {value:'pesonet',label:'PESONet'}, {value:'paypal',label:'PayPal'},
-  {value:'wise',label:'Wise'}, {value:'remitly',label:'Remitly'}, {value:'coins_ph',label:'Coins.ph'},
-  {value:'unionbank',label:'UnionBank'}, {value:'bpi',label:'BPI'}, {value:'bdo',label:'BDO'}, {value:'other',label:'Other'},
-];
+// Lists VA applicants whose review_status === 'placed'. Every editable cell
+// (Role, Client, Rate, Payment Details) is clickable and opens its own popup
+// modal — Role + Client are dropdowns, Rate is a number input, Payment Details
+// captures structured banking info. "View Details" opens the full application.
 
 function renderActiveVasPage(){
   const tbody = document.getElementById('active-vas-tbody'); if(!tbody) return;
@@ -14737,33 +14730,28 @@ function renderActiveVasPage(){
     const countEl = document.getElementById('active-vas-count-label');
     if(countEl) countEl.textContent = `(${list.length})`;
     if(!list.length){
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text3);padding:32px">${q ? 'No active VAs match your search' : 'No active VAs yet — open a VA applicant and set their status to "Placed" to manage them here.'}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text3);padding:32px">${q ? 'No active VAs match your search' : 'No active VAs yet — open a VA applicant and set their status to "Placed" to manage them here.'}</td></tr>`;
       return;
     }
     tbody.innerHTML = list.map(v => {
       const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email || 'VA';
-      const roles = (v.roles||[]).map(esc).join(', ') || '<span style="opacity:.4">—</span>';
-      // Client picker — active clients, plus the assigned contact if it's no longer 'done'
+      // Role — the chosen active_role, else the roles they applied with
+      const activeRole = (v.active_role||'').trim();
+      const roleArr = (v.roles||[]);
+      const roleDisplay = activeRole
+        ? esc(activeRole)
+        : (roleArr.length ? roleArr.map(esc).join(', ') : '<span style="opacity:.4">Set role…</span>');
+      // Client — assigned contact name (or unassigned)
       const assignedId = v.assigned_to_contact_id || '';
-      let clientOpts = `<option value="">— Unassigned</option>`;
-      const seen = new Set();
-      activeClients.forEach(c => { seen.add(c.id); clientOpts += `<option value="${c.id}" ${c.id===assignedId?'selected':''}>${esc(c.name)}</option>`; });
-      if(assignedId && !seen.has(assignedId)){
-        const ac = contacts.find(c => c.id === assignedId);
-        if(ac) clientOpts += `<option value="${ac.id}" selected>${esc(ac.name)}</option>`;
-      }
-      const clientSel = `<select class="form-select" style="font-size:12px;padding:2px 4px;max-width:180px" onchange="assignVaClient('${v.id}', this.value)">${clientOpts}</select>`;
+      const assignedClient = assignedId ? contacts.find(c => c.id === assignedId) : null;
+      const clientDisplay = assignedClient ? esc(assignedClient.name) : '<span style="opacity:.4">— Unassigned</span>';
       // Rate — agreed active_rate, falling back to the application hourly_rate (shown muted)
       const usingFallback = (v.active_rate == null || v.active_rate === '') && (v.hourly_rate != null && v.hourly_rate !== '');
       const rateNum = (v.active_rate != null && v.active_rate !== '') ? v.active_rate : v.hourly_rate;
-      const rateTxt = (rateNum != null && rateNum !== '') ? `$${Number(rateNum).toLocaleString()}` : '<span style="opacity:.4">—</span>';
+      const rateTxt = (rateNum != null && rateNum !== '') ? `$${Number(rateNum).toLocaleString()}` : '<span style="opacity:.4">Set rate…</span>';
       const rateCell = usingFallback
         ? `<span style="opacity:.6" title="From application rate — click to set the agreed rate">${rateTxt}</span>`
         : rateTxt;
-      // Payment method select
-      let payOpts = `<option value="">—</option>`;
-      VA_PAY_METHODS.forEach(m => { payOpts += `<option value="${m.value}" ${v.payment_method===m.value?'selected':''}>${m.label}</option>`; });
-      const paySel = `<select class="form-select" style="font-size:12px;padding:2px 4px;max-width:160px" onchange="saveVaField('${v.id}','payment_method', this.value || null)">${payOpts}</select>`;
       // Payment details — clickable summary that opens the banking-details modal
       const payName = (v.payment_account_name||'').trim();
       const payVendor = (v.payment_vendor||'').trim();
@@ -14779,10 +14767,9 @@ function renderActiveVasPage(){
       }
       return `<tr>
         <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openVaApplicantModal('${v.id}')">${esc(name)}</span><br><span style="font-size:11px;color:var(--text3)">${esc(v.email||'')}</span></td>
-        <td style="font-size:12px;color:var(--text2)">${roles}</td>
-        <td>${clientSel}</td>
-        <td onclick="editVaCell('${v.id}','active_rate')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to set agreed rate">${rateCell}</td>
-        <td>${paySel}</td>
+        <td onclick="openVaRoleModal('${v.id}')" style="cursor:pointer;font-size:12px;color:var(--text2)" title="Assign role">${roleDisplay}</td>
+        <td onclick="openVaClientModal('${v.id}')" style="cursor:pointer;font-size:12px;color:var(--text2)" title="Assign client">${clientDisplay}</td>
+        <td onclick="openVaRateModal('${v.id}')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Set agreed rate">${rateCell}</td>
         <td onclick="openVaPaymentModal('${v.id}')" style="cursor:pointer;font-size:12px;max-width:200px" title="Edit banking / payment details">${payDet}</td>
         <td style="white-space:nowrap"><button class="btn btn-sm" onclick="openVaApplicantModal('${v.id}')">View Details</button></td>
       </tr>`;
@@ -14790,48 +14777,104 @@ function renderActiveVasPage(){
   });
 }
 
-// Swap an Active-VA cell to an input, save on blur/Enter, cancel on Escape.
-// Mirrors editClientCell but targets active-vas-tbody + va_applicants fields.
-function editVaCell(id, field){
+// Role picker modal — choose the engagement role from the roles the VA applied with.
+function openVaRoleModal(id){
   if(typeof requirePerm === 'function' && !requirePerm('edit','You don\'t have permission to edit VAs')) return;
   const v = vaApplicants.find(x => x.id === id); if(!v) return;
-  const tbody = document.getElementById('active-vas-tbody'); if(!tbody) return;
-  const cell = [...tbody.querySelectorAll('td')].find(td =>
-    td.getAttribute('onclick') === `editVaCell('${id}','${field}')`);
-  if(!cell || cell.querySelector('input,select')) return;
-  const current = v[field] != null ? v[field] : '';
-  const input = document.createElement('input');
-  input.className = 'form-input';
-  input.type = (field === 'active_rate') ? 'number' : 'text';
-  if(field === 'active_rate'){ input.step = '0.01'; input.min = '0'; }
-  input.style.cssText = 'width:100%;padding:2px 4px;font-size:12px';
-  input.value = current;
-  const oldHTML = cell.innerHTML;
-  const oldOnclick = cell.getAttribute('onclick');
-  cell.removeAttribute('onclick');
-  cell.innerHTML = '';
-  cell.appendChild(input);
-  input.focus();
-  if(input.select) input.select();
-  let finished = false;
-  const commit = async () => {
-    if(finished) return; finished = true;
-    let val = input.value.trim();
-    if(field === 'active_rate') val = val === '' ? null : Number(val);
-    else val = val === '' ? null : val;
-    await saveVaField(id, field, val);
-    renderActiveVasPage();
-  };
-  const cancel = () => {
-    if(finished) return; finished = true;
-    cell.innerHTML = oldHTML;
-    if(oldOnclick) cell.setAttribute('onclick', oldOnclick);
-  };
-  input.addEventListener('blur', commit);
-  input.addEventListener('keydown', e => {
-    if(e.key === 'Enter'){ e.preventDefault(); input.blur(); }
-    else if(e.key === 'Escape'){ e.preventDefault(); cancel(); }
-  });
+  const E = (s) => escapeHtml(s == null ? '' : String(s));
+  const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email || 'VA';
+  const roleArr = (v.roles||[]);
+  const cur = (v.active_role||'').trim();
+  let opts = `<option value="">—</option>`;
+  roleArr.forEach(r => { opts += `<option value="${E(r)}" ${r===cur?'selected':''}>${E(r)}</option>`; });
+  if(cur && !roleArr.includes(cur)) opts += `<option value="${E(cur)}" selected>${E(cur)}</option>`;
+  const note = roleArr.length ? '' : `<div style="font-size:11px;color:var(--text3);margin-top:6px">This VA didn't list any roles on their application.</div>`;
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">Assign Role</div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body" style="padding:4px 20px 0">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Role for <strong>${E(name)}</strong></div>
+      <div class="form-group"><label class="form-label">Role</label>
+        <select class="form-select" id="varole-select">${opts}</select>${note}</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVaRole('${id}')">Save</button>
+    </div>`);
+}
+async function saveVaRole(id){
+  const val = document.getElementById('varole-select')?.value || null;
+  await saveVaField(id, 'active_role', val);
+  closeModal();
+  renderActiveVasPage();
+}
+
+// Client picker modal — assign the active client (active clients only).
+function openVaClientModal(id){
+  if(typeof requirePerm === 'function' && !requirePerm('edit','You don\'t have permission to assign clients')) return;
+  const v = vaApplicants.find(x => x.id === id); if(!v) return;
+  const E = (s) => escapeHtml(s == null ? '' : String(s));
+  const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email || 'VA';
+  const activeClients = contacts.filter(c => c.status === 'done');
+  const assignedId = v.assigned_to_contact_id || '';
+  let opts = `<option value="">— Unassigned</option>`;
+  const seen = new Set();
+  activeClients.forEach(c => { seen.add(c.id); opts += `<option value="${c.id}" ${c.id===assignedId?'selected':''}>${E(c.name)}</option>`; });
+  if(assignedId && !seen.has(assignedId)){ const ac = contacts.find(c => c.id === assignedId); if(ac) opts += `<option value="${ac.id}" selected>${E(ac.name)}</option>`; }
+  const note = activeClients.length ? '' : `<div style="font-size:11px;color:var(--text3);margin-top:6px">No active clients yet — mark a contact's status as "Client" first.</div>`;
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">Assign Client</div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body" style="padding:4px 20px 0">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Which client is <strong>${E(name)}</strong> working for?</div>
+      <div class="form-group"><label class="form-label">Client</label>
+        <select class="form-select" id="vaclient-select">${opts}</select>${note}</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVaClientModal('${id}')">Save</button>
+    </div>`);
+}
+async function saveVaClientModal(id){
+  const val = document.getElementById('vaclient-select')?.value || '';
+  await assignVaClient(id, val);   // handles the patch + two-way client sync + re-render
+  closeModal();
+}
+
+// Agreed-rate modal — numeric engagement rate (falls back to application rate).
+function openVaRateModal(id){
+  if(typeof requirePerm === 'function' && !requirePerm('edit','You don\'t have permission to edit VAs')) return;
+  const v = vaApplicants.find(x => x.id === id); if(!v) return;
+  const E = (s) => escapeHtml(s == null ? '' : String(s));
+  const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email || 'VA';
+  const cur = (v.active_rate != null && v.active_rate !== '') ? v.active_rate : '';
+  const appRate = (v.hourly_rate != null && v.hourly_rate !== '') ? v.hourly_rate : '';
+  const hint = appRate !== '' ? `<div style="font-size:11px;color:var(--text3);margin-top:6px">Application rate: $${E(appRate)}/hr${cur===''?' — used until you set an agreed rate':''}</div>` : '';
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">Agreed Rate</div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body" style="padding:4px 20px 0">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Agreed engagement rate for <strong>${E(name)}</strong></div>
+      <div class="form-group"><label class="form-label">Rate ($)</label>
+        <input class="form-input" id="varate-input" type="number" step="0.01" min="0" value="${E(cur)}" placeholder="0.00"/>${hint}</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVaRate('${id}')">Save</button>
+    </div>`);
+}
+async function saveVaRate(id){
+  const raw = (document.getElementById('varate-input')?.value || '').trim();
+  const val = raw === '' ? null : Number(raw);
+  await saveVaField(id, 'active_rate', val);
+  closeModal();
+  renderActiveVasPage();
 }
 
 async function saveVaField(id, field, value){
