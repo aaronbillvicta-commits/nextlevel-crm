@@ -14764,15 +14764,26 @@ function renderActiveVasPage(){
       let payOpts = `<option value="">—</option>`;
       VA_PAY_METHODS.forEach(m => { payOpts += `<option value="${m.value}" ${v.payment_method===m.value?'selected':''}>${m.label}</option>`; });
       const paySel = `<select class="form-select" style="font-size:12px;padding:2px 4px;max-width:160px" onchange="saveVaField('${v.id}','payment_method', this.value || null)">${payOpts}</select>`;
-      // Payment details (click to edit)
-      const payDet = (v.payment_details != null && String(v.payment_details).trim() !== '') ? esc(v.payment_details) : '<span style="opacity:.4">Add details…</span>';
+      // Payment details — clickable summary that opens the banking-details modal
+      const payName = (v.payment_account_name||'').trim();
+      const payVendor = (v.payment_vendor||'').trim();
+      const payAcct = (v.payment_account_number||'').trim();
+      const hasPay = payName || payVendor || payAcct || (v.payment_details||'').trim();
+      let payDet;
+      if(hasPay){
+        const primary = esc(payName || payVendor || 'Details');
+        const acctTail = payAcct ? ` ·••${esc(payAcct.replace(/\s/g,'').slice(-4))}` : '';
+        payDet = `<span style="color:var(--accent2)">${primary}</span><span style="color:var(--text3);font-family:'DM Mono',monospace">${acctTail}</span>`;
+      } else {
+        payDet = '<span style="opacity:.4">Add details…</span>';
+      }
       return `<tr>
         <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openVaApplicantModal('${v.id}')">${esc(name)}</span><br><span style="font-size:11px;color:var(--text3)">${esc(v.email||'')}</span></td>
         <td style="font-size:12px;color:var(--text2)">${roles}</td>
         <td>${clientSel}</td>
         <td onclick="editVaCell('${v.id}','active_rate')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to set agreed rate">${rateCell}</td>
         <td>${paySel}</td>
-        <td onclick="editVaCell('${v.id}','payment_details')" style="cursor:pointer;font-size:12px;max-width:200px" title="Click to edit payment details">${payDet}</td>
+        <td onclick="openVaPaymentModal('${v.id}')" style="cursor:pointer;font-size:12px;max-width:200px" title="Edit banking / payment details">${payDet}</td>
         <td style="white-space:nowrap"><button class="btn btn-sm" onclick="openVaApplicantModal('${v.id}')">View Details</button></td>
       </tr>`;
     }).join('');
@@ -14862,6 +14873,56 @@ async function assignVaClient(id, contactId){
   } catch(e){
     logError('assignVaClient', e.message, e.stack, { id, contactId });
     showToast(`Assign failed: ${e.message || 'unknown'}`, 'error');
+  }
+}
+
+// Banking / payment details modal for a placed VA. escapeHtml escapes quotes
+// too, so the escaped values are safe inside the value="…" attributes.
+function openVaPaymentModal(id){
+  if(typeof requirePerm === 'function' && !requirePerm('edit','You don\'t have permission to edit VAs')) return;
+  const v = vaApplicants.find(x => x.id === id); if(!v) return;
+  const E = (s) => escapeHtml(s == null ? '' : String(s));
+  const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email || 'VA';
+  openModal(`
+    <div class="modal-head">
+      <div class="modal-title">Banking / Payment Details</div>
+      <span class="modal-close" onclick="closeModal()">×</span>
+    </div>
+    <div class="modal-body" style="padding:4px 20px 0">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Payout details for <strong>${E(name)}</strong></div>
+      <div class="form-group"><label class="form-label">Account Name</label>
+        <input class="form-input" id="vapay-name" value="${E(v.payment_account_name)}" placeholder="Name on the account"/></div>
+      <div class="form-group"><label class="form-label">Vendor / Bank</label>
+        <input class="form-input" id="vapay-vendor" value="${E(v.payment_vendor)}" placeholder="e.g. BDO, BPI, GCash, Maya, Wise"/></div>
+      <div class="form-group"><label class="form-label">Account Number</label>
+        <input class="form-input" id="vapay-acct" value="${E(v.payment_account_number)}" placeholder="Account / mobile / wallet number"/></div>
+      <div class="form-group"><label class="form-label">Other Details</label>
+        <textarea class="form-input" id="vapay-details" rows="2" placeholder="Branch, SWIFT/routing, notes…">${E(v.payment_details)}</textarea></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveVaPayment('${id}')">Save</button>
+    </div>`);
+}
+
+async function saveVaPayment(id){
+  if(typeof requirePerm === 'function' && !requirePerm('edit','You don\'t have permission to edit VAs')) return;
+  const v = vaApplicants.find(x => x.id === id); if(!v) return;
+  const patch = {
+    payment_account_name:   document.getElementById('vapay-name')?.value.trim()    || null,
+    payment_vendor:         document.getElementById('vapay-vendor')?.value.trim()  || null,
+    payment_account_number: document.getElementById('vapay-acct')?.value.trim()    || null,
+    payment_details:        document.getElementById('vapay-details')?.value.trim() || null,
+  };
+  try {
+    await sb.patch('va_applicants', id, patch);
+    Object.assign(v, patch);
+    showToast('Payment details saved ✓', 'success');
+    closeModal();
+    renderActiveVasPage();
+  } catch(e){
+    logError('saveVaPayment', e.message, e.stack, { id });
+    showToast(`Save failed: ${e.message || 'unknown'}`, 'error');
   }
 }
 
