@@ -14714,11 +14714,26 @@ async function deleteVaApplicant(id){
 // modal — Role + Client are dropdowns, Rate is a number input, Payment Details
 // captures structured banking info. "View Details" opens the full application.
 
+// Master roles list (from form_field_options) used by the Role modal + table.
+// Cached after first load. vaRoleLabel maps a stored value to its friendly label.
+let vaRoleOptions = [];
+async function fetchVaRoleOptions(){
+  if(vaRoleOptions.length) return vaRoleOptions;
+  try { vaRoleOptions = await sb.get('form_field_options', '?select=label,value,sort_order&category=eq.roles&active=eq.true&form_type=in.(va,both)&order=sort_order'); }
+  catch(e){ vaRoleOptions = []; }
+  return vaRoleOptions;
+}
+function vaRoleLabel(val){
+  if(val == null || val === '') return '';
+  const hit = vaRoleOptions.find(o => o.value === val);
+  return hit ? hit.label : val; // fall back to the raw value if it isn't in the list
+}
+
 function renderActiveVasPage(){
   const tbody = document.getElementById('active-vas-tbody'); if(!tbody) return;
   const q = (document.getElementById('active-vas-search')?.value || '').toLowerCase();
   const esc = (s) => (typeof escapeHtml === 'function') ? escapeHtml(s == null ? '' : String(s)) : String(s == null ? '' : s);
-  fetchVaApplicants().then(() => {
+  Promise.all([fetchVaApplicants(), fetchVaRoleOptions()]).then(() => {
     const activeClients = contacts.filter(c => c.status === 'done');
     let list = vaApplicants.filter(v => v.review_status === 'placed');
     if(q) list = list.filter(v => {
@@ -14735,12 +14750,12 @@ function renderActiveVasPage(){
     }
     tbody.innerHTML = list.map(v => {
       const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email || 'VA';
-      // Role — the chosen active_role, else the roles they applied with
+      // Role — the chosen active_role, else the roles they applied with (friendly labels)
       const activeRole = (v.active_role||'').trim();
       const roleArr = (v.roles||[]);
       const roleDisplay = activeRole
-        ? esc(activeRole)
-        : (roleArr.length ? roleArr.map(esc).join(', ') : '<span style="opacity:.4">Set role…</span>');
+        ? esc(vaRoleLabel(activeRole))
+        : (roleArr.length ? roleArr.map(r => esc(vaRoleLabel(r))).join(', ') : '<span style="opacity:.4">Set role…</span>');
       // Client — assigned contact name (or unassigned)
       const assignedId = v.assigned_to_contact_id || '';
       const assignedClient = assignedId ? contacts.find(c => c.id === assignedId) : null;
@@ -14777,18 +14792,27 @@ function renderActiveVasPage(){
   });
 }
 
-// Role picker modal — choose the engagement role from the roles the VA applied with.
-function openVaRoleModal(id){
+// Role picker modal — choose the engagement role from the full master roles list
+// (form_field_options), shown with friendly labels. The roles the VA applied with
+// are grouped first as a convenience.
+async function openVaRoleModal(id){
   if(typeof requirePerm === 'function' && !requirePerm('edit','You don\'t have permission to edit VAs')) return;
   const v = vaApplicants.find(x => x.id === id); if(!v) return;
+  await fetchVaRoleOptions();
   const E = (s) => escapeHtml(s == null ? '' : String(s));
   const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email || 'VA';
-  const roleArr = (v.roles||[]);
   const cur = (v.active_role||'').trim();
+  const applied = (v.roles||[]).filter(Boolean);
+  const appliedSet = new Set(applied);
+  const optHtml = (val) => `<option value="${E(val)}" ${val===cur?'selected':''}>${E(vaRoleLabel(val))}</option>`;
   let opts = `<option value="">—</option>`;
-  roleArr.forEach(r => { opts += `<option value="${E(r)}" ${r===cur?'selected':''}>${E(r)}</option>`; });
-  if(cur && !roleArr.includes(cur)) opts += `<option value="${E(cur)}" selected>${E(cur)}</option>`;
-  const note = roleArr.length ? '' : `<div style="font-size:11px;color:var(--text3);margin-top:6px">This VA didn't list any roles on their application.</div>`;
+  // Roles the VA applied with (first), then the rest of the master list
+  if(applied.length) opts += `<optgroup label="Applied roles">${applied.map(optHtml).join('')}</optgroup>`;
+  const rest = vaRoleOptions.filter(o => !appliedSet.has(o.value));
+  if(rest.length) opts += `<optgroup label="All roles">${rest.map(o => optHtml(o.value)).join('')}</optgroup>`;
+  // A current value not present in either list (legacy) — keep it selectable
+  if(cur && !appliedSet.has(cur) && !vaRoleOptions.some(o => o.value === cur)) opts += optHtml(cur);
+  const note = vaRoleOptions.length ? '' : `<div style="font-size:11px;color:var(--text3);margin-top:6px">No role options configured — add some under Settings → Form Options.</div>`;
   openModal(`
     <div class="modal-head">
       <div class="modal-title">Assign Role</div>
