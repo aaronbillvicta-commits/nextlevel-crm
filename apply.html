@@ -592,6 +592,15 @@
       <div class="check-grid" id="roles_grid"></div>
     </div>
 
+    <div id="phone_sample_section" class="hidden" style="margin-top:16px;">
+      <div class="section-label">Phone / Communication Sample</div>
+      <div class="field">
+        <label>Live sample call <span class="req">*</span></label>
+        <input type="url" id="live_sample_call_link" placeholder="Google Drive, Dropbox, or any shareable link to a live call recording">
+        <span class="hint">Required for phone and communication roles. Upload a real call recording to a cloud drive and paste the shareable link here.</span>
+      </div>
+    </div>
+
     <div class="field" style="margin-top:20px;">
       <label>Tools you're proficient in <span class="req">*</span></label>
       <span class="hint" style="display:block;margin-bottom:8px;">Select all tools you use regularly, grouped by category.</span>
@@ -1000,6 +1009,14 @@ function goBack() {
   if (currentSection > 0) showSection(currentSection - 1);
 }
 
+const PHONE_ROLES = new Set(['appt_setter','sdr','closer','customer_support_spec']);
+
+function updatePhoneSampleVisibility() {
+  const selected = [...document.querySelectorAll('#roles_grid input:checked')].map(el => el.value);
+  const needsPhone = selected.some(v => PHONE_ROLES.has(v));
+  document.getElementById('phone_sample_section').classList.toggle('hidden', !needsPhone);
+}
+
 // --- Dynamic fields ---
 function populateDynamicFields() {
   // Industries
@@ -1013,6 +1030,7 @@ function populateDynamicFields() {
   (formOptions.roles || []).forEach(opt => {
     rolesGrid.innerHTML += checkLabel(opt.value, opt.label, 'roles');
   });
+  rolesGrid.addEventListener('change', updatePhoneSampleVisibility);
 
   // Hire arrangement
   const hireGrid = document.getElementById('hire_arrangement_grid');
@@ -1101,7 +1119,7 @@ function renderToolGroups() {
 // --- Validation ---
 function validateSection(i) {
   if (i === 0) {
-    const req = ['first_name','last_name','email','phone','country_city','timezone'];
+    const req = ['first_name','last_name','email','phone','facebook_url','country_city','timezone'];
     for (const id of req) {
       const el = document.getElementById(id);
       if (!el || !el.value.trim()) { showToast(`Please fill in: ${id.replace(/_/g,' ')}`); el?.focus(); return false; }
@@ -1124,6 +1142,10 @@ function validateSection(i) {
   }
   if (i === 2) {
     if (!document.querySelectorAll('#roles_grid input:checked').length) { showToast('Please select at least one role'); return false; }
+    const selectedRoles = [...document.querySelectorAll('#roles_grid input:checked')].map(el => el.value);
+    if (selectedRoles.some(v => PHONE_ROLES.has(v)) && !document.getElementById('live_sample_call_link').value.trim()) {
+      showToast('Please provide a live sample call link for your phone / communication role'); return false;
+    }
     if (!document.querySelectorAll('#tools_grouped input:checked').length) { showToast('Please select at least one tool'); return false; }
   }
   if (i === 3) {
@@ -1184,6 +1206,7 @@ function collectData() {
     close_rate: g('close_rate'),
     best_sales_result: g('best_sales_result'),
     voice_sample_link: g('voice_sample_link'),
+    live_sample_call_link: g('live_sample_call_link'),
     current_employment_status: g('current_employment_status'),
     hours_available_new: parseInt(g('hours_available_new')) || null,
     hire_arrangement: gCheckboxGrid('hire_arrangement_grid'),

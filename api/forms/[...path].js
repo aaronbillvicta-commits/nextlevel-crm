@@ -36,7 +36,7 @@ const VA_TEXT = [
   'years_experience', 'clients_worked_with', 'work_history_summary', 'best_result',
   'niche_specialization', 'cv_link', 'video_intro_link', 'references_available',
   'reference_links', 'other_tools', 'calls_per_day', 'appts_per_week',
-  'highest_ticket_closed', 'close_rate', 'best_sales_result', 'voice_sample_link',
+  'highest_ticket_closed', 'close_rate', 'best_sales_result', 'voice_sample_link', 'live_sample_call_link',
   'current_employment_status', 'current_engagement_type', 'current_schedule',
   'current_client_aware', 'notice_period', 'commission_open', 'rate_negotiable',
   'preferred_hours', 'internet_speed', 'backup_internet', 'time_tracking_comfort',
