@@ -49,7 +49,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-05-29-2"></script>
+<script type="module" src="src/version-history.js?v=2026-05-29-3"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -14495,7 +14495,7 @@ function renderVaApplicantsPage(){
 
   const filterDiv = document.getElementById('va-status-filters');
 
-  fetchVaApplicants().then(() => {
+  Promise.all([fetchVaApplicants(), fetchVaLabelMap()]).then(() => {
     // Status tabs — rebuilt each render so the per-status counts stay live as
     // applicants move between tabs when their status changes.
     if(filterDiv){
@@ -14527,7 +14527,7 @@ function renderVaApplicantsPage(){
       const esc = (s) => escapeHtml(s == null ? '' : String(s));
       const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email || '';
       const roleArr = (v.roles||[]);
-      const roles = roleArr.slice(0,2).map(esc).join(', ') + (roleArr.length>2?` +${roleArr.length-2}`:'');
+      const roles = roleArr.slice(0,2).map(r=>esc(vaPretty('roles', r))).join(', ') + (roleArr.length>2?` +${roleArr.length-2}`:'');
       const rate = v.hourly_rate ? `$${v.hourly_rate}/hr` : '—';
       const statusCol = VA_STATUS_COLORS[v.review_status] || '#6b7280';
       const statusLabel = VA_STATUS_LABELS[v.review_status] || v.review_status;
@@ -14582,12 +14582,14 @@ function openVaApplicantModal(id){
   const L = "font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px";
   const cell = (label, html) => `<div><div style="${L}">${label}</div><div style="font-size:13px;color:var(--text);word-break:break-word">${html}</div></div>`;
   const field = (label, val) => (val!=null && String(val).trim()!=='') ? cell(label, esc(val)) : '';
+  // Like field(), but resolves machine values (e.g. "yes_on_request") to friendly labels.
+  const enumField = (label, val, category) => (val!=null && String(val).trim()!=='') ? cell(label, esc(vaPretty(category||'', val))) : '';
   const boolField = (label, val) => (typeof val==='boolean') ? cell(label, val?'Yes':'No') : '';
   const linkField = (label, url, text) => { const s=safeUrl(url); return s ? cell(label, `<a href="${esc(s)}" target="_blank" rel="noopener noreferrer" style="color:var(--accent2)">${esc(text||s)}</a>`) : ''; };
   const longField = (label, val) => (val!=null && String(val).trim()!=='')
     ? `<div style="grid-column:1/-1"><div style="${L}">${label}</div><div style="font-size:13px;color:var(--text);white-space:pre-wrap;word-break:break-word">${esc(val)}</div></div>` : '';
-  const chipField = (label, arr) => (Array.isArray(arr)&&arr.length)
-    ? `<div style="grid-column:1/-1"><div style="${L};margin-bottom:4px">${label}</div><div>${arr.map(x=>`<span style="display:inline-block;background:var(--bg2);color:var(--text2);border-radius:6px;padding:2px 8px;font-size:11px;margin:2px">${esc(x)}</span>`).join('')}</div></div>` : '';
+  const chipField = (label, arr, category) => (Array.isArray(arr)&&arr.length)
+    ? `<div style="grid-column:1/-1"><div style="${L};margin-bottom:6px">${label}</div><div style="display:flex;flex-wrap:wrap;gap:6px">${arr.map(x=>`<span style="display:inline-block;background:var(--bg2);border:1px solid var(--border);color:var(--text);border-radius:999px;padding:4px 11px;font-size:12px;font-weight:500;line-height:1.3">${esc(vaPretty(category||'', x))}</span>`).join('')}</div></div>` : '';
   const sec = (title, cells) => { const body = cells.filter(Boolean).join(''); return body ? `<div style="margin-top:16px"><div style="font-size:12px;font-weight:800;color:var(--accent2);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);padding-bottom:4px">${title}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-top:8px">${body}</div></div>` : ''; };
   const urlOrText = (label, val) => safeUrl(val) ? linkField(label, val, 'Open link') : field(label, val);
   const submitted = v.submitted_at ? new Date(v.submitted_at).toLocaleString() : '';
@@ -14605,8 +14607,8 @@ function openVaApplicantModal(id){
   const stats = [
     stat('Rate', v.hourly_rate!=null ? '$'+v.hourly_rate+'/hr' : ''),
     stat('Avail', v.hours_available_new!=null ? v.hours_available_new+' hr/wk' : (v.hours_per_week!=null ? v.hours_per_week+' hr/wk' : '')),
-    stat('Experience', (v.years_experience!=null && String(v.years_experience).trim()!=='') ? v.years_experience+' yr' : ''),
-    stat('English', v.english_self_level),
+    stat('Experience', (v.years_experience!=null && String(v.years_experience).trim()!=='') ? (vaFormatRange(v.years_experience)||v.years_experience)+' yr' : ''),
+    stat('English', vaPretty('english_self_level', v.english_self_level)),
   ].filter(Boolean).join('');
   const act = (href, label, isMail) => { const s = isMail ? (href ? 'mailto:'+href : '') : safeUrl(href); return s ? `<a href="${esc(s)}" ${isMail?'':'target="_blank" rel="noopener noreferrer"'} class="btn btn-sm" style="font-size:11px;text-decoration:none">${esc(label)}</a>` : ''; };
   const actions = [
@@ -14643,44 +14645,44 @@ function openVaApplicantModal(id){
         linkField('Portfolio', v.portfolio_url, 'Link'), linkField('Other Profile', v.other_profile_url, 'Link'),
       ])}
       ${sec('Experience', [
-        field('VA Experience', v.experience_type), field('Prior Company', v.prior_company),
-        field('Prior Market', v.prior_market), field('Prior Industry', v.prior_industry),
-        field('Prior Yrs Experience', v.prior_years),
-        field('Years Experience', v.years_experience), field('English Level', v.english_self_level),
+        enumField('VA Experience', v.experience_type, 'experience_type'), field('Prior Company', v.prior_company),
+        enumField('Prior Market', v.prior_market, ''), field('Prior Industry', v.prior_industry),
+        enumField('Prior Yrs Experience', v.prior_years, ''),
+        enumField('Years Experience', v.years_experience, ''), enumField('English Level', v.english_self_level, 'english_self_level'),
         field('EF SET Score', v.english_efset_score), linkField('EF SET Link', v.english_efset_link, 'View'),
-        field('Clients Worked With', v.clients_worked_with), field('Niche', v.niche_specialization),
-        chipField('Industries', v.industries), longField('Work History', v.work_history_summary),
+        enumField('Clients Worked With', v.clients_worked_with, ''), field('Niche', v.niche_specialization),
+        chipField('Industries', v.industries, 'industry'), longField('Work History', v.work_history_summary),
         longField('Best Result', v.best_result), linkField('CV', v.cv_link, 'Download'),
-        linkField('Video Intro', v.video_intro_link, 'Watch'), field('References Available', v.references_available),
+        linkField('Video Intro', v.video_intro_link, 'Watch'), enumField('References Available', v.references_available, 'references_available'),
         longField('Reference Links', v.reference_links),
       ])}
       ${sec('Skills & Tools', [
-        chipField('Roles', v.roles), chipField('Tools', v.tools_selected), field('Other Tools', v.other_tools),
-        boolField('Sales Role?', v.is_sales_role), chipField('Sales Roles', v.sales_roles),
+        chipField('Roles', v.roles, 'roles'), chipField('Tools', v.tools_selected, 'tools'), field('Other Tools', v.other_tools),
+        boolField('Sales Role?', v.is_sales_role), chipField('Sales Roles', v.sales_roles, 'sales_roles'),
         field('Calls / Day', v.calls_per_day), field('Appts / Week', v.appts_per_week),
         field('Highest Ticket Closed', v.highest_ticket_closed), field('Close Rate', v.close_rate),
         longField('Best Sales Result', v.best_sales_result), linkField('Voice Sample', v.voice_sample_link, 'Listen'),
         linkField('Live Sample Call', v.live_sample_call_link, 'Listen'),
       ])}
       ${sec('Availability & Rates', [
-        field('Employment Status', v.current_employment_status), field('Engagement Type', v.current_engagement_type),
+        enumField('Employment Status', v.current_employment_status, ''), enumField('Engagement Type', v.current_engagement_type, ''),
         field('Hours Committed (current)', v.current_hours_committed!=null? v.current_hours_committed+' hrs/wk':''),
-        field('Current Schedule', v.current_schedule), field('Current Client Aware', v.current_client_aware),
+        enumField('Current Schedule', v.current_schedule, ''), enumField('Current Client Aware', v.current_client_aware, ''),
         field('Hours Available (new)', v.hours_available_new!=null? v.hours_available_new+' hrs/wk':''),
         field('Hours / Week', v.hours_per_week!=null? v.hours_per_week+' hrs/wk':''),
-        field('Notice Period', v.notice_period), field('Start Date', v.start_date), field('Preferred Hours', v.preferred_hours),
+        enumField('Notice Period', v.notice_period, ''), field('Start Date', v.start_date), field('Preferred Hours', v.preferred_hours),
         field('Hourly Rate', v.hourly_rate!=null? '$'+v.hourly_rate+'/hr':''),
         field('Monthly Rate', v.monthly_rate!=null? '$'+v.monthly_rate+'/mo':''),
-        field('Commission Open', v.commission_open), field('Rate Negotiable', v.rate_negotiable),
-        chipField('Hire Arrangement', v.hire_arrangement), field('Weekend Availability', v.weekend_availability),
-        chipField('Timezone Overlap', v.timezone_overlap),
-        urlOrText('Internet Speed (test link)', v.internet_speed), field('Backup Internet', v.backup_internet),
-        field('Time-Tracking Comfort', v.time_tracking_comfort), chipField('Time-Tracking Tools', v.time_tracking_tools),
-        field('ID Verification Willing', v.id_verification_willing), chipField('ID Types Available', v.id_types_available),
+        enumField('Commission Open', v.commission_open, ''), enumField('Rate Negotiable', v.rate_negotiable, ''),
+        chipField('Hire Arrangement', v.hire_arrangement, 'hire_arrangement'), enumField('Weekend Availability', v.weekend_availability, ''),
+        chipField('Timezone Overlap', v.timezone_overlap, ''),
+        urlOrText('Internet Speed (test link)', v.internet_speed), enumField('Backup Internet', v.backup_internet, ''),
+        enumField('Time-Tracking Comfort', v.time_tracking_comfort, ''), chipField('Time-Tracking Tools', v.time_tracking_tools, ''),
+        enumField('ID Verification Willing', v.id_verification_willing, ''), chipField('ID Types Available', v.id_types_available, ''),
       ])}
       ${sec('Fit & Personality', [
-        chipField('Working Style', v.working_style), field('Management Style', v.management_style),
-        chipField('Preferred Client Type', v.preferred_client_type), field('Response Time', v.response_time),
+        chipField('Working Style', v.working_style, ''), enumField('Management Style', v.management_style, ''),
+        chipField('Preferred Client Type', v.preferred_client_type, ''), enumField('Response Time', v.response_time, ''),
         longField('Enjoys Most', v.enjoys_most), longField('Wish Clients Knew', v.wish_clients_knew),
         longField('Anything Else', v.anything_else), boolField('Direction Test Passed', v.direction_test_passed),
         longField('Direction Test Answer', v.direction_test_answer), urlOrText('DISC Assessment', v.disc_assessment),
@@ -14767,11 +14769,55 @@ function vaRoleLabel(val){
   return hit ? hit.label : val; // fall back to the raw value if it isn't in the list
 }
 
+// ── Friendly-label resolution for the VA applicant modal ────────────────────
+// Stored applicant data is machine values (e.g. "appt_setter", "google_workspace",
+// "yes_on_request"). These helpers turn them into human-readable labels.
+// Master option labels (roles/tools/industry/hire_arrangement) are loaded once
+// from form_field_options; everything else falls back to curated maps, range
+// formatting, or snake_case → Title Case.
+let vaLabelMap = null; // { category: { value: label } }
+async function fetchVaLabelMap(){
+  if(vaLabelMap) return vaLabelMap;
+  try {
+    const rows = await sb.get('form_field_options', '?select=label,value,category&active=eq.true');
+    const m = {};
+    rows.forEach(r => { (m[r.category] = m[r.category] || {})[r.value] = r.label; });
+    vaLabelMap = m;
+  } catch(e){ vaLabelMap = {}; }
+  return vaLabelMap;
+}
+function humanizeVal(v){
+  return String(v == null ? '' : v).trim().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ')
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+// Numeric buckets: "1_2" → "1–2", "5_plus" → "5+", "4_10" → "4–10"
+function vaFormatRange(v){
+  const s = String(v == null ? '' : v).trim();
+  if(/^\d+_plus$/.test(s)) return s.replace(/_plus$/, '') + '+';
+  if(/^\d+_\d+$/.test(s)) return s.replace('_', '–');
+  return null;
+}
+// Curated labels for fixed-choice fields that are NOT in form_field_options.
+const VA_ENUM_LABELS = {
+  experience_type:   { has_va:'Has VA / remote experience', fresh_graduate:'Fresh graduate', corporate_bpo:'Corporate / BPO experience' },
+  english_self_level:{ beginner_a1:'Beginner (A1)', elementary_a2:'Elementary (A2)', intermediate_b1:'Intermediate (B1)', upper_intermediate_b2:'Upper-intermediate (B2)', advanced_c1:'Advanced (C1)', proficient_c2:'Proficient (C2)', native:'Native / bilingual' },
+  references_available:{ yes_immediately:'Yes — immediately', yes_on_request:'Yes — on request', no:'No' },
+};
+// Resolve one stored value to a friendly label. `category` is a form_field_options
+// category (roles/tools/industry/hire_arrangement) or a VA_ENUM_LABELS key; pass
+// '' for free-form values that should just be humanized.
+function vaPretty(category, val){
+  if(val == null || String(val).trim() === '') return '';
+  if(VA_ENUM_LABELS[category] && VA_ENUM_LABELS[category][val]) return VA_ENUM_LABELS[category][val];
+  if(vaLabelMap && vaLabelMap[category] && vaLabelMap[category][val]) return vaLabelMap[category][val];
+  return vaFormatRange(val) || humanizeVal(val);
+}
+
 function renderActiveVasPage(){
   const tbody = document.getElementById('active-vas-tbody'); if(!tbody) return;
   const q = (document.getElementById('active-vas-search')?.value || '').toLowerCase();
   const esc = (s) => (typeof escapeHtml === 'function') ? escapeHtml(s == null ? '' : String(s)) : String(s == null ? '' : s);
-  Promise.all([fetchVaApplicants(), fetchVaRoleOptions()]).then(() => {
+  Promise.all([fetchVaApplicants(), fetchVaRoleOptions(), fetchVaLabelMap()]).then(() => {
     const activeClients = contacts.filter(c => c.status === 'done');
     let list = vaApplicants.filter(v => v.review_status === 'placed');
     if(q) list = list.filter(v => {
