@@ -2198,8 +2198,8 @@ table th[onclick]{transition:background .15s,color .15s}
               <div class="form-group">
                 <label class="form-label">Type</label>
                 <select class="form-select" id="camp-type" onchange="updateCampTypeUI()">
-                  <option value="email"> Email</option>
-                  <option value="sms"> SMS</option>
+                  <option value="email">Email</option>
+                  <option value="sms">SMS</option>
                 </select>
               </div>
               <div class="form-group">
@@ -3732,13 +3732,13 @@ async function applyAudioDevice(type){
   if(type === 'input'){
     preferredInputDevice = deviceId;
     localStorage.setItem('crm-audio-input', deviceId);
-    showToast(' Microphone updated — takes effect on next call');
+    showToast('Microphone updated — takes effect on next call');
   } else {
     preferredOutputDevice = deviceId;
     localStorage.setItem('crm-audio-output', deviceId);
     const audio = document.getElementById('remote-audio');
     if(audio && deviceId && audio.setSinkId) audio.setSinkId(deviceId).catch(()=>{});
-    showToast(' Speaker updated');
+    showToast('Speaker updated');
   }
 }
 
@@ -4118,7 +4118,7 @@ function matchDialpadContact(num){
   const el = document.getElementById('dialpad-contact-match'); if(!el) return;
   if(!num){ el.textContent=''; return; }
   const match = contacts.find(c=>c.phone&&c.phone.replace(/\D/g,'').includes(num.replace(/\D/g,'')));
-  el.textContent = match ? `${icon('clipboard')} ${match.name}` : '';
+  el.textContent = match ? match.name : '';
 }
 
 function initiateCall(contactId, phone, name){
@@ -4127,7 +4127,7 @@ function initiateCall(contactId, phone, name){
   if(input) input.value = phone;
   openDialpad();
   const matchEl = document.getElementById('dialpad-contact-match');
-  if(matchEl) matchEl.textContent = `${icon('clipboard')} ${name}`;
+  if(matchEl) matchEl.textContent = name;
 }
 
 async function initSWClient(force = false){
@@ -4669,7 +4669,7 @@ async function acceptIncomingCall(){
   openDialpad();
   setCallActive(displayName, from);
   try {
-    showToast(' Connecting…');
+    showToast('Connecting…');
     swCall = await invite.accept({
       rootElement: document.getElementById('sw-root-element'),
       audio: true, video: false
@@ -4680,7 +4680,7 @@ async function acceptIncomingCall(){
       let conv=conversations.find(c=>c.contactId===activeCallContact.id);
       if(!conv){conv={id:'conv_'+Date.now(),contactId:activeCallContact.id,messages:[]};conversations.push(conv);}
       const _toDisp = ourLine ? ` to ${(typeof fmtPhoneDisplay === 'function' ? fmtPhoneDisplay(ourLine) : ourLine)}` : '';
-      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'inbound',body:`${icon('phone')} Inbound call from ${from||'unknown'}${_toDisp}`,ts:new Date().toISOString(),status:'received'});
+      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'inbound',body:`Inbound call from ${from||'unknown'}${_toDisp}`,ts:new Date().toISOString(),status:'received'});
       saveConversations();
     }
   } catch(e){
@@ -4792,7 +4792,7 @@ async function startCall(){
   setCallActive(contactName, number);
 
   try {
-    showToast(' Connecting…');
+    showToast('Connecting…');
     logError('startCall_step', '1_init_client', null, { to: dialTo });
 
     // Wrapper handles dial + start + expired-token refresh/retry
@@ -4805,7 +4805,7 @@ async function startCall(){
       if(!conv){conv={id:'conv_'+Date.now(),contactId:activeCallContact.id,messages:[]};conversations.push(conv);}
       const _fromLine = (typeof getDialerActiveNumber === 'function' ? getDialerActiveNumber() : '');
       const _fromDisp = _fromLine ? ` from ${(typeof fmtPhoneDisplay === 'function' ? fmtPhoneDisplay(_fromLine) : _fromLine)}` : '';
-      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'outbound',body:`${icon('phone')} Outbound call to ${number}${_fromDisp}`,ts:new Date().toISOString(),status:'sent'});
+      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'outbound',body:`Outbound call to ${number}${_fromDisp}`,ts:new Date().toISOString(),status:'sent'});
       saveConversations();
     }
   } catch(e){
@@ -4918,7 +4918,7 @@ function endCall(){
     let conv=conversations.find(c=>c.contactId===activeCallContact.id);
     if(conv){
       const last=conv.messages[conv.messages.length-1];
-      if(last&&last.body.startsWith('')) last.body+=` — Duration: ${m}:${s}`;
+      if(last&&/^(Inbound|Outbound) call /.test(last.body||'')) last.body+=` — Duration: ${m}:${s}`;
       saveConversations();
     }
   }
@@ -4957,7 +4957,7 @@ function toggleMute(){
   document.getElementById('call-mute-btn')?.classList.toggle('muted',callMuted);
   document.getElementById('dp-mute-btn')?.classList.toggle('muted',callMuted);
   document.getElementById('dp-mute-label').textContent=callMuted?'Unmute':'Mute';
-  showToast(callMuted?' Muted':' Unmuted');
+  showToast(callMuted?'Muted':'Unmuted');
 }
 
 function sendDTMF(digit){
