@@ -74,6 +74,7 @@
 <script type="module" src="src/calling/outbound.js?v=2026-05-18-5"></script>
 <script type="module" src="src/calling/inbound.js?v=2026-05-18-6"></script>
 <script type="module" src="src/calling/dialpad.js?v=2026-05-18-7"></script>
+<script type="module" src="src/invoices/index.js?v=2026-05-30-2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -1906,6 +1907,7 @@ table th[onclick]{transition:background .15s,color .15s}
       </div>
       <div style="display:flex;gap:18px;border-bottom:1px solid var(--border);margin-bottom:18px">
         <div class="contact-view-tab active" data-tlview="form" onclick="setToolsView('form')">Form</div>
+        <div class="contact-view-tab" data-tlview="invoice" onclick="setToolsView('invoice')">Invoice</div>
       </div>
       <div id="tools-content"></div>
     </div>
@@ -10940,6 +10942,7 @@ function slugify(s){ return String(s||'').toLowerCase().trim().replace(/[^a-z0-9
 function renderToolsPage(){
   const el = document.getElementById('tools-content');
   if(!el) return;
+  if(toolsView === 'invoice'){ if(window.renderInvoiceTool){ window.renderInvoiceTool(el); } else { el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:14px">Invoice tool is loading…</div>'; } return; }
   if(toolsView !== 'form'){ el.innerHTML = ''; return; }
   if(builderForm){ renderFormBuilder(el); return; }
 
