@@ -47,9 +47,9 @@
 
   // ── one-time scoped CSS (kept entirely in this module; index.html gets none) ──
   const CSS = `
-  .invoice-tool { display:grid; grid-template-columns: 340px 1fr; gap:24px; align-items:start; }
-  @media (max-width:1100px){ .invoice-tool { grid-template-columns:1fr; } }
-  .invoice-tool .it-controls { display:flex; flex-direction:column; gap:18px; }
+  .invoice-tool { display:block; }
+  .invoice-tool .it-controls { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:16px 24px; align-items:start; margin-bottom:18px; }
+  .invoice-tool #invt-preview { display:flex; justify-content:center; }
   .invoice-tool .it-group-label { font-size:11px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--accent2); margin-bottom:8px; }
   .invoice-tool label { display:block; font-size:11px; color:var(--text3); margin-bottom:3px; }
   .invoice-tool .it-field { margin-bottom:10px; }
@@ -57,9 +57,9 @@
   .invoice-tool .it-tab { flex:1; padding:6px 10px; font-size:12px; font-weight:600; cursor:pointer; border:none; background:transparent; color:var(--text3); }
   .invoice-tool .it-tab.active { background:var(--accent); color:#fff; }
   .invoice-tool .it-tab:not(.active):hover { background:var(--bg3,rgba(127,127,127,.1)); }
-  .invoice-tool .it-line { display:grid; grid-template-columns:1fr 90px 56px 76px 26px; gap:6px; align-items:center; margin-bottom:6px; }
+  .invoice-tool .it-line { display:grid; grid-template-columns:2.4fr 1.2fr 90px 120px 32px; gap:8px; align-items:center; margin-bottom:6px; }
   .invoice-tool .it-line input { width:100%; }
-  .invoice-tool .it-line-head { display:grid; grid-template-columns:1fr 90px 56px 76px 26px; gap:6px; margin-bottom:4px; }
+  .invoice-tool .it-line-head { display:grid; grid-template-columns:2.4fr 1.2fr 90px 120px 32px; gap:8px; margin-bottom:4px; }
   .invoice-tool .it-line-head span { font-size:10px; color:var(--text3); }
   .invoice-tool .it-remove { background:transparent; border:none; color:#dc2626; font-size:16px; line-height:1; cursor:pointer; padding:0; }
   .invoice-tool .it-remove:hover { opacity:.7; }
@@ -552,11 +552,12 @@
     if (!body) return;
     body.innerHTML = `
       <div class="invoice-tool">
-        <div>
-          ${controlsHTML()}
-          <div id="invt-lineeditor" style="margin-top:18px">${lineEditorHTML()}</div>
+        ${controlsHTML()}
+        <div id="invt-lineeditor">${lineEditorHTML()}</div>
+        <div style="margin-top:24px">
+          <div class="it-group-label">Preview</div>
+          <div id="invt-preview">${invoiceDocHTML()}</div>
         </div>
-        <div id="invt-preview">${invoiceDocHTML()}</div>
       </div>`;
     if (state.currentInvoiceId) {
       const row = state.invoices.find((r) => r.id === state.currentInvoiceId);
@@ -604,19 +605,17 @@
     rootEl = container;
     const editing = state.view === 'edit';
     container.innerHTML = `
-      <div class="invoice-tool">
-        <div class="it-actionbar" style="grid-column:1/-1">
-          <div class="it-viewtabs">
-            <button class="it-viewtab ${editing ? 'active' : ''}" onclick="invoiceTool.switchView('edit')">Editor</button>
-            <button class="it-viewtab ${!editing ? 'active' : ''}" onclick="invoiceTool.switchView('history')">History</button>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            ${editing ? `
-              <button class="btn btn-sm" onclick="invoiceTool.newInvoice()">+ New</button>
-              <button class="btn btn-sm" onclick="invoiceTool.save()">${state.currentInvoiceId ? 'Update' : 'Save'} invoice</button>
-              <button class="btn btn-primary btn-sm" onclick="invoiceTool.print()">Print / Save PDF</button>
-            ` : `<button class="btn btn-primary btn-sm" onclick="invoiceTool.newInvoice()">+ New invoice</button>`}
-          </div>
+      <div class="it-actionbar">
+        <div class="it-viewtabs">
+          <button class="it-viewtab ${editing ? 'active' : ''}" onclick="invoiceTool.switchView('edit')">Editor</button>
+          <button class="it-viewtab ${!editing ? 'active' : ''}" onclick="invoiceTool.switchView('history')">History</button>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${editing ? `
+            <button class="btn btn-sm" onclick="invoiceTool.newInvoice()">+ New</button>
+            <button class="btn btn-sm" onclick="invoiceTool.save()">${state.currentInvoiceId ? 'Update' : 'Save'} invoice</button>
+            <button class="btn btn-primary btn-sm" onclick="invoiceTool.print()">Print / Save PDF</button>
+          ` : `<button class="btn btn-primary btn-sm" onclick="invoiceTool.newInvoice()">+ New invoice</button>`}
         </div>
       </div>
       <div id="invt-body"></div>`;
