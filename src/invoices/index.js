@@ -31,6 +31,15 @@
   const isoDate = (d) => new Date(d).toISOString().split('T')[0];
   const initials = (name) => (name || 'NL').split(/\s+/).filter(Boolean).map((w) => w[0]).join('').slice(0, 2).toUpperCase();
   const contactName = (c) => c ? (c.name || [c.first_name, c.last_name].filter(Boolean).join(' ') || '') : '';
+  // snake_case / kebab → Title Case (e.g. "appt_setter" → "Appt Setter") — used as a
+  // fallback so a raw role key never shows up as a line-item description.
+  const titleCase = (s) => String(s == null ? '' : s).replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/\b\w/g, (c) => c.toUpperCase());
+  // Friendly role label: prefer the master form-options label, else prettify the key.
+  function roleLabelFor(role) {
+    if (!role) return '';
+    const lbl = window.vaRoleLabel ? window.vaRoleLabel(role) : role;
+    return (lbl && lbl !== role) ? lbl : titleCase(role); // not in options → Title Case the raw key
+  }
 
   // ── module state ─────────────────────────────────────────────────────────────
   const TERMS = { due_on_receipt: 0, net7: 7, net15: 15, net30: 30, net60: 60 };
@@ -384,13 +393,16 @@
       const c = (window.contacts || []).find((x) => x.id === id);
       // Auto-seed from the client's assigned VAs via the many-to-many join table.
       try {
+        // Make sure the role→label map is loaded before we format (the inline page
+        // only loads it when you visit the VA pages; the Invoice tab might be first).
+        if (window.fetchVaRoleOptions) { try { await window.fetchVaRoleOptions(); } catch (e) {} }
         const links = await window.sb.get('va_client_assignments',
           `?select=role,va_applicants(id,first_name,last_name,active_rate,hourly_rate)&contact_id=eq.${id}`);
         const rows = (Array.isArray(links) ? links : []).filter((l) => l.va_applicants);
         rows.forEach((l) => {
           const v = l.va_applicants;
           const nm = (v.first_name || '').trim();
-          const roleLabel = l.role ? (window.vaRoleLabel ? window.vaRoleLabel(l.role) : l.role) : '';
+          const roleLabel = roleLabelFor(l.role);
           const rate = (c && c.va_rate != null && c.va_rate !== '') ? c.va_rate
             : (v.active_rate != null && v.active_rate !== '') ? v.active_rate
               : (v.hourly_rate != null ? v.hourly_rate : '');
