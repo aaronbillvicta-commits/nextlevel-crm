@@ -110,11 +110,19 @@
   .inv-doc .inv-badge.unpaid { background:#fef3c7; color:#92400e; }
   .inv-doc .inv-badge.paid { background:#dcfce7; color:#166534; }
 
+  /* action bar: segmented Editor/History control (left) + actions (right).
+     NOTE: this bar is rendered into the tool container OUTSIDE the .invoice-tool
+     wrapper, so these selectors are intentionally NOT scoped under .invoice-tool. */
+  .it-actionbar { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:18px; }
+  .it-viewtabs { display:inline-flex; gap:3px; padding:3px; background:var(--bg3,rgba(127,127,127,.10)); border:1px solid var(--border); border-radius:10px; }
+  .it-viewtab { display:inline-flex; align-items:center; gap:7px; padding:7px 16px; font-size:13px; font-weight:600; line-height:1; cursor:pointer; border:none; border-radius:7px; background:transparent; color:var(--text3); transition:background .15s ease, color .15s ease, box-shadow .15s ease; }
+  .it-viewtab svg { width:14px; height:14px; opacity:.8; }
+  .it-viewtab:hover:not(.active) { color:var(--text2); background:rgba(127,127,127,.12); }
+  .it-viewtab.active { background:var(--accent); color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+  .it-viewtab.active svg { opacity:1; }
+  .it-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+
   /* history table */
-  .invoice-tool .it-actionbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
-  .invoice-tool .it-viewtabs { display:flex; gap:6px; }
-  .invoice-tool .it-viewtab { padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--text3); }
-  .invoice-tool .it-viewtab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
   .inv-hist-table { width:100%; border-collapse:collapse; font-size:13px; }
   .inv-hist-table th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text3); padding:8px 10px; border-bottom:1px solid var(--border); }
   .inv-hist-table td { padding:9px 10px; border-bottom:1px solid var(--border); }
@@ -633,11 +641,11 @@
     const editing = state.view === 'edit';
     container.innerHTML = `
       <div class="it-actionbar">
-        <div class="it-viewtabs">
-          <button class="it-viewtab ${editing ? 'active' : ''}" onclick="invoiceTool.switchView('edit')">Editor</button>
-          <button class="it-viewtab ${!editing ? 'active' : ''}" onclick="invoiceTool.switchView('history')">History</button>
+        <div class="it-viewtabs" role="tablist" aria-label="Invoice view">
+          <button class="it-viewtab ${editing ? 'active' : ''}" role="tab" aria-selected="${editing}" onclick="invoiceTool.switchView('edit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>Editor</span></button>
+          <button class="it-viewtab ${!editing ? 'active' : ''}" role="tab" aria-selected="${!editing}" onclick="invoiceTool.switchView('history')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg><span>History</span></button>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <div class="it-actions">
           ${editing ? `
             <button class="btn btn-sm" onclick="invoiceTool.newInvoice()">+ New</button>
             <button class="btn btn-sm" onclick="invoiceTool.save()">${state.currentInvoiceId ? 'Update' : 'Save'} invoice</button>
