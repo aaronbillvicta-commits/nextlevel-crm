@@ -34,7 +34,10 @@
 
   // ── module state ─────────────────────────────────────────────────────────────
   const TERMS = { due_on_receipt: 0, net7: 7, net15: 15, net30: 30, net60: 60 };
+  const LOGO_KEY = 'nlm_invoice_agency_logo'; // remembers an uploaded logo across sessions (this browser)
   const today = new Date();
+  const getStoredLogo = () => { try { return localStorage.getItem(LOGO_KEY) || null; } catch (e) { return null; } };
+  const setStoredLogo = (v) => { try { if (v) localStorage.setItem(LOGO_KEY, v); else localStorage.removeItem(LOGO_KEY); } catch (e) {} };
   const state = {
     view: 'edit',             // 'edit' | 'history'
     currentInvoiceId: null,   // set when editing a saved invoice (else null = new)
@@ -42,7 +45,7 @@
     billTo: 'crm',            // 'crm' | 'manual'
     selectedContactId: null,
     lineItems: [],
-    logoDataUrl: null,
+    logoDataUrl: getStoredLogo(), // restored from a previous upload on this browser
   };
 
   // ── one-time scoped CSS (kept entirely in this module; index.html gets none) ──
@@ -132,6 +135,7 @@
         <div class="it-field"><label>Logo URL (or upload)</label>
           <input class="form-input" id="invt-logoUrl" placeholder="https://…  — blank = initials" oninput="invoiceTool.clearUpload();invoiceTool.render()"/>
           <input type="file" accept="image/*" style="margin-top:6px;font-size:11px;color:var(--text3)" onchange="invoiceTool.onLogoUpload(event)"/>
+          <div style="margin-top:4px"><a href="#" onclick="invoiceTool.removeLogo();return false;" style="font-size:10px;color:var(--text3)">Remove logo</a></div>
         </div>
       </div>
 
@@ -226,9 +230,10 @@
 
   // ── the invoice document (preview + print share this) ────────────────────────
   function logoSrc() {
-    if (state.logoDataUrl) return state.logoDataUrl;
     const u = (val('invt-logoUrl') || '').trim();
-    return u || null;
+    if (u) return u;                       // an explicit URL overrides
+    if (state.logoDataUrl) return state.logoDataUrl; // this-session or restored upload
+    return getStoredLogo();                // agency default from a prior upload
   }
   function billToParty() {
     if (state.billTo === 'manual') {
@@ -350,10 +355,16 @@
   const api = {
     render: renderPreview,
     clearUpload() { state.logoDataUrl = null; },
+    removeLogo() { state.logoDataUrl = null; setStoredLogo(null); const u = document.getElementById('invt-logoUrl'); if (u) u.value = ''; renderPreview(); },
     onLogoUpload(e) {
       const f = e.target.files && e.target.files[0]; if (!f) return;
       const r = new FileReader();
-      r.onload = (ev) => { state.logoDataUrl = ev.target.result; const u = document.getElementById('invt-logoUrl'); if (u) u.value = ''; renderPreview(); };
+      r.onload = (ev) => {
+        state.logoDataUrl = ev.target.result;
+        setStoredLogo(ev.target.result); // remember it so it stays across invoices + reloads
+        const u = document.getElementById('invt-logoUrl'); if (u) u.value = '';
+        renderPreview();
+      };
       r.readAsDataURL(f);
     },
     setBillTo(tab) {
@@ -444,7 +455,7 @@
     newInvoice() {
       state.currentInvoiceId = null; state.view = 'edit';
       state.billTo = 'crm'; state.selectedContactId = null;
-      state.lineItems = []; state.logoDataUrl = null; state._numberDirty = false;
+      state.lineItems = []; state.logoDataUrl = getStoredLogo(); state._numberDirty = false;
       if (rootEl) window.renderInvoiceTool(rootEl);
     },
     switchView(v) {
@@ -508,8 +519,9 @@
     } else {
       bill_to = { name: (val('invt-mName') || '').trim(), company: (val('invt-mCompany') || '').trim(), email: (val('invt-mEmail') || '').trim(), phone: (val('invt-mPhone') || '').trim(), address: (val('invt-mAddress') || '').trim() };
     }
-    const src = logoSrc();
-    const agency = { name: (val('invt-agencyName') || 'Next Level Marketing').trim(), email: (val('invt-agencyEmail') || '').trim(), address: (val('invt-agencyAddress') || '').trim(), logo: (src && !String(src).startsWith('data:')) ? src : null };
+    // Persist whatever logo is in use (URL or uploaded data: URL) so a saved
+    // invoice always reopens with its logo intact.
+    const agency = { name: (val('invt-agencyName') || 'Next Level Marketing').trim(), email: (val('invt-agencyEmail') || '').trim(), address: (val('invt-agencyAddress') || '').trim(), logo: logoSrc() || null };
     const status = val('invt-status') || 'unpaid';
     return {
       invoice_number: (val('invt-number') || 'INV-001').trim(),
@@ -530,8 +542,10 @@
     setVal('invt-agencyName', a.name || 'Next Level Marketing');
     setVal('invt-agencyEmail', a.email || '');
     setVal('invt-agencyAddress', a.address || '');
-    setVal('invt-logoUrl', (a.logo && !String(a.logo).startsWith('data:')) ? a.logo : '');
-    state.logoDataUrl = null;
+    // Restore the saved logo: a data: URL goes back into the upload slot,
+    // a plain URL into the URL field; fall back to the remembered agency logo.
+    if (a.logo && String(a.logo).startsWith('data:')) { state.logoDataUrl = a.logo; setVal('invt-logoUrl', ''); }
+    else { setVal('invt-logoUrl', a.logo || ''); state.logoDataUrl = (a.logo ? null : getStoredLogo()); }
     setVal('invt-number', row.invoice_number || '');
     setVal('invt-issueDate', row.issue_date || '');
     setVal('invt-dueDate', row.due_date || '');
