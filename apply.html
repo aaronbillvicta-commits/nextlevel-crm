@@ -588,6 +588,13 @@
     </div>
 
     <div class="field">
+      <label>Position that you are applying for <span class="req">*</span></label>
+      <select id="applying_for">
+        <option value="">Select the position you're applying for</option>
+      </select>
+    </div>
+
+    <div class="field" style="margin-top:16px;">
       <label>Roles you can fill <span class="req">*</span></label>
       <div class="check-grid" id="roles_grid"></div>
     </div>
@@ -1025,6 +1032,14 @@ function populateDynamicFields() {
     industryGrid.innerHTML += checkLabel(opt.value, opt.label, 'industries');
   });
 
+  // Position applying for — single-select of the same role options
+  const applyingForSel = document.getElementById('applying_for');
+  if (applyingForSel) {
+    (formOptions.roles || []).forEach(opt => {
+      applyingForSel.innerHTML += `<option value="${opt.value}">${opt.label}</option>`;
+    });
+  }
+
   // Roles
   const rolesGrid = document.getElementById('roles_grid');
   (formOptions.roles || []).forEach(opt => {
@@ -1141,6 +1156,7 @@ function validateSection(i) {
     if (!document.getElementById('video_intro_link').value.trim()) { showToast('Please add your video intro link'); return false; }
   }
   if (i === 2) {
+    if (!document.getElementById('applying_for').value) { showToast('Please select the position you are applying for'); return false; }
     if (!document.querySelectorAll('#roles_grid input:checked').length) { showToast('Please select at least one role'); return false; }
     const selectedRoles = [...document.querySelectorAll('#roles_grid input:checked')].map(el => el.value);
     if (selectedRoles.some(v => PHONE_ROLES.has(v)) && !document.getElementById('live_sample_call_link').value.trim()) {
@@ -1195,6 +1211,7 @@ function collectData() {
     video_intro_link: g('video_intro_link'),
     references_available: g('references_available'),
     reference_links: g('reference_links'),
+    applying_for: g('applying_for'),
     roles: gCheckboxGrid('roles_grid'),
     tools_selected: gChecked('tools'),
     other_tools: g('other_tools'),

@@ -15002,6 +15002,7 @@ function openVaApplicantModal(id){
             <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;background:${statusCol}18;color:${statusCol}">${esc(statusLabel)}</span>
             ${v.activated_at ? `<span style="font-size:11px;color:#059669;font-weight:600">✓ In matching pool</span>` : ''}
           </div>
+          ${v.applying_for ? `<div style="margin-top:7px"><span style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-right:6px">Applying for</span><span style="display:inline-block;background:var(--accent);color:#fff;border-radius:999px;padding:3px 12px;font-size:12px;font-weight:700">${esc(vaPretty('roles', v.applying_for))}</span></div>` : ''}
           ${loc ? `<div style="font-size:12px;color:var(--text2);margin-top:3px">${icon('pin')} ${loc}</div>` : ''}
           ${submitted ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">Submitted ${esc(submitted)}</div>` : ''}
           ${(v.roles||[]).length ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px">${(v.roles||[]).slice(0,3).map(r=>`<span style="display:inline-block;background:${statusCol}14;color:${statusCol};border-radius:999px;padding:2px 9px;font-size:11px;font-weight:600">${esc(vaPretty('roles', r))}</span>`).join('')}${(v.roles||[]).length>3?`<span style="font-size:11px;color:var(--text3);align-self:center">+${(v.roles||[]).length-3} more</span>`:''}</div>` : ''}
@@ -15027,6 +15028,7 @@ function openVaApplicantModal(id){
         longField('Reference Links', v.reference_links),
       ])}
       ${sec('Skills & Tools', [
+        enumField('Applying For', v.applying_for, 'roles'),
         chipField('Roles', v.roles, 'roles'), chipField('Tools', v.tools_selected, 'tools'), field('Other Tools', v.other_tools),
         boolField('Sales Role?', v.is_sales_role), chipField('Sales Roles', v.sales_roles, 'sales_roles'),
         field('Calls / Day', v.calls_per_day), field('Appts / Week', v.appts_per_week),
