@@ -403,10 +403,8 @@
           const v = l.va_applicants;
           const nm = (v.first_name || '').trim();
           const roleLabel = roleLabelFor(l.role);
-          const rate = (c && c.va_rate != null && c.va_rate !== '') ? c.va_rate
-            : (v.active_rate != null && v.active_rate !== '') ? v.active_rate
-              : (v.hourly_rate != null ? v.hourly_rate : '');
-          state.lineItems.push({ id: uid(), auto: true, desc: roleLabel || 'VA Services', va: nm, hours: '', rate: rate });
+          // Rate is intentionally left blank — enter it manually per line for now.
+          state.lineItems.push({ id: uid(), auto: true, desc: roleLabel || 'VA Services', va: nm, hours: '', rate: '' });
         });
         if (rows.length) toast(`Loaded ${rows.length} VA${rows.length === 1 ? '' : 's'} for ${contactName(c)}`);
       } catch (err) { /* no VAs / not reachable — manual lines still work */ }
