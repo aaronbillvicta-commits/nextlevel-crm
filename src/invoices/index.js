@@ -385,16 +385,18 @@
       // Auto-seed from the client's assigned VAs via the many-to-many join table.
       try {
         const links = await window.sb.get('va_client_assignments',
-          `?select=va_applicants(id,first_name,last_name,name,active_rate,hourly_rate)&contact_id=eq.${id}`);
-        const vas = (Array.isArray(links) ? links : []).map((l) => l.va_applicants).filter(Boolean);
-        vas.forEach((v) => {
+          `?select=role,va_applicants(id,first_name,last_name,name,active_rate,hourly_rate)&contact_id=eq.${id}`);
+        const rows = (Array.isArray(links) ? links : []).filter((l) => l.va_applicants);
+        rows.forEach((l) => {
+          const v = l.va_applicants;
           const nm = `${v.first_name || ''} ${v.last_name || ''}`.trim() || v.name || '';
+          const roleLabel = l.role ? (window.vaRoleLabel ? window.vaRoleLabel(l.role) : l.role) : '';
           const rate = (c && c.va_rate != null && c.va_rate !== '') ? c.va_rate
             : (v.active_rate != null && v.active_rate !== '') ? v.active_rate
               : (v.hourly_rate != null ? v.hourly_rate : '');
-          state.lineItems.push({ id: uid(), auto: true, desc: 'VA Services', va: nm, hours: '', rate: rate });
+          state.lineItems.push({ id: uid(), auto: true, desc: roleLabel || 'VA Services', va: nm, hours: '', rate: rate });
         });
-        if (vas.length) toast(`Loaded ${vas.length} VA${vas.length === 1 ? '' : 's'} for ${contactName(c)}`);
+        if (rows.length) toast(`Loaded ${rows.length} VA${rows.length === 1 ? '' : 's'} for ${contactName(c)}`);
       } catch (err) { /* no VAs / not reachable — manual lines still work */ }
       renderLines();
     },
