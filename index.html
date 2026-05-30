@@ -74,7 +74,7 @@
 <script type="module" src="src/calling/outbound.js?v=2026-05-18-5"></script>
 <script type="module" src="src/calling/inbound.js?v=2026-05-18-6"></script>
 <script type="module" src="src/calling/dialpad.js?v=2026-05-18-7"></script>
-<script type="module" src="src/invoices/index.js?v=2026-05-30-5"></script>
+<script type="module" src="src/invoices/index.js?v=2026-05-30-6"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -6049,8 +6049,11 @@ function openContactDetail(contactId, tab='info') {
             </select></div>
         </div>
         <div class="form-group">
-          <label class="form-label">Assigned VA</label>
-          <input class="form-input" id="cd-assigned-va" value="${(c.assigned_va||'').replace(/"/g,'&quot;')}" placeholder="e.g. Maria Cruz"/>
+          <label class="form-label">Assigned VAs</label>
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <div id="cd-assigned-va-display" class="tags-cell" style="flex:1;min-width:0;font-size:13px;color:var(--text2)">${ vasForClient(c.id).length ? vasForClient(c.id).map(v=>`<span class="tag" style="background:var(--bg3,rgba(127,127,127,.12));color:var(--text2)">${escapeHtml(vaDisplayName(v))}</span>`).join(' ') : '<span style="opacity:.5">None assigned</span>' }</div>
+            <button type="button" class="btn btn-sm" onclick="openClientVaModal('${c.id}')">Manage VAs</button>
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">VA Rate (${getCurrencySymbol()})</label>
@@ -11474,6 +11477,7 @@ function renderCampaignsPage(){
 // value without a reload.
 function renderClientsPage(){
   const tbody = document.getElementById('clients-tbody'); if(!tbody) return;
+  if(!window._clientsVaLoaded){ window._clientsVaLoaded = true; Promise.all([fetchVaApplicants(), fetchVaClientLinks()]).then(()=>renderClientsPage()); }
   const q = (document.getElementById('clients-search')?.value || '').toLowerCase();
   const all = contacts.filter(c => c.status === 'done');
   const filtered = all.filter(c => !q
@@ -11493,7 +11497,10 @@ function renderClientsPage(){
   tbody.innerHTML = filtered.map(c => {
     const depositTxt = (c.deposit != null && c.deposit !== '') ? `${sym}${Number(c.deposit).toLocaleString()}` : '<span style="opacity:.4">—</span>';
     const paymentTxt = c.payment_structure ? c.payment_structure.charAt(0).toUpperCase() + c.payment_structure.slice(1) : '<span style="opacity:.4">—</span>';
-    const vaTxt = c.assigned_va ? c.assigned_va : '<span style="opacity:.4">—</span>';
+    const vaList = vasForClient(c.id);
+    const vaTxt = vaList.length
+      ? vaList.map(v=>`<span class="tag" style="background:var(--bg3,rgba(127,127,127,.12));color:var(--text2)">${escapeHtml(vaDisplayName(v))}</span>`).join(' ')
+      : '<span style="opacity:.4">Assign VAs…</span>';
     const vaRateTxt = (c.va_rate != null && c.va_rate !== '') ? `${sym}${Number(c.va_rate).toLocaleString()}` : '<span style="opacity:.4">—</span>';
     const agencyCutTxt = (c.agency_cut != null && c.agency_cut !== '') ? `${sym}${Number(c.agency_cut).toLocaleString()}` : '<span style="opacity:.4">—</span>';
     const lastAct = c.last_activity ? fmtLastActivity(c.last_activity) : '<span style="opacity:.4">—</span>';
@@ -11505,7 +11512,7 @@ function renderClientsPage(){
       <td><div class="tags-cell">${(c.tags||[]).map(t=>`<span class="tag ${t.cls}">${pTag(t.label)}</span>`).join('')}</div></td>
       <td onclick="editClientCell('${c.id}','deposit')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit deposit">${depositTxt}</td>
       <td onclick="editClientCell('${c.id}','payment_structure')" style="cursor:pointer;font-size:12px" title="Click to set payment cadence">${paymentTxt}</td>
-      <td onclick="editClientCell('${c.id}','assigned_va')" style="cursor:pointer;font-size:12px" title="Click to assign VA">${vaTxt}</td>
+      <td onclick="openClientVaModal('${c.id}')" style="cursor:pointer;font-size:12px" title="Click to assign VAs"><div class="tags-cell">${vaTxt}</div></td>
       <td onclick="editClientCell('${c.id}','va_rate')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit VA rate">${vaRateTxt}</td>
       <td onclick="editClientCell('${c.id}','agency_cut')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit agency cut">${agencyCutTxt}</td>
       <td style="font-size:11px;color:var(--text3)">${lastAct}</td>
@@ -14752,6 +14759,83 @@ async function fetchVaApplicants(){
   catch(e){ console.error('fetchVaApplicants', e); vaApplicants = []; }
 }
 
+// ── VA ↔ client assignments (many-to-many via va_client_assignments) ──────────
+// A VA can serve multiple clients and a client can have multiple VAs. This join
+// table is the source of truth; va_applicants.assigned_to_contact_id is kept
+// loosely in sync (= first linked client) only for back-compat.
+let vaClientLinks = [];
+async function fetchVaClientLinks(){
+  try { vaClientLinks = await sb.get('va_client_assignments', '?select=id,va_applicant_id,contact_id'); }
+  catch(e){ console.error('fetchVaClientLinks', e); vaClientLinks = []; }
+}
+function vaDisplayName(v){ return v ? (`${v.first_name||''} ${v.last_name||''}`.trim() || v.name || v.email || 'VA') : ''; }
+function vasForClient(clientId){ const ids=new Set(vaClientLinks.filter(l=>l.contact_id===clientId).map(l=>l.va_applicant_id)); return vaApplicants.filter(v=>ids.has(v.id)); }
+function clientsForVa(vaId){ const ids=new Set(vaClientLinks.filter(l=>l.va_applicant_id===vaId).map(l=>l.contact_id)); return contacts.filter(c=>ids.has(c.id)); }
+async function syncClientAssignedVa(clientId){
+  const c=contacts.find(x=>x.id===clientId); if(!c) return;
+  const joined = vasForClient(clientId).map(vaDisplayName).filter(Boolean).join(', ') || null;
+  if((c.assigned_va||null)!==joined){ c.assigned_va=joined; try{ await sb.patch('contacts', clientId, { assigned_va: joined }); }catch(e){} }
+}
+async function syncVaLegacyClient(vaId){
+  const v=vaApplicants.find(x=>x.id===vaId); if(!v) return;
+  const first = vaClientLinks.find(l=>l.va_applicant_id===vaId);
+  const newVal = first ? first.contact_id : null;
+  if((v.assigned_to_contact_id||null)!==newVal){ v.assigned_to_contact_id=newVal; try{ await sb.patch('va_applicants', vaId, { assigned_to_contact_id: newVal }); }catch(e){} }
+}
+async function applyLinkDiff(addPairs, removeLinkIds){
+  for(const id of removeLinkIds){ try{ await sb.del('va_client_assignments', id); }catch(e){ logError('applyLinkDiff.del', e.message, e.stack, { id }); } }
+  for(const p of addPairs){ try{ await sb.post('va_client_assignments', { va_applicant_id:p.va, contact_id:p.client }); }catch(e){ logError('applyLinkDiff.add', e.message, e.stack, p); } }
+  await fetchVaClientLinks();
+}
+
+// Active Clients → assign multiple VAs (searchable picker over placed VAs).
+function openClientVaModal(clientId){
+  if(typeof requirePerm==='function' && !requirePerm('edit','You don\'t have permission to assign VAs')) return;
+  if(!window._clientsVaLoaded){ window._clientsVaLoaded=true; Promise.all([fetchVaApplicants(), fetchVaClientLinks()]).then(()=>openClientVaModal(clientId)); return; }
+  const c=contacts.find(x=>x.id===clientId); if(!c) return;
+  const E=(s)=>escapeHtml(s==null?'':String(s));
+  const placed = vaApplicants.filter(v=>v.review_status==='placed');
+  const linkedIds = new Set(vaClientLinks.filter(l=>l.contact_id===clientId).map(l=>l.va_applicant_id));
+  const rows = placed.map(v=>{
+    const others = clientsForVa(v.id).filter(x=>x.id!==clientId).map(x=>x.name);
+    const roleTxt = (v.roles||[]).map(r=>(typeof vaRoleLabel==='function'?vaRoleLabel(r):r)).join(', ');
+    const sub = [roleTxt, others.length?('also: '+others.join(', ')):''].filter(Boolean).join(' · ');
+    const search = `${vaDisplayName(v)} ${v.email||''} ${(v.roles||[]).join(' ')}`.toLowerCase();
+    return `<label class="vca-row" data-s="${E(search)}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer">
+      <input type="checkbox" value="${v.id}" ${linkedIds.has(v.id)?'checked':''} style="width:auto;margin:0"/>
+      <span style="flex:1;min-width:0"><span style="font-weight:500">${E(vaDisplayName(v))}</span>${sub?`<br><span style="font-size:11px;color:var(--text3)">${E(sub)}</span>`:''}</span>
+    </label>`;
+  }).join('');
+  const body = placed.length ? rows : `<div style="font-size:12px;color:var(--text3);padding:12px">No active VAs yet — set a VA applicant's status to "Placed" first.</div>`;
+  openModal(`
+    <div class="modal-head"><div class="modal-title">Assign VAs — ${E(c.name)}</div><span class="modal-close" onclick="closeModal()">×</span></div>
+    <div class="modal-body" style="padding:4px 20px 0">
+      <input class="form-input" id="clientva-search" placeholder="Search VAs by name, email, role…" oninput="filterVcaList('clientva-list', this.value)" style="margin-bottom:8px"/>
+      <div id="clientva-list" style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">${body}</div>
+    </div>
+    <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="saveClientVaModal('${clientId}')">Save</button></div>`);
+}
+function filterVcaList(listId, q){
+  q=(q||'').toLowerCase();
+  document.querySelectorAll('#'+listId+' .vca-row').forEach(r=>{ r.style.display = (!q || (r.getAttribute('data-s')||'').includes(q)) ? '' : 'none'; });
+}
+async function saveClientVaModal(clientId){
+  const checked = new Set([...document.querySelectorAll('#clientva-list input[type=checkbox]:checked')].map(cb=>cb.value));
+  const currentLinks = vaClientLinks.filter(l=>l.contact_id===clientId);
+  const currentIds = new Set(currentLinks.map(l=>l.va_applicant_id));
+  const addPairs = [...checked].filter(id=>!currentIds.has(id)).map(id=>({ va:id, client:clientId }));
+  const removeLinkIds = currentLinks.filter(l=>!checked.has(l.va_applicant_id)).map(l=>l.id);
+  closeModal();
+  if(!addPairs.length && !removeLinkIds.length) return;
+  await applyLinkDiff(addPairs, removeLinkIds);
+  await syncClientAssignedVa(clientId);
+  const affected = new Set([...addPairs.map(p=>p.va), ...currentLinks.map(l=>l.va_applicant_id)]);
+  for(const vaId of affected){ await syncVaLegacyClient(vaId); }
+  showToast('VAs updated ✓');
+  renderClientsPage();
+  if(typeof renderActiveVasPage==='function') renderActiveVasPage();
+}
+
 function renderVaApplicantsPage(){
   const tbody = document.getElementById('va-tbody'); if(!tbody) return;
   const emptyEl = document.getElementById('va-empty');
@@ -15091,13 +15175,13 @@ function renderActiveVasPage(){
   const tbody = document.getElementById('active-vas-tbody'); if(!tbody) return;
   const q = (document.getElementById('active-vas-search')?.value || '').toLowerCase();
   const esc = (s) => (typeof escapeHtml === 'function') ? escapeHtml(s == null ? '' : String(s)) : String(s == null ? '' : s);
-  Promise.all([fetchVaApplicants(), fetchVaRoleOptions(), fetchVaLabelMap()]).then(() => {
+  Promise.all([fetchVaApplicants(), fetchVaRoleOptions(), fetchVaLabelMap(), fetchVaClientLinks()]).then(() => {
     const activeClients = contacts.filter(c => c.status === 'done');
     let list = vaApplicants.filter(v => v.review_status === 'placed');
     if(q) list = list.filter(v => {
       const name   = `${v.first_name||''} ${v.last_name||''}`.toLowerCase();
       const roles  = (v.roles||[]).join(' ').toLowerCase();
-      const client = (contacts.find(c => c.id === v.assigned_to_contact_id)?.name || '').toLowerCase();
+      const client = clientsForVa(v.id).map(c => c.name || '').join(' ').toLowerCase();
       return name.includes(q) || roles.includes(q) || client.includes(q) || (v.email||'').toLowerCase().includes(q);
     });
     const countEl = document.getElementById('active-vas-count-label');
@@ -15114,10 +15198,9 @@ function renderActiveVasPage(){
       const roleDisplay = activeRole
         ? esc(vaRoleLabel(activeRole))
         : (roleArr.length ? roleArr.map(r => esc(vaRoleLabel(r))).join(', ') : '<span style="opacity:.4">Set role…</span>');
-      // Client — assigned contact name (or unassigned)
-      const assignedId = v.assigned_to_contact_id || '';
-      const assignedClient = assignedId ? contacts.find(c => c.id === assignedId) : null;
-      const clientDisplay = assignedClient ? esc(assignedClient.name) : '<span style="opacity:.4">— Unassigned</span>';
+      // Client(s) — every linked active client (many-to-many), or unassigned
+      const vaClients = clientsForVa(v.id);
+      const clientDisplay = vaClients.length ? vaClients.map(c => esc(c.name)).join(', ') : '<span style="opacity:.4">— Unassigned</span>';
       // Rate — agreed active_rate, falling back to the application hourly_rate (shown muted)
       const usingFallback = (v.active_rate == null || v.active_rate === '') && (v.hourly_rate != null && v.hourly_rate !== '');
       const rateNum = (v.active_rate != null && v.active_rate !== '') ? v.active_rate : v.hourly_rate;
@@ -15193,28 +15276,31 @@ async function saveVaRole(id){
   renderActiveVasPage();
 }
 
-// Client picker modal — assign the active client (active clients only).
+// Client picker modal — assign a placed VA to one or more active clients (multi-select).
 function openVaClientModal(id){
   if(typeof requirePerm === 'function' && !requirePerm('edit','You don\'t have permission to assign clients')) return;
   const v = vaApplicants.find(x => x.id === id); if(!v) return;
   const E = (s) => escapeHtml(s == null ? '' : String(s));
-  const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email || 'VA';
+  const name = vaDisplayName(v);
   const activeClients = contacts.filter(c => c.status === 'done');
-  const assignedId = v.assigned_to_contact_id || '';
-  let opts = `<option value="">— Unassigned</option>`;
-  const seen = new Set();
-  activeClients.forEach(c => { seen.add(c.id); opts += `<option value="${c.id}" ${c.id===assignedId?'selected':''}>${E(c.name)}</option>`; });
-  if(assignedId && !seen.has(assignedId)){ const ac = contacts.find(c => c.id === assignedId); if(ac) opts += `<option value="${ac.id}" selected>${E(ac.name)}</option>`; }
-  const note = activeClients.length ? '' : `<div style="font-size:11px;color:var(--text3);margin-top:6px">No active clients yet — mark a contact's status as "Client" first.</div>`;
+  const linkedIds = new Set(vaClientLinks.filter(l=>l.va_applicant_id===id).map(l=>l.contact_id));
+  const rows = activeClients.map(c=>{
+    const search = `${c.name||''} ${c.company||''} ${c.email||''}`.toLowerCase();
+    return `<label class="vca-row" data-s="${E(search)}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer">
+      <input type="checkbox" value="${c.id}" ${linkedIds.has(c.id)?'checked':''} style="width:auto;margin:0"/>
+      <span style="flex:1;min-width:0"><span style="font-weight:500">${E(c.name)}</span>${c.company?`<br><span style="font-size:11px;color:var(--text3)">${E(c.company)}</span>`:''}</span>
+    </label>`;
+  }).join('');
+  const body = activeClients.length ? rows : `<div style="font-size:12px;color:var(--text3);padding:12px">No active clients yet — mark a contact's status as "Client" first.</div>`;
   openModal(`
     <div class="modal-head">
-      <div class="modal-title">Assign Client</div>
+      <div class="modal-title">Assign Clients — ${E(name)}</div>
       <span class="modal-close" onclick="closeModal()">×</span>
     </div>
     <div class="modal-body" style="padding:4px 20px 0">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Which client is <strong>${E(name)}</strong> working for?</div>
-      <div class="form-group"><label class="form-label">Client</label>
-        <select class="form-select" id="vaclient-select">${opts}</select>${note}</div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Select every client <strong>${E(name)}</strong> works for.</div>
+      <input class="form-input" id="vaclient-search" placeholder="Search clients by name, company…" oninput="filterVcaList('vaclient-list', this.value)" style="margin-bottom:8px"/>
+      <div id="vaclient-list" style="max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">${body}</div>
     </div>
     <div class="modal-foot">
       <button class="btn" onclick="closeModal()">Cancel</button>
@@ -15222,9 +15308,20 @@ function openVaClientModal(id){
     </div>`);
 }
 async function saveVaClientModal(id){
-  const val = document.getElementById('vaclient-select')?.value || '';
-  await assignVaClient(id, val);   // handles the patch + two-way client sync + re-render
+  const checked = new Set([...document.querySelectorAll('#vaclient-list input[type=checkbox]:checked')].map(cb=>cb.value));
+  const currentLinks = vaClientLinks.filter(l=>l.va_applicant_id===id);
+  const currentIds = new Set(currentLinks.map(l=>l.contact_id));
+  const addPairs = [...checked].filter(cid=>!currentIds.has(cid)).map(cid=>({ va:id, client:cid }));
+  const removeLinkIds = currentLinks.filter(l=>!checked.has(l.contact_id)).map(l=>l.id);
   closeModal();
+  if(!addPairs.length && !removeLinkIds.length) return;
+  await applyLinkDiff(addPairs, removeLinkIds);
+  await syncVaLegacyClient(id);
+  const affected = new Set([...addPairs.map(p=>p.client), ...currentLinks.map(l=>l.contact_id)]);
+  for(const cid of affected){ await syncClientAssignedVa(cid); }
+  showToast('Clients updated ✓');
+  renderActiveVasPage();
+  if(typeof renderClientsPage === 'function') renderClientsPage();
 }
 
 // Agreed-rate modal — numeric engagement rate (falls back to application rate).

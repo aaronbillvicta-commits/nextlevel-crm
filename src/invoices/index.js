@@ -378,24 +378,25 @@
     },
     async selectClient(id) {
       state.selectedContactId = id || null;
-      if (!id) { renderPreview(); return; }
+      // Drop previously auto-seeded VA lines (keep manual ones) so switching clients replaces, not stacks.
+      state.lineItems = state.lineItems.filter((li) => !li.auto);
+      if (!id) { renderLines(); return; }
       const c = (window.contacts || []).find((x) => x.id === id);
-      // Auto-seed line items from this client's assigned VAs (Active VAs link).
+      // Auto-seed from the client's assigned VAs via the many-to-many join table.
       try {
-        const vas = await window.sb.get('va_applicants',
-          `?select=id,name,roles,active_rate,hourly_rate&assigned_to_contact_id=eq.${id}`);
-        if (Array.isArray(vas) && vas.length) {
-          vas.forEach((v) => {
-            const rate = (c && c.va_rate != null && c.va_rate !== '') ? c.va_rate
-              : (v.active_rate != null && v.active_rate !== '') ? v.active_rate
-                : (v.hourly_rate != null ? v.hourly_rate : '');
-            state.lineItems.push({ id: uid(), desc: 'VA Services', va: v.name || '', hours: '', rate: rate });
-          });
-          renderLines();
-          toast(`Added ${vas.length} VA line item${vas.length === 1 ? '' : 's'} for ${contactName(c)}`);
-        }
-      } catch (err) { /* no VAs / not reachable — silent, manual lines still work */ }
-      renderPreview();
+        const links = await window.sb.get('va_client_assignments',
+          `?select=va_applicants(id,first_name,last_name,name,active_rate,hourly_rate)&contact_id=eq.${id}`);
+        const vas = (Array.isArray(links) ? links : []).map((l) => l.va_applicants).filter(Boolean);
+        vas.forEach((v) => {
+          const nm = `${v.first_name || ''} ${v.last_name || ''}`.trim() || v.name || '';
+          const rate = (c && c.va_rate != null && c.va_rate !== '') ? c.va_rate
+            : (v.active_rate != null && v.active_rate !== '') ? v.active_rate
+              : (v.hourly_rate != null ? v.hourly_rate : '');
+          state.lineItems.push({ id: uid(), auto: true, desc: 'VA Services', va: nm, hours: '', rate: rate });
+        });
+        if (vas.length) toast(`Loaded ${vas.length} VA${vas.length === 1 ? '' : 's'} for ${contactName(c)}`);
+      } catch (err) { /* no VAs / not reachable — manual lines still work */ }
+      renderLines();
     },
     applyTerms() {
       const sel = val('invt-terms');
