@@ -36,6 +36,9 @@
   const TERMS = { due_on_receipt: 0, net7: 7, net15: 15, net30: 30, net60: 60 };
   const today = new Date();
   const state = {
+    view: 'edit',             // 'edit' | 'history'
+    currentInvoiceId: null,   // set when editing a saved invoice (else null = new)
+    invoices: [],             // cache of saved invoices (for history + number generation)
     billTo: 'crm',            // 'crm' | 'manual'
     selectedContactId: null,
     lineItems: [],
@@ -94,6 +97,19 @@
   .inv-doc .inv-badge { padding:6px 14px; border-radius:20px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
   .inv-doc .inv-badge.unpaid { background:#fef3c7; color:#92400e; }
   .inv-doc .inv-badge.paid { background:#dcfce7; color:#166534; }
+
+  /* history table */
+  .invoice-tool .it-actionbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+  .invoice-tool .it-viewtabs { display:flex; gap:6px; }
+  .invoice-tool .it-viewtab { padding:6px 14px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid var(--border); border-radius:6px; background:transparent; color:var(--text3); }
+  .invoice-tool .it-viewtab.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .inv-hist-table { width:100%; border-collapse:collapse; font-size:13px; }
+  .inv-hist-table th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text3); padding:8px 10px; border-bottom:1px solid var(--border); }
+  .inv-hist-table td { padding:9px 10px; border-bottom:1px solid var(--border); }
+  .inv-hist-table tr:hover td { background:var(--bg3,rgba(127,127,127,.06)); }
+  .inv-hist-badge { padding:2px 9px; border-radius:999px; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+  .inv-hist-badge.unpaid { background:#fef3c7; color:#92400e; }
+  .inv-hist-badge.paid { background:#dcfce7; color:#166534; }
   `;
   function injectCSS() {
     if (document.getElementById('invoice-tool-css')) return;
@@ -130,7 +146,7 @@
 
       <div>
         <div class="it-group-label">Invoice Settings</div>
-        <div class="it-field"><label>Invoice #</label><input class="form-input" id="invt-number" value="INV-001" oninput="invoiceTool.render()"/></div>
+        <div class="it-field"><label>Invoice #</label><input class="form-input" id="invt-number" value="INV-001" oninput="invoiceTool.numberInput()"/></div>
         <div class="it-field"><label>Invoice Date</label><input class="form-input" id="invt-issueDate" type="date" value="${isoDate(today)}" onchange="invoiceTool.applyTerms()"/></div>
         <div class="it-field"><label>Due Date</label><input class="form-input" id="invt-dueDate" type="date" value="${isoDate(dueDefault)}" onchange="invoiceTool.render()"/></div>
         <div class="it-field"><label>Payment Terms</label>
@@ -382,6 +398,7 @@
     addItem() { state.lineItems.push({ id: uid(), desc: '', va: '', hours: '', rate: '' }); renderLines(); },
     removeItem(id) { state.lineItems = state.lineItems.filter((li) => li.id !== id); renderLines(); },
     updateItem(id, field, value) { const li = state.lineItems.find((x) => x.id === id); if (li) { li[field] = value; renderPreview(); } },
+    numberInput() { state._numberDirty = true; renderPreview(); },
     print() {
       const docHTML = invoiceDocHTML();
       const w = window.open('', '_blank', 'width=900,height=1100');
@@ -397,24 +414,143 @@
       w.focus();
       setTimeout(() => { w.print(); }, 250);
     },
+
+    // ── persistence (Deploy 2) ────────────────────────────────────────────────
+    async loadInvoices(force) {
+      if (state.invoices.length && !force) return state.invoices;
+      try { state.invoices = await window.sb.get('invoices', '?select=*&order=created_at.desc'); }
+      catch (e) { state.invoices = []; }
+      return state.invoices;
+    },
+    async save() {
+      const row = gather();
+      if (!row.line_items.length) { toast('Add at least one line item before saving', 'error'); return; }
+      try {
+        let saved;
+        if (state.currentInvoiceId) {
+          row.updated_at = new Date().toISOString();
+          saved = await window.sb.patch('invoices', state.currentInvoiceId, row);
+        } else {
+          saved = await window.sb.post('invoices', row);
+        }
+        const rec = Array.isArray(saved) ? saved[0] : saved;
+        const wasNew = !state.currentInvoiceId;
+        if (rec && rec.id) state.currentInvoiceId = rec.id;
+        await this.loadInvoices(true);
+        toast(`Invoice ${row.invoice_number} ${wasNew ? 'saved' : 'updated'}`);
+        if (rootEl) window.renderInvoiceTool(rootEl);
+      } catch (e) { toast('Save failed: ' + ((e && e.message) || 'error'), 'error'); }
+    },
+    newInvoice() {
+      state.currentInvoiceId = null; state.view = 'edit';
+      state.billTo = 'crm'; state.selectedContactId = null;
+      state.lineItems = []; state.logoDataUrl = null; state._numberDirty = false;
+      if (rootEl) window.renderInvoiceTool(rootEl);
+    },
+    switchView(v) {
+      state.view = v;
+      const done = () => { if (rootEl) window.renderInvoiceTool(rootEl); };
+      if (v === 'history') this.loadInvoices(true).then(done); else done();
+    },
+    async openInvoice(id) {
+      await this.loadInvoices();
+      const row = state.invoices.find((r) => r.id === id);
+      if (!row) { toast('Invoice not found', 'error'); return; }
+      state.currentInvoiceId = id; state.view = 'edit';
+      state.billTo = 'manual'; state.selectedContactId = null; state.logoDataUrl = null;
+      state.lineItems = (row.line_items || []).map((li) => ({
+        id: uid(), desc: li.desc || '', va: li.va || '',
+        hours: li.hours == null ? '' : li.hours, rate: li.rate == null ? '' : li.rate,
+      }));
+      if (rootEl) window.renderInvoiceTool(rootEl);
+    },
+    async markPaid(id, paid) {
+      try {
+        await window.sb.patch('invoices', id, { status: paid ? 'paid' : 'unpaid', paid_at: paid ? new Date().toISOString() : null, updated_at: new Date().toISOString() });
+        await this.loadInvoices(true);
+        if (rootEl) window.renderInvoiceTool(rootEl);
+        toast(`Marked ${paid ? 'paid' : 'unpaid'}`);
+      } catch (e) { toast('Update failed', 'error'); }
+    },
+    async deleteInvoice(id) {
+      const row = state.invoices.find((r) => r.id === id);
+      if (!window.confirm(`Delete invoice ${row ? row.invoice_number : ''}? This cannot be undone.`)) return;
+      try {
+        await window.sb.del('invoices', id);
+        if (state.currentInvoiceId === id) state.currentInvoiceId = null;
+        await this.loadInvoices(true);
+        if (rootEl) window.renderInvoiceTool(rootEl);
+        toast('Invoice deleted');
+      } catch (e) { toast('Delete failed', 'error'); }
+    },
   };
 
-  // ── mount point (called by inline renderToolsPage when Invoice tab is active) ─
-  window.renderInvoiceTool = function (container) {
-    if (!container) return;
-    injectCSS();
-    rootEl = container;
-    if (!state.lineItems.length) {
-      state.lineItems = [
-        { id: uid(), desc: 'Website Design', va: '', hours: 10, rate: 75 },
-        { id: uid(), desc: 'SEO Strategy', va: '', hours: 5, rate: 75 },
-      ];
+  // ── persistence helpers ────────────────────────────────────────────────────
+  const round2 = (n) => Math.round((Number(n) || 0) * 100) / 100;
+  function setVal(id, v) { const e = document.getElementById(id); if (e && v != null) e.value = v; }
+
+  function nextInvoiceNumber() {
+    let max = 0;
+    (state.invoices || []).forEach((r) => { const m = String(r.invoice_number || '').match(/(\d+)\s*$/); if (m) { const n = parseInt(m[1], 10); if (n > max) max = n; } });
+    return 'INV-' + String(max + 1).padStart(3, '0');
+  }
+
+  // Build a DB row from the current editor state + DOM. Snapshots bill-to and
+  // agency so a later contact edit never rewrites an already-saved invoice.
+  // Note: uploaded (data:) logos are NOT persisted (size) — only logo URLs are.
+  function gather() {
+    const t = totals();
+    let bill_to, contact_id = null;
+    if (state.billTo === 'crm' && state.selectedContactId) {
+      const c = (window.contacts || []).find((x) => x.id === state.selectedContactId);
+      contact_id = c ? c.id : null;
+      bill_to = c ? { name: contactName(c), company: c.company || '', email: c.email || '', phone: c.phone || '', address: c.address || '' } : {};
+    } else {
+      bill_to = { name: (val('invt-mName') || '').trim(), company: (val('invt-mCompany') || '').trim(), email: (val('invt-mEmail') || '').trim(), phone: (val('invt-mPhone') || '').trim(), address: (val('invt-mAddress') || '').trim() };
     }
-    container.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
-        <div style="font-size:12px;color:var(--text3)">Build an invoice, then Print / Save as PDF. Pick a CRM client to pull their details and assigned VAs.</div>
-        <button class="btn btn-primary btn-sm" onclick="invoiceTool.print()">Print / Save PDF</button>
-      </div>
+    const src = logoSrc();
+    const agency = { name: (val('invt-agencyName') || 'Next Level Marketing').trim(), email: (val('invt-agencyEmail') || '').trim(), address: (val('invt-agencyAddress') || '').trim(), logo: (src && !String(src).startsWith('data:')) ? src : null };
+    const status = val('invt-status') || 'unpaid';
+    return {
+      invoice_number: (val('invt-number') || 'INV-001').trim(),
+      contact_id, bill_to, agency,
+      issue_date: val('invt-issueDate') || null,
+      due_date: val('invt-dueDate') || null,
+      payment_terms: val('invt-terms') || null,
+      line_items: state.lineItems.map((li) => ({ desc: li.desc || '', va: li.va || '', hours: li.hours === '' || li.hours == null ? null : Number(li.hours), rate: li.rate === '' || li.rate == null ? null : Number(li.rate) })),
+      tax_rate: parseFloat(val('invt-taxRate')) || 0,
+      subtotal: round2(t.subtotal), tax: round2(t.tax), total: round2(t.total),
+      status, paid_at: status === 'paid' ? new Date().toISOString() : null,
+    };
+  }
+
+  // Populate the editor DOM from a saved row (opened in snapshot/manual mode).
+  function applySaved(row) {
+    const a = row.agency || {}, b = row.bill_to || {};
+    setVal('invt-agencyName', a.name || 'Next Level Marketing');
+    setVal('invt-agencyEmail', a.email || '');
+    setVal('invt-agencyAddress', a.address || '');
+    setVal('invt-logoUrl', (a.logo && !String(a.logo).startsWith('data:')) ? a.logo : '');
+    state.logoDataUrl = null;
+    setVal('invt-number', row.invoice_number || '');
+    setVal('invt-issueDate', row.issue_date || '');
+    setVal('invt-dueDate', row.due_date || '');
+    setVal('invt-terms', row.payment_terms || 'custom');
+    setVal('invt-taxRate', row.tax_rate != null ? row.tax_rate : 0);
+    setVal('invt-status', row.status || 'unpaid');
+    setVal('invt-notes', row.notes != null ? row.notes : '');
+    setVal('invt-mName', b.name || '');
+    setVal('invt-mCompany', b.company || '');
+    setVal('invt-mEmail', b.email || '');
+    setVal('invt-mPhone', b.phone || '');
+    setVal('invt-mAddress', b.address || '');
+  }
+
+  // ── view bodies ──────────────────────────────────────────────────────────────
+  function renderEditorBody() {
+    const body = document.getElementById('invt-body');
+    if (!body) return;
+    body.innerHTML = `
       <div class="invoice-tool">
         <div>
           ${controlsHTML()}
@@ -422,6 +558,74 @@
         </div>
         <div id="invt-preview">${invoiceDocHTML()}</div>
       </div>`;
+    if (state.currentInvoiceId) {
+      const row = state.invoices.find((r) => r.id === state.currentInvoiceId);
+      if (row) applySaved(row);
+    } else if (!state._numberDirty) {
+      setVal('invt-number', nextInvoiceNumber());
+    }
+    renderPreview();
+  }
+
+  function renderHistoryBody() {
+    const body = document.getElementById('invt-body');
+    if (!body) return;
+    const rows = state.invoices || [];
+    if (!rows.length) {
+      body.innerHTML = `<div style="border:1px dashed var(--border);border-radius:10px;padding:28px;text-align:center;color:var(--text3);font-size:13px">No saved invoices yet. Build one in the <b>Editor</b> and click <b>Save invoice</b>.</div>`;
+      return;
+    }
+    const trs = rows.map((r) => {
+      const bt = r.bill_to || {};
+      const when = r.issue_date || (r.created_at ? String(r.created_at).split('T')[0] : '');
+      const paid = r.status === 'paid';
+      return `<tr>
+        <td style="font-family:'DM Mono',monospace">${esc(r.invoice_number || '')}</td>
+        <td>${esc(bt.name || '—')}${bt.company ? ` <span style="color:var(--text3)">· ${esc(bt.company)}</span>` : ''}</td>
+        <td>${esc(when)}</td>
+        <td style="font-family:'DM Mono',monospace;text-align:right">${fmt$(r.total)}</td>
+        <td><span class="inv-hist-badge ${paid ? 'paid' : 'unpaid'}">${esc((r.status || 'unpaid').toUpperCase())}</span></td>
+        <td style="text-align:right;white-space:nowrap">
+          <button class="btn btn-sm" onclick="invoiceTool.openInvoice('${r.id}')">Open</button>
+          <button class="btn btn-sm" onclick="invoiceTool.markPaid('${r.id}',${!paid})">${paid ? 'Mark unpaid' : 'Mark paid'}</button>
+          <button class="btn btn-sm" style="color:#dc2626" onclick="invoiceTool.deleteInvoice('${r.id}')">Delete</button>
+        </td>
+      </tr>`;
+    }).join('');
+    body.innerHTML = `<table class="inv-hist-table">
+      <thead><tr><th>#</th><th>Bill To</th><th>Date</th><th style="text-align:right">Total</th><th>Status</th><th></th></tr></thead>
+      <tbody>${trs}</tbody></table>`;
+  }
+
+  // ── mount point (called by inline renderToolsPage when Invoice tab is active) ─
+  window.renderInvoiceTool = function (container) {
+    if (!container) return;
+    injectCSS();
+    rootEl = container;
+    const editing = state.view === 'edit';
+    container.innerHTML = `
+      <div class="invoice-tool">
+        <div class="it-actionbar" style="grid-column:1/-1">
+          <div class="it-viewtabs">
+            <button class="it-viewtab ${editing ? 'active' : ''}" onclick="invoiceTool.switchView('edit')">Editor</button>
+            <button class="it-viewtab ${!editing ? 'active' : ''}" onclick="invoiceTool.switchView('history')">History</button>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${editing ? `
+              <button class="btn btn-sm" onclick="invoiceTool.newInvoice()">+ New</button>
+              <button class="btn btn-sm" onclick="invoiceTool.save()">${state.currentInvoiceId ? 'Update' : 'Save'} invoice</button>
+              <button class="btn btn-primary btn-sm" onclick="invoiceTool.print()">Print / Save PDF</button>
+            ` : `<button class="btn btn-primary btn-sm" onclick="invoiceTool.newInvoice()">+ New invoice</button>`}
+          </div>
+        </div>
+      </div>
+      <div id="invt-body"></div>`;
+    if (editing) renderEditorBody(); else renderHistoryBody();
+    // Load saved invoices in the background → refresh auto-number / history once ready.
+    api.loadInvoices().then(() => {
+      if (state.view === 'edit' && !state.currentInvoiceId && !state._numberDirty) setVal('invt-number', nextInvoiceNumber());
+      if (state.view === 'history') renderHistoryBody();
+    });
   };
   window.invoiceTool = api;
   window.__nlmInvoiceToolLoaded = true;
