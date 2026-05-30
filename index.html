@@ -49,7 +49,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-05-23-5"></script>
+<script type="module" src="src/version-history.js?v=2026-05-29-1"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -1793,13 +1793,11 @@ table th[onclick]{transition:background .15s,color .15s}
           <a href="/apply" target="_blank" class="btn btn-sm" style="font-size:12px;padding:6px 14px;background:var(--accent2);color:#fff;border-radius:8px;text-decoration:none">📋 Share Form</a>
         </div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
-        <div style="position:relative;max-width:280px;flex:1">
-          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input class="form-input" id="va-search" type="search" style="padding-left:32px" placeholder="Search applicants…" oninput="renderVaApplicantsPage()" autocomplete="off" data-form-type="other"/>
-        </div>
-        <div id="va-status-filters" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      <div style="position:relative;max-width:280px;margin-bottom:12px">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text3)"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="form-input" id="va-search" type="search" style="padding-left:32px" placeholder="Search applicants…" oninput="renderVaApplicantsPage()" autocomplete="off" data-form-type="other"/>
       </div>
+      <div id="va-status-filters" style="display:flex;gap:2px;flex-wrap:wrap;border-bottom:1.5px solid var(--border);margin-bottom:14px"></div>
       <div class="tbl-wrap">
         <table>
           <thead>
@@ -2940,49 +2938,58 @@ function authHeaders(extra={}) {
   };
 }
 
+// Wraps fetch() for the sb.* REST wrapper. On 401, refreshes the
+// Supabase session token once and retries — handles tabs left open
+// past the 1-hour access-token lifetime (BUG-026).
+async function sbFetch(url, opts={}, extra={}) {
+  let r = await fetch(url, { ...opts, headers: authHeaders(extra) });
+  if(r.status === 401){
+    const refresh = localStorage.getItem('nlm_refresh');
+    if(refresh && typeof refreshSession === 'function'){
+      const ok = await refreshSession(refresh);
+      if(ok) r = await fetch(url, { ...opts, headers: authHeaders(extra) });
+    }
+  }
+  return r;
+}
+
 const sb = {
   async get(table, query='') {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${query}`, { headers: authHeaders() });
+    const r = await sbFetch(`${SUPABASE_URL}/rest/v1/${table}${query}`);
     if(!r.ok) { const e=await r.json(); throw e; }
     return r.json();
   },
   async post(table, body) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
-      method:'POST', headers: authHeaders({'Prefer':'return=representation'}),
-      body: JSON.stringify(body)
-    });
+    const r = await sbFetch(`${SUPABASE_URL}/rest/v1/${table}`,
+      { method:'POST', body: JSON.stringify(body) },
+      {'Prefer':'return=representation'});
     if(!r.ok) { const e=await r.json(); throw e; }
     return r.json();
   },
   async patch(table, id, body) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
-      method:'PATCH', headers: authHeaders({'Prefer':'return=representation'}),
-      body: JSON.stringify(body)
-    });
+    const r = await sbFetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`,
+      { method:'PATCH', body: JSON.stringify(body) },
+      {'Prefer':'return=representation'});
     if(!r.ok) { const e=await r.json(); throw e; }
     return r.json();
   },
   async del(table, id) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`, {
-      method:'DELETE', headers: authHeaders()
-    });
+    const r = await sbFetch(`${SUPABASE_URL}/rest/v1/${table}?id=eq.${id}`,
+      { method:'DELETE' });
     if(!r.ok) { const e=await r.json(); throw e; }
     return true;
   },
   async delWhere(table, query) {
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, {
-      method:'DELETE', headers: authHeaders()
-    });
+    const r = await sbFetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`,
+      { method:'DELETE' });
     if(!r.ok) { const e=await r.json(); throw e; }
     return true;
   },
   async upsert(table, body, onConflict='') {
     const qs = onConflict ? `?on_conflict=${encodeURIComponent(onConflict)}` : '';
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/${table}${qs}`, {
-      method:'POST',
-      headers: authHeaders({'Prefer':'return=representation,resolution=merge-duplicates'}),
-      body: JSON.stringify(body)
-    });
+    const r = await sbFetch(`${SUPABASE_URL}/rest/v1/${table}${qs}`,
+      { method:'POST', body: JSON.stringify(body) },
+      {'Prefer':'return=representation,resolution=merge-duplicates'});
     if(!r.ok) { const e=await r.json(); throw e; }
     return r.json();
   },
@@ -4491,6 +4498,17 @@ function handleIncomingInvite(notification){
       invite.fromName        || '';
     const matched = (typeof findContactByPhone === 'function') ? findContactByPhone(from) : null;
     const displayName = (matched && matched.name) || callerName || from || 'Unknown caller';
+    // Only one call at a time. If we're already on a call (swCall/callTimer)
+    // or another invite is already ringing (pendingInvite), auto-reject this
+    // new invite so the ringtone doesn't interrupt the active call. Logged
+    // as a missed inbound so it still appears in history.
+    if(swCall || callTimer || pendingInvite){
+      const reason = (swCall || callTimer) ? 'on_call' : 'invite_already_ringing';
+      logError('sw_inbound_auto_reject', 'busy — auto-rejecting incoming invite', null, { reason, from });
+      try { if(typeof invite.reject === 'function') invite.reject(); } catch(_){}
+      if(typeof logCall === 'function') logCall('inbound', from, displayName, 0, 'missed', toNum);
+      return;
+    }
     pendingInvite = invite;
     // Stash the resolved metadata on the invite so acceptIncomingCall() doesn't
     // have to re-derive (the SDK clears .details after accept on some builds)
@@ -4672,6 +4690,10 @@ async function startCall(){
   // Guard — only one call at a time
   if(swCall || callTimer){
     showToast('A call is already in progress','error');
+    return;
+  }
+  if(pendingInvite){
+    showToast('Answer or decline the incoming call first','error');
     return;
   }
 
@@ -7948,6 +7970,21 @@ async function enterApp(){
   if(typeof getPrimarySwPhone === 'function' && getPrimarySwPhone() && can('calling')){
     initSWClient().catch(e => logError('sw_inbound_boot', e.message, e.stack, {}));
   }
+
+  // Proactively refresh the Supabase access token before it expires.
+  // Default token lifetime is 1 hour; check every 5 min and refresh
+  // when <10 min remain. Pairs with the on-401 retry in sbFetch as a
+  // safety net for tabs that were throttled/asleep through the window.
+  setInterval(async()=>{
+    if(!currentUser) return;
+    const exp = parseInt(localStorage.getItem('nlm_token_exp')||'0');
+    const refresh = localStorage.getItem('nlm_refresh');
+    if(!exp || !refresh) return;
+    const nowSec = Math.floor(Date.now()/1000);
+    if(nowSec > exp - 600){
+      try { await refreshSession(refresh); } catch(e){}
+    }
+  }, 5*60*1000);
 
   // Poll for inbound SMS every 30 seconds
   setInterval(async()=>{
@@ -13838,6 +13875,7 @@ function dialerCallTop(){
   if(!c){ showToast('Queue is empty','error'); return; }
   if(!c.phone){ showToast(`${c.name} has no phone number — remove or fix it`,'error'); return; }
   if(swCall || callTimer){ showToast('A call is already in progress','error'); return; }
+  if(pendingInvite){ showToast('Answer or decline the incoming call first','error'); return; }
   if(!getPrimarySwPhone()){ showToast('Connect SignalWire first (Integrations)','error'); return; }
   activeCallContact = { id:c.id, name:c.name, phone:c.phone };
   const input = document.getElementById('call-dial-number');
@@ -14455,29 +14493,26 @@ function renderVaApplicantsPage(){
   const emptyEl = document.getElementById('va-empty');
   const q = (document.getElementById('va-search')?.value || '').toLowerCase();
 
-  // Status filter pills
   const filterDiv = document.getElementById('va-status-filters');
-  if(filterDiv && !filterDiv.dataset.built){
-    filterDiv.dataset.built = '1';
-    filterDiv.innerHTML = ['all',...VA_STATUSES].map(s =>
-      `<button onclick="vaStatusFilter='${s}';renderVaApplicantsPage()" id="vaF-${s}"
-        style="padding:4px 12px;border-radius:999px;border:1.5px solid;font-size:11px;font-weight:600;cursor:pointer;background:transparent">${s==='all'?'All':VA_STATUS_LABELS[s]}</button>`
-    ).join('');
-  }
-  // Highlight active filter
-  ['all',...VA_STATUSES].forEach(s => {
-    const btn = document.getElementById('vaF-'+s);
-    if(!btn) return;
-    const active = s === vaStatusFilter;
-    const col = s==='all' ? '#374151' : VA_STATUS_COLORS[s];
-    btn.style.borderColor = active ? col : '#e5e7eb';
-    btn.style.color = active ? col : 'var(--text2)';
-    btn.style.background = active ? col+'18' : 'transparent';
-  });
 
   fetchVaApplicants().then(() => {
+    // Status tabs — rebuilt each render so the per-status counts stay live as
+    // applicants move between tabs when their status changes.
+    if(filterDiv){
+      const counts = {};
+      vaApplicants.forEach(v => { const s = v.review_status || 'new'; counts[s] = (counts[s]||0) + 1; });
+      filterDiv.innerHTML = ['all',...VA_STATUSES].map(s => {
+        const active = s === vaStatusFilter;
+        const col = s==='all' ? '#374151' : (VA_STATUS_COLORS[s] || '#6b7280');
+        const label = s==='all' ? 'All' : VA_STATUS_LABELS[s];
+        const n = s==='all' ? vaApplicants.length : (counts[s] || 0);
+        return `<button onclick="vaStatusFilter='${s}';renderVaApplicantsPage()"
+          style="padding:8px 14px;margin-bottom:-1.5px;border:none;border-bottom:2.5px solid ${active?col:'transparent'};background:transparent;font-size:13px;font-weight:${active?'700':'500'};color:${active?col:'var(--text2)'};cursor:pointer;white-space:nowrap">${label}<span style="display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;background:${active?col+'1a':'var(--bg2)'};color:${active?col:'var(--text3)'}">${n}</span></button>`;
+      }).join('');
+    }
+
     let list = vaApplicants;
-    if(vaStatusFilter !== 'all') list = list.filter(v => v.review_status === vaStatusFilter);
+    if(vaStatusFilter !== 'all') list = list.filter(v => (v.review_status || 'new') === vaStatusFilter);
     if(q) list = list.filter(v =>
       (`${v.first_name} ${v.last_name}`).toLowerCase().includes(q) ||
       (v.email||'').toLowerCase().includes(q) ||
@@ -14678,6 +14713,8 @@ async function updateVaStatus(id, status){
   const v = vaApplicants.find(x => x.id === id);
   if(v) v.review_status = status;
   showToast('Status updated', 'success');
+  // Re-render so the applicant moves to its new status tab and counts refresh.
+  renderVaApplicantsPage();
 }
 
 async function saveVaNotes(id){
