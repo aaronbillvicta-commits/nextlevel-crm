@@ -110,17 +110,18 @@
   .inv-doc .inv-badge.unpaid { background:#fef3c7; color:#92400e; }
   .inv-doc .inv-badge.paid { background:#dcfce7; color:#166534; }
 
-  /* action bar: segmented Editor/History control (left) + actions (right).
-     NOTE: this bar is rendered into the tool container OUTSIDE the .invoice-tool
-     wrapper, so these selectors are intentionally NOT scoped under .invoice-tool. */
-  .it-actionbar { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:18px; }
-  .it-viewtabs { display:inline-flex; gap:3px; padding:3px; background:var(--bg3,rgba(127,127,127,.10)); border:1px solid var(--border); border-radius:10px; }
-  .it-viewtab { display:inline-flex; align-items:center; gap:7px; padding:7px 16px; font-size:13px; font-weight:600; line-height:1; cursor:pointer; border:none; border-radius:7px; background:transparent; color:var(--text3); transition:background .15s ease, color .15s ease, box-shadow .15s ease; }
-  .it-viewtab svg { width:14px; height:14px; opacity:.8; }
-  .it-viewtab:hover:not(.active) { color:var(--text2); background:rgba(127,127,127,.12); }
-  .it-viewtab.active { background:var(--accent); color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.25); }
-  .it-viewtab.active svg { opacity:1; }
-  .it-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  /* Action bar: segmented Editor/History control (left) + actions (right).
+     Scoped under .invoice-tool like everything else — the whole tool, action
+     bar included, renders inside one .invoice-tool root (see renderInvoiceTool's
+     INVARIANT). Keep ALL new tool selectors scoped under .invoice-tool. */
+  .invoice-tool .it-actionbar { display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; margin-bottom:18px; }
+  .invoice-tool .it-viewtabs { display:inline-flex; gap:3px; padding:3px; background:var(--bg3,rgba(127,127,127,.10)); border:1px solid var(--border); border-radius:10px; }
+  .invoice-tool .it-viewtab { display:inline-flex; align-items:center; gap:7px; padding:7px 16px; font-size:13px; font-weight:600; line-height:1; cursor:pointer; border:none; border-radius:7px; background:transparent; color:var(--text3); transition:background .15s ease, color .15s ease, box-shadow .15s ease; }
+  .invoice-tool .it-viewtab svg { width:14px; height:14px; opacity:.8; }
+  .invoice-tool .it-viewtab:hover:not(.active) { color:var(--text2); background:rgba(127,127,127,.12); }
+  .invoice-tool .it-viewtab.active { background:var(--accent); color:#fff; box-shadow:0 1px 4px rgba(0,0,0,.25); }
+  .invoice-tool .it-viewtab.active svg { opacity:1; }
+  .invoice-tool .it-actions { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
 
   /* history table */
   .inv-hist-table { width:100%; border-collapse:collapse; font-size:13px; }
@@ -585,14 +586,14 @@
   function renderEditorBody() {
     const body = document.getElementById('invt-body');
     if (!body) return;
+    // #invt-body is already inside the single .invoice-tool root (see
+    // renderInvoiceTool's INVARIANT) — do NOT re-wrap in .invoice-tool here.
     body.innerHTML = `
-      <div class="invoice-tool">
-        ${controlsHTML()}
-        <div id="invt-lineeditor">${lineEditorHTML()}</div>
-        <div style="margin-top:24px">
-          <div class="it-group-label">Preview</div>
-          <div id="invt-preview">${invoiceDocHTML()}</div>
-        </div>
+      ${controlsHTML()}
+      <div id="invt-lineeditor">${lineEditorHTML()}</div>
+      <div style="margin-top:24px">
+        <div class="it-group-label">Preview</div>
+        <div id="invt-preview">${invoiceDocHTML()}</div>
       </div>`;
     if (state.currentInvoiceId) {
       const row = state.invoices.find((r) => r.id === state.currentInvoiceId);
@@ -639,7 +640,14 @@
     injectCSS();
     rootEl = container;
     const editing = state.view === 'edit';
+    // INVARIANT: the ENTIRE tool renders inside this single .invoice-tool root,
+    // so every `.invoice-tool …` scoped rule in CSS applies to everything here
+    // (action bar included). Do NOT render tool markup outside this wrapper — a
+    // prior bug put the action bar outside it and its scoped styles silently
+    // never matched. renderEditorBody/renderHistoryBody fill #invt-body, which is
+    // already inside this wrapper, so they must NOT add their own .invoice-tool.
     container.innerHTML = `
+      <div class="invoice-tool">
       <div class="it-actionbar">
         <div class="it-viewtabs" role="tablist" aria-label="Invoice view">
           <button class="it-viewtab ${editing ? 'active' : ''}" role="tab" aria-selected="${editing}" onclick="invoiceTool.switchView('edit')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg><span>Editor</span></button>
@@ -653,7 +661,8 @@
           ` : `<button class="btn btn-primary btn-sm" onclick="invoiceTool.newInvoice()">+ New invoice</button>`}
         </div>
       </div>
-      <div id="invt-body"></div>`;
+      <div id="invt-body"></div>
+      </div>`;
     if (editing) renderEditorBody(); else renderHistoryBody();
     // Load saved invoices in the background → refresh auto-number / history once ready.
     api.loadInvoices().then(() => {
