@@ -2315,9 +2315,9 @@ table th[onclick]{transition:background .15s,color .15s}
               <th>Phone</th>
               <th>Tags</th>
               <th>Deposit</th>
+              <th>Rate</th>
               <th>Payment</th>
               <th>Assigned VA</th>
-              <th>VA Rate</th>
               <th>Agency Cut</th>
               <th>Last Activity</th>
               <th>Actions</th>
@@ -11511,9 +11511,9 @@ function renderClientsPage(){
       <td><span style="color:var(--text3);font-family:'DM Mono',monospace;font-size:11px">${c.phone ? pPhone(c.phone) : '—'}</span></td>
       <td><div class="tags-cell">${(c.tags||[]).map(t=>`<span class="tag ${t.cls}">${pTag(t.label)}</span>`).join('')}</div></td>
       <td onclick="editClientCell('${c.id}','deposit')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit deposit">${depositTxt}</td>
+      <td onclick="editClientCell('${c.id}','va_rate')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit the agreed VA rate">${vaRateTxt}</td>
       <td onclick="editClientCell('${c.id}','payment_structure')" style="cursor:pointer;font-size:12px" title="Click to set payment cadence">${paymentTxt}</td>
       <td onclick="openClientVaModal('${c.id}')" style="cursor:pointer;font-size:12px" title="Click to assign VAs"><div class="tags-cell">${vaTxt}</div></td>
-      <td onclick="editClientCell('${c.id}','va_rate')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit VA rate">${vaRateTxt}</td>
       <td onclick="editClientCell('${c.id}','agency_cut')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit agency cut">${agencyCutTxt}</td>
       <td style="font-size:11px;color:var(--text3)">${lastAct}</td>
       <td style="white-space:nowrap"><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">${icon('message')}</button></td>
