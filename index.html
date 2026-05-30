@@ -7,6 +7,8 @@
 <link id="app-favicon" rel="icon" type="image/png" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2300d2ff'/%3E%3Ctext x='50%25' y='55%25' text-anchor='middle' dominant-baseline='middle' fill='%230d1225' font-family='sans-serif' font-weight='700' font-size='14'%3ENL%3C/text%3E%3C/svg%3E"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://accounts.google.com/gsi/client" async></script>
+<link href="https://assets.calendly.com/assets/external/widget.css" rel="stylesheet"/>
+<script src="https://assets.calendly.com/assets/external/widget.js" async></script>
 <script>
 // CRITICAL: this MUST run before @signalwire/js loads so we intercept the
 // native RTCPeerConnection reference before the SDK captures it. Routes the
@@ -49,7 +51,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-05-29-7"></script>
+<script type="module" src="src/version-history.js?v=2026-05-30-1"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -2578,6 +2580,101 @@ table th[onclick]{transition:background .15s,color .15s}
             </div>
           </div>
 
+        </div>
+      </div>
+
+      <div class="int-section-title" style="display:inline-flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Scheduling &amp; Productivity</div>
+
+      <div class="int-full-card" id="int-card-calendly">
+        <div class="int-full-head" onclick="toggleIntSection('calendly')">
+          <div class="int-full-icon" style="background:var(--accent-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg></div>
+          <div style="flex:1">
+            <div class="int-full-name">Calendly — Booking Page</div>
+            <div class="int-full-desc">Embed your Calendly scheduling page so clients can book you without leaving the CRM</div>
+          </div>
+          <div class="int-status-badge" id="calendly-status">Not connected</div>
+          <svg class="int-full-chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="int-form" id="calendly-form" style="display:none">
+          <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:12px;color:var(--accent2);line-height:1.6">
+            Paste your Calendly scheduling link. Find it in Calendly → your Event Type → <strong>Copy link</strong> (e.g. <code style="background:rgba(0,0,0,.15);padding:1px 5px;border-radius:3px">https://calendly.com/yourname/30min</code>).
+          </div>
+          <div class="form-group"><label class="form-label">Calendly Scheduling Link</label><input class="form-input" id="calendly-url" placeholder="https://calendly.com/yourname/30min"/></div>
+          <div class="int-form-actions">
+            <button class="btn" onclick="toggleIntSection('calendly')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveIntegration('calendly')">Save &amp; Connect</button>
+          </div>
+          <div id="calendly-connected-panel" style="display:none;margin-top:16px">
+            <div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.25);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:12px;color:var(--green);display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="font-weight:600">Calendly connected</span>
+              <a id="calendly-open-link" href="#" target="_blank" rel="noopener noreferrer" style="margin-left:auto;color:var(--accent2);font-weight:600;text-decoration:none">Open booking page →</a>
+            </div>
+            <div id="calendly-embed" class="calendly-inline-widget" style="min-width:320px;height:630px;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden"></div>
+            <div style="font-size:11px;color:var(--text3);margin-top:8px">Roadmap: bookings will auto-create contacts &amp; CRM calendar events (two-way sync).</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="int-full-card" id="int-card-google_workspace">
+        <div class="int-full-head" onclick="toggleIntSection('google_workspace')">
+          <div class="int-full-icon" style="background:var(--accent-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
+          <div style="flex:1">
+            <div class="int-full-name">Google Workspace — Gmail, Contacts &amp; Drive</div>
+            <div class="int-full-desc">Authorize Google to send &amp; log Gmail, sync contacts, and attach Drive files</div>
+          </div>
+          <div class="int-status-badge" id="google_workspace-status">Not connected</div>
+          <svg class="int-full-chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="int-form" id="google_workspace-form" style="display:none">
+          <div id="gws-setup-panel">
+            <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:12px;color:var(--accent2);line-height:1.6">
+              Uses the same Google OAuth Client ID as <strong>Google Calendar</strong> above — connect that first, or paste a Client ID with the <strong>Gmail, People &amp; Drive</strong> APIs enabled. Authorizing grants the CRM scoped access (send/read Gmail, read Contacts, create Drive files).
+            </div>
+            <div class="form-group"><label class="form-label">Google OAuth Client ID <span style="color:var(--text3);font-weight:400;font-size:11px">(optional — defaults to your Calendar Client ID)</span></label><input class="form-input" id="gws-client-id" placeholder="123…apps.googleusercontent.com"/></div>
+            <div class="int-form-actions">
+              <button class="btn" onclick="toggleIntSection('google_workspace')">Cancel</button>
+              <button class="btn btn-primary" onclick="gworkspaceAuthorize()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Authorize Google Workspace</button>
+            </div>
+          </div>
+          <div id="gws-connected-panel" style="display:none">
+            <div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.25);border-radius:var(--radius);padding:12px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--green)">Google Workspace connected</div>
+                <div id="gws-account-label" style="font-size:11px;color:var(--text3)"></div>
+              </div>
+              <button class="btn btn-sm" style="margin-left:auto;color:var(--red)" onclick="gworkspaceDisconnect()">Disconnect</button>
+            </div>
+            <div style="border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--text2);line-height:2">
+              <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Enabled scopes</div>
+              <div>Gmail — send &amp; log emails <span style="font-size:10px;background:var(--amber-bg);color:var(--amber);border-radius:999px;padding:1px 8px;font-weight:600">Roadmap</span></div>
+              <div>Gmail — read &amp; sync replies <span style="font-size:10px;background:var(--amber-bg);color:var(--amber);border-radius:999px;padding:1px 8px;font-weight:600">Roadmap</span></div>
+              <div>Google Contacts sync <span style="font-size:10px;background:var(--amber-bg);color:var(--amber);border-radius:999px;padding:1px 8px;font-weight:600">Roadmap</span></div>
+              <div>Google Drive attachments <span style="font-size:10px;background:var(--amber-bg);color:var(--amber);border-radius:999px;padding:1px 8px;font-weight:600">Roadmap</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="int-full-card" id="int-card-email_tracking">
+        <div class="int-full-head" onclick="toggleIntSection('email_tracking')">
+          <div class="int-full-icon" style="background:var(--green-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+          <div style="flex:1">
+            <div class="int-full-name">Email Open Tracking</div>
+            <div class="int-full-desc">See when contacts open the emails you send from the CRM</div>
+          </div>
+          <div class="int-status-badge" id="email_tracking-status">Not connected</div>
+          <svg class="int-full-chevron" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div class="int-form" id="email_tracking-form" style="display:none">
+          <div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.2);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:12px;color:var(--green);line-height:1.6">
+            Open &amp; click tracking is provided by your connected <strong>Brevo</strong> email account — it's on by default for emails sent from the CRM. Enable below to start recording opens.
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2);cursor:pointer"><input type="checkbox" id="emailtrack-enabled"/> Enable open &amp; click tracking</label>
+          <div style="font-size:11px;color:var(--text3);margin-top:10px">Roadmap: per-email open status shown on the contact timeline (via a tracking pixel + open-log webhook).</div>
+          <div class="int-form-actions">
+            <button class="btn" onclick="toggleIntSection('email_tracking')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveIntegration('email_tracking')">Save</button>
+          </div>
         </div>
       </div>
 
@@ -6165,7 +6262,7 @@ async function addContactToPipeline(contactId){
     });
     const newDeal = {...res[0], stage:stageId, contactId, tags:[], customFields:{}};
     pl.deals.push(newDeal);
-    showToast(`${icon('check')} "${dealName}" added to ${pl.name}!`);
+    showToast(`"${dealName}" added to ${pl.name}!`);
     openContactDetail(contactId,'pipeline');
     renderBoard();
   } catch(e){ showToast('Error adding to pipeline','error'); console.error(e); }
@@ -8147,7 +8244,9 @@ function updateSidebarUser(){
 // ═══════════════════════════════════════════════
 // INTEGRATIONS
 // ═══════════════════════════════════════════════
-const INT_KEYS = ['signalwire','email','facebook','instagram','calendar','zapier'];
+const INT_KEYS = ['signalwire','email','facebook','instagram','calendar','calendly','google_workspace','email_tracking','zapier'];
+// Friendly names for toasts/labels (keys with underscores read badly otherwise).
+const INT_LABELS = { signalwire:'SignalWire', email:'Email', facebook:'Facebook', instagram:'Instagram', calendar:'Google Calendar', calendly:'Calendly', google_workspace:'Google Workspace', email_tracking:'Email tracking', zapier:'Zapier' };
 
 // Load integration credentials from Supabase into _intCache.
 // Falls back to localStorage on error and migrates existing data to Supabase.
@@ -8211,6 +8310,10 @@ function markIntConnected(key, data){
   } else if(key === 'signalwire'){
     renderSwPhonesList([]);
   }
+  // Scaffolded integrations — render their connected UI
+  if(key==='calendly') renderCalendlyConnected(data);
+  if(key==='email_tracking'){ const cb=document.getElementById('emailtrack-enabled'); if(cb) cb.checked = !!(data && data['emailtrack-enabled']); }
+  if(key==='google_workspace') showGwsConnected((data && data['gws-email'])||'');
 }
 
 function markIntDisconnected(key){
@@ -8228,6 +8331,96 @@ function updateIntCount(){
   const count = INT_KEYS.filter(k=>_intCache[k]).length;
   const el = document.getElementById('int-connected-count');
   if(el) el.textContent = `${count} of ${INT_KEYS.length} connected`;
+}
+
+// ─── Calendly (embed scaffold; booking→CRM sync is on the roadmap) ───────────
+function renderCalendlyConnected(data){
+  const url = (data && data['calendly-url']) || (getIntData('calendly')||{})['calendly-url'] || '';
+  const panel = document.getElementById('calendly-connected-panel');
+  if(!panel) return;
+  if(!url){ panel.style.display='none'; return; }
+  panel.style.display='block';
+  const link = document.getElementById('calendly-open-link');
+  if(link) link.href = url;
+  const embed = document.getElementById('calendly-embed');
+  if(embed){
+    try {
+      if(window.Calendly && Calendly.initInlineWidget){
+        embed.innerHTML = '';
+        Calendly.initInlineWidget({ url, parentElement: embed });
+      } else {
+        // widget.js not ready yet — set data-url so it auto-inits, and retry once
+        embed.setAttribute('data-url', url);
+        setTimeout(() => { if(window.Calendly && Calendly.initInlineWidget){ embed.innerHTML=''; Calendly.initInlineWidget({ url, parentElement: embed }); } }, 1200);
+      }
+    } catch(e){}
+  }
+}
+
+// ─── Google Workspace (client-side OAuth connect; full sync is on the roadmap) ─
+const GWS_SCOPE = 'https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/contacts.readonly https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email';
+let gwsAccessToken = localStorage.getItem('nlm_gws_token') || null;
+let gwsTokenExpiry = parseInt(localStorage.getItem('nlm_gws_expiry')||'0',10) || 0;
+function gwsIsConnected(){ return !!gwsAccessToken && Date.now() < gwsTokenExpiry; }
+function gworkspaceClientId(){
+  return (document.getElementById('gws-client-id')?.value.trim())
+    || (getIntData('calendar')||{})['gcal-client-id'] || '';
+}
+function gworkspaceAuthorize(){
+  const clientId = gworkspaceClientId();
+  if(!clientId || !clientId.includes('.apps.googleusercontent.com')){
+    showToast('Enter a Google OAuth Client ID (or connect Google Calendar first)','error'); return;
+  }
+  if(!window.google?.accounts?.oauth2){ showToast('Google script not loaded yet — try again in a second','error'); return; }
+  const tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId, scope: GWS_SCOPE,
+    callback: (resp) => {
+      if(resp.error){ showToast('Google authorization failed: '+resp.error,'error'); return; }
+      gwsAccessToken = resp.access_token;
+      gwsTokenExpiry = Date.now() + (resp.expires_in * 1000);
+      localStorage.setItem('nlm_gws_token', gwsAccessToken);
+      localStorage.setItem('nlm_gws_expiry', String(gwsTokenExpiry));
+      gworkspaceOnConnected(clientId);
+    },
+  });
+  tokenClient.requestAccessToken({ prompt:'consent' });
+}
+async function gworkspaceOnConnected(clientId){
+  let email = '';
+  try {
+    const r = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', { headers:{ 'Authorization':'Bearer '+gwsAccessToken } });
+    email = (await r.json()).email || '';
+  } catch(e){}
+  if(email) localStorage.setItem('nlm_gws_email', email);
+  const data = { 'gws-email':email, 'gws-client-id':clientId };
+  try { await sb.upsert('user_integrations', { user_id: currentUser.id, key:'google_workspace', data, secret:'' }, 'user_id,key'); } catch(e){}
+  _intCache['google_workspace'] = { data, secret:'' };
+  markIntConnected('google_workspace', data);
+  updateIntCount();
+  showToast('Google Workspace connected!');
+}
+function showGwsConnected(email){
+  const setup = document.getElementById('gws-setup-panel');
+  const conn  = document.getElementById('gws-connected-panel');
+  if(setup) setup.style.display='none';
+  if(conn)  conn.style.display='block';
+  const lbl = document.getElementById('gws-account-label');
+  const shown = email || localStorage.getItem('nlm_gws_email') || '';
+  if(lbl) lbl.textContent = shown ? ('Connected as: '+shown) : 'Connected';
+}
+async function gworkspaceDisconnect(){
+  if(!confirm('Disconnect Google Workspace? The CRM will lose access to Gmail, Contacts and Drive.')) return;
+  gwsAccessToken = null; gwsTokenExpiry = 0;
+  localStorage.removeItem('nlm_gws_token'); localStorage.removeItem('nlm_gws_expiry'); localStorage.removeItem('nlm_gws_email');
+  try { await sb.delWhere('user_integrations', `user_id=eq.${currentUser.id}&key=eq.google_workspace`); } catch(e){}
+  delete _intCache['google_workspace'];
+  markIntDisconnected('google_workspace');
+  const setup = document.getElementById('gws-setup-panel');
+  const conn  = document.getElementById('gws-connected-panel');
+  if(setup) setup.style.display='block';
+  if(conn)  conn.style.display='none';
+  updateIntCount();
+  showToast('Google Workspace disconnected');
 }
 
 // ─── MULTI-PHONE SUPPORT (SignalWire — up to 5 numbers) ───
@@ -8340,6 +8533,9 @@ function toggleIntSection(key){
     form.style.display='block';
     const card = document.getElementById('int-card-'+key);
     if(card) card.classList.add('expanded');
+    // (Re)init the Calendly embed now that its container is visible (the inline
+    // widget renders at 0 height if initialized inside a display:none form).
+    if(key==='calendly' && _intCache['calendly']) renderCalendlyConnected(getIntData('calendly'));
   }
 }
 
@@ -8381,6 +8577,12 @@ async function saveIntegration(key){
     if(!clientId||!secretVal){ showToast('Fill in Client ID and Secret','error'); return; }
     data   = {'gcal-client-id':clientId,'gcal-calendar-id':calId};
     secret = secretVal;
+  } else if(key==='calendly'){
+    const url = document.getElementById('calendly-url').value.trim();
+    if(!/^https:\/\/([a-z0-9-]+\.)?calendly\.com\//i.test(url)){ showToast('Enter a valid Calendly link (https://calendly.com/…)','error'); return; }
+    data = {'calendly-url':url};
+  } else if(key==='email_tracking'){
+    data = {'emailtrack-enabled': !!document.getElementById('emailtrack-enabled')?.checked};
   } else if(key==='zapier'){
     const url = document.getElementById('zapier-url').value.trim();
     if(!url||!url.startsWith('https://')){ showToast('Enter a valid Zapier webhook URL','error'); return; }
@@ -8399,7 +8601,7 @@ async function saveIntegration(key){
     markIntConnected(key, data);
     updateIntCount();
     populateContactDropdowns();
-    showToast(`${key.charAt(0).toUpperCase()+key.slice(1)} connected! ${icon('check')}`);
+    showToast(`${INT_LABELS[key]||key} connected!`);
   } catch(e){
     showToast('Failed to save: '+e.message, 'error');
   }
@@ -9627,7 +9829,7 @@ async function saveCalEvent(){
         renderCalendar();
         renderUpcomingEvents();
         const guestNames = _evGuests.length ? ` · Invite sent to ${_evGuests.length} guest(s)` : '';
-        showToast(`${icon('check')} Event synced to Google Calendar${guestNames}`);
+        showToast(`Event synced to Google Calendar${guestNames}`);
       } else {
         closeModal(); renderCalendar(); renderUpcomingEvents();
         showToast('Saved locally (Google Calendar error: '+data.error?.message+')','error');
@@ -11582,7 +11784,7 @@ function saveCampaign(status){
   closeCampBuilder();
 
   if(isLaunch && schedType==='now'){
-    showToast(`${icon('check')} "${name}" launched to ${audience_contacts.length} contacts!`);
+    showToast(`"${name}" launched to ${audience_contacts.length} contacts!`);
     // Fire Zapier webhook if connected
     if(typeof fireZapierEvent==='function') fireZapierEvent('campaign_sent',{name,type,count:audience_contacts.length});
   } else {
@@ -12143,7 +12345,7 @@ async function sendConvMessage(ch){
         saveConversations();
         touchContactActivity(contact.id, 'sms');
         renderConvBubbles(conv, avBg, avClr);
-        showToast(`SMS sent to ${contact.phone} ${icon('check')}`);
+        showToast(`SMS sent to ${contact.phone} `);
       } catch(e){
         newMsg.status='failed';
         saveConversations();
@@ -12171,7 +12373,7 @@ async function sendConvMessage(ch){
             newMsg.status='delivered';
             saveConversations();
             renderConvBubbles(conv, avBg, avClr);
-            showToast(`Email sent to ${contact.email} ${icon('check')}`);
+            showToast(`Email sent to ${contact.email} `);
           } else { showToast('Email logged (check Brevo API key)'); }
         } catch(e){ showToast('Email logged (network error)'); }
       } else {
@@ -12307,7 +12509,7 @@ function saveNewEmailAccount(){
   closeModal();
   renderEmailAccountsList();
   renderIntEmailAccounts();
-  showToast(`${icon('check')} ${name} <${email}> connected!`);
+  showToast(`${name} <${email}> connected!`);
 }
 
 function removeEmailAccount(id){
@@ -12361,7 +12563,7 @@ async function checkEmailReplies(){
     localStorage.removeItem('nlm_inbound_emails');
     saveEmailStore();
     renderEmailPage();
-    if(added) showToast(`${icon('mail')} ${added} new reply${added>1?'s':''} received!`);
+    if(added) showToast(`${added} new reply${added>1?'s':''} received!`);
     else showToast('Inbox up to date');
   } else {
     showToast('No new replies. Set up Brevo inbound parsing to auto-receive replies.');
@@ -12769,7 +12971,7 @@ async function dispatchEmail(email){
         : contacts.find(c=>c.email && c.email.toLowerCase()===(email.to||'').toLowerCase());
       if(emailContact) touchContactActivity(emailContact.id, 'email');
       renderEmailPage(); renderEmailFolderCounts();
-      showToast(`${icon('check')} Email sent to ${email.to}`);
+      showToast(`Email sent to ${email.to}`);
     } else {
       const err=res?await res.json().catch(()=>({})):{};
       email.status='failed';
@@ -12957,7 +13159,7 @@ async function confirmCSVImport(){
   renderContactTagFilters();
   renderTagsPage();
   finishBulkAction(_importEntry, skipped===0?'Complete':'Partial', `${imported} imported${skipped?`, ${skipped} skipped (duplicates)`:''}`);
-  showToast(`${icon('check')} Imported ${imported} contacts${skipped?` (${skipped} skipped)`:''}`);
+  showToast(`Imported ${imported} contacts${skipped?` (${skipped} skipped)`:''}`);
 }
 
 function exportContactsCSV(){
