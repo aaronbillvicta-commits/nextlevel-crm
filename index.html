@@ -7852,7 +7852,7 @@ async function executeRemoveUser(userId){
   try {
     // Server-side: deletes BOTH the profile row and the auth account, so
     // login access is genuinely revoked (no orphaned auth account).
-    const r = await fetch('/api/delete-user', {
+    const r = await fetch('/api/admin/delete-user', {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${authToken}`},
       body:JSON.stringify({ id:userId, email:u.email })
@@ -7901,7 +7901,7 @@ async function inviteUser(){
   try {
     // Server-side: creates a pre-confirmed auth account + profile via the
     // Supabase Admin API. The invited user can log in immediately.
-    const r=await fetch('/api/create-user',{
+    const r=await fetch('/api/admin/create-user',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${authToken}`},
       body:JSON.stringify({name,email,password:pw,role,permissions:rolePermDefaults(role)})
@@ -13049,10 +13049,10 @@ function openImportContacts(){
 
 let _csvImportRows = [];
 
-// ── AI ASSISTANT (Gemini 1.5 Flash via /api/ai) ──
+// ── AI ASSISTANT (Gemini via /api/admin/ai) ──
 async function callAI(feature, context) {
   try {
-    const r = await fetch('/api/ai', {
+    const r = await fetch('/api/admin/ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + authToken },
       body: JSON.stringify({ feature, context })
