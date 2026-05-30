@@ -49,7 +49,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-05-29-4"></script>
+<script type="module" src="src/version-history.js?v=2026-05-29-5"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -14691,23 +14691,28 @@ function openVaApplicantModal(id){
         longField('Anything Else', v.anything_else), boolField('Direction Test Passed', v.direction_test_passed),
         longField('Direction Test Answer', v.direction_test_answer), urlOrText('DISC Assessment', v.disc_assessment),
       ])}
-      <div style="border-top:1px solid var(--border);margin-top:16px;padding-top:12px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
-        <div style="flex:1;min-width:160px">
-          <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">Status</label>
-          <select class="form-select" style="margin-top:4px;font-size:13px" onchange="updateVaStatus('${id}',this.value)">${statusOptions}</select>
+      <div style="border-top:1px solid var(--border);margin-top:18px;padding-top:14px;display:flex;flex-direction:column;gap:14px">
+        <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+          <div style="flex:1;min-width:160px">
+            <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em">Status</label>
+            <select id="va-status-${id}" class="form-select" style="margin-top:4px;font-size:13px;width:100%;box-sizing:border-box">${statusOptions}</select>
+          </div>
+          <button class="btn" style="background:var(--accent);color:#fff;white-space:nowrap" onclick="updateVaStatus('${id}', document.getElementById('va-status-${id}').value)">Save Status</button>
         </div>
-        <div style="flex:2;min-width:200px">
-          <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">Reviewer Notes</label>
-          <textarea class="form-input" id="va-notes-${id}" style="margin-top:4px;font-size:13px;min-height:60px" placeholder="Internal notes...">${esc(v.reviewer_notes)}</textarea>
-        </div>
-        <button class="btn" style="background:var(--accent);color:#fff" onclick="saveVaNotes('${id}')">Save Notes</button>
-      </div>
-      <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-        <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="deleteVaApplicant('${id}')">🗑 Delete Application</button>
         <div>
-        ${!v.activated_at
-          ? `<button class="btn" style="background:#059669;color:#fff" onclick="activateVaForMatching('${id}');closeModal()">⚡ Activate for Matching</button>`
-          : `<span style="font-size:13px;color:#059669;font-weight:600">✓ In matching pool since ${new Date(v.activated_at).toLocaleDateString()}</span>`}
+          <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em">Reviewer Notes</label>
+          <textarea class="form-input" id="va-notes-${id}" style="margin-top:4px;font-size:13px;min-height:70px;width:100%;box-sizing:border-box;resize:vertical" placeholder="Internal notes...">${esc(v.reviewer_notes)}</textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px">
+            <button class="btn" style="background:var(--accent);color:#fff" onclick="saveVaNotes('${id}')">Save Notes</button>
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+          <button class="btn" style="color:var(--red);border-color:var(--red)" onclick="deleteVaApplicant('${id}')">🗑 Delete Application</button>
+          <div>
+          ${!v.activated_at
+            ? `<button class="btn" style="background:#059669;color:#fff" onclick="activateVaForMatching('${id}');closeModal()">⚡ Activate for Matching</button>`
+            : `<span style="font-size:13px;color:#059669;font-weight:600">✓ In matching pool since ${new Date(v.activated_at).toLocaleDateString()}</span>`}
+          </div>
         </div>
       </div>
     </div>
