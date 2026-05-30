@@ -98,6 +98,29 @@ function buildPayload(body, textFields, jsonbFields, numericFields, intFields, b
   return p;
 }
 
+// Cold-start-proof rate limit: count this IP's logged submissions in the last
+// hour straight from the DB (the in-memory Map above is just a fast first pass
+// and is lost on cold start). Uses a HEAD + count=exact for a cheap count.
+async function dbRecentSubmissions(ip, windowMs) {
+  const key = process.env.SUPABASE_SERVICE_KEY;
+  if (!key || !ip || ip === 'unknown') return 0;
+  const sinceIso = new Date(Date.now() - windowMs).toISOString();
+  const r = await fetch(
+    `${SUPABASE_URL}/rest/v1/form_submissions_log`
+    + `?ip=eq.${encodeURIComponent(ip)}&created_at=gte.${encodeURIComponent(sinceIso)}&select=id`,
+    { method: 'HEAD', headers: { apikey: key, Authorization: `Bearer ${key}`, Prefer: 'count=exact' } }
+  );
+  const cr = r.headers.get('content-range'); // "*/<total>"
+  const total = cr ? parseInt(cr.split('/')[1], 10) : NaN;
+  return isNaN(total) ? 0 : total;
+}
+
+// Best-effort: record a successful submission for DB rate-limiting. Never throws.
+async function logSubmission(ip, formType) {
+  if (!ip || ip === 'unknown') return;
+  try { await supabasePost('form_submissions_log', { ip, form_type: formType }); } catch (e) {}
+}
+
 async function supabasePost(table, payload) {
   const key = process.env.SUPABASE_SERVICE_KEY;
   if (!key) throw new Error('SUPABASE_SERVICE_KEY not set');
@@ -301,7 +324,8 @@ async function handleOptions(req, res) {
 }
 
 async function handleVaApply(req, res, ip) {
-  if (rateLimited(ip)) return res.status(429).json({ error: 'Too many submissions. Please try again later.' });
+  if (rateLimited(ip) || (await dbRecentSubmissions(ip, RATE_WINDOW_MS)) >= RATE_LIMIT)
+    return res.status(429).json({ error: 'Too many submissions from your connection. Please try again in about an hour.' });
   const raw = JSON.stringify(req.body || {});
   if (raw.length > 32 * 1024) return res.status(413).json({ error: 'Request too large' });
   const body = req.body || {};
@@ -331,11 +355,13 @@ async function handleVaApply(req, res, ip) {
   }
 
   await supabasePost('va_applicants', payload);
+  await logSubmission(ip, 'va');
   res.status(200).json({ success: true });
 }
 
 async function handleClientIntake(req, res, ip) {
-  if (rateLimited(ip)) return res.status(429).json({ error: 'Too many submissions. Please try again later.' });
+  if (rateLimited(ip) || (await dbRecentSubmissions(ip, RATE_WINDOW_MS)) >= RATE_LIMIT)
+    return res.status(429).json({ error: 'Too many submissions from your connection. Please try again in about an hour.' });
   const raw = JSON.stringify(req.body || {});
   if (raw.length > 16 * 1024) return res.status(413).json({ error: 'Request too large' });
   const body = req.body || {};
@@ -347,6 +373,7 @@ async function handleClientIntake(req, res, ip) {
     return res.status(400).json({ error: 'Invalid email address' });
   const payload = buildPayload(body, CI_TEXT, CI_JSONB, CI_NUMERIC, CI_INT, null, CI_DATE);
   await supabasePost('client_intakes', payload);
+  await logSubmission(ip, 'client');
   res.status(200).json({ success: true });
 }
 

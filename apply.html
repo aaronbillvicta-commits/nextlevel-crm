@@ -600,7 +600,7 @@
     </div>
 
     <div class="field" style="margin-top:16px;">
-      <label>Experience with (related to the role you're applying for)</label>
+      <label>Experience with (related to the role you're applying for) <span class="req">*</span></label>
       <span class="hint">Tick the US states and/or markets you have experience working with — e.g. CA, TX, NY, or broader markets US, UK, AU. Select all that apply.</span>
       <div class="check-grid" id="experience_regions_grid" style="margin-top:8px;"></div>
     </div>
@@ -1187,6 +1187,7 @@ function validateSection(i) {
     if (selectedRoles.some(v => PHONE_ROLES.has(v)) && !document.getElementById('live_sample_call_link').value.trim()) {
       showToast('Please provide a live sample call link for your phone / communication role'); return false;
     }
+    if (!document.querySelectorAll('#experience_regions_grid input:checked').length) { showToast('Please select at least one state or market you have experience with'); return false; }
     if (!document.querySelectorAll('#tools_grouped input:checked').length) { showToast('Please select at least one tool'); return false; }
   }
   if (i === 3) {
