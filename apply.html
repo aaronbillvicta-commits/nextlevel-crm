@@ -599,6 +599,12 @@
       <div class="check-grid" id="roles_grid"></div>
     </div>
 
+    <div class="field" style="margin-top:16px;">
+      <label>Experience with (related to the role you're applying for)</label>
+      <span class="hint">Tick the US states and/or markets you have experience working with — e.g. CA, TX, NY, or broader markets US, UK, AU. Select all that apply.</span>
+      <div class="check-grid" id="experience_regions_grid" style="margin-top:8px;"></div>
+    </div>
+
     <div id="phone_sample_section" class="hidden" style="margin-top:16px;">
       <div class="section-label">Phone / Communication Sample</div>
       <div class="field">
@@ -1018,6 +1024,17 @@ function goBack() {
 
 const PHONE_ROLES = new Set(['appt_setter','sdr','closer','customer_support_spec']);
 
+// Experience areas — markets/regions first, then US state abbreviations.
+// value === label (these are abbreviations). "CAN" = Canada (avoids clashing
+// with California "CA").
+const EXPERIENCE_REGIONS = [
+  'US','CAN','UK','AU','NZ','EU','PH',
+  'AL','AK','AZ','AR','CA','CO','CT','DE','DC','FL','GA','HI','ID','IL','IN','IA',
+  'KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM',
+  'NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA',
+  'WV','WI','WY',
+];
+
 function updatePhoneSampleVisibility() {
   const selected = [...document.querySelectorAll('#roles_grid input:checked')].map(el => el.value);
   const needsPhone = selected.some(v => PHONE_ROLES.has(v));
@@ -1046,6 +1063,14 @@ function populateDynamicFields() {
     rolesGrid.innerHTML += checkLabel(opt.value, opt.label, 'roles');
   });
   rolesGrid.addEventListener('change', updatePhoneSampleVisibility);
+
+  // Experience areas — US states + markets/regions (abbreviations; value === label)
+  const expGrid = document.getElementById('experience_regions_grid');
+  if (expGrid) {
+    EXPERIENCE_REGIONS.forEach(code => {
+      expGrid.innerHTML += checkLabel(code, code, 'experience_regions');
+    });
+  }
 
   // Hire arrangement
   const hireGrid = document.getElementById('hire_arrangement_grid');
@@ -1213,6 +1238,7 @@ function collectData() {
     reference_links: g('reference_links'),
     applying_for: g('applying_for'),
     roles: gCheckboxGrid('roles_grid'),
+    experience_regions: gCheckboxGrid('experience_regions_grid'),
     tools_selected: gChecked('tools'),
     other_tools: g('other_tools'),
     is_sales_role: gRadio('is_sales_role') === 'yes',

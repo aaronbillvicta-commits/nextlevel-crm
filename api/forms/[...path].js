@@ -6,24 +6,35 @@ const SUPABASE_URL = 'https://oipkvwdjlwienkphsivr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9pcGt2d2RqbHdpZW5rcGhzaXZyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMzk2NTUsImV4cCI6MjA5MTcxNTY1NX0.VAj_i2iCnvd3qz9Emhh-O_eBywrmxYH9U2vJPVFclT0';
 
 // ── Rate limiter (shared across VA + client submissions) ──────────────────────
+// Up to RATE_LIMIT submissions per IP per rolling hour; once exceeded, the IP is
+// hard-blocked for the next hour. NOTE: this Map is per serverless instance and
+// resets on cold start — it's best-effort flood protection. The durable abuse
+// guard is the per-(email, role) dedup in handleVaApply + DB-side validation.
 const RATE_LIMIT = 5;
-const RATE_WINDOW_MS = 10 * 60 * 1000;
+const RATE_WINDOW_MS = 60 * 60 * 1000;  // 1 hour rolling window
+const BLOCK_MS = 60 * 60 * 1000;        // block an offending IP for the next hour
 const ipHits = new Map();
 
 function rateLimited(ip) {
   const now = Date.now();
   const entry = ipHits.get(ip);
+  // Still inside a hard-block window from a prior trip → reject.
+  if (entry && entry.blockedUntil && now < entry.blockedUntil) return true;
   if (!entry || now - entry.windowStart > RATE_WINDOW_MS) {
-    ipHits.set(ip, { windowStart: now, count: 1 });
+    ipHits.set(ip, { windowStart: now, count: 1, blockedUntil: 0 });
     if (ipHits.size > 2000) {
       for (const [k, v] of ipHits) {
-        if (now - v.windowStart > RATE_WINDOW_MS) ipHits.delete(k);
+        if (now - v.windowStart > RATE_WINDOW_MS && (!v.blockedUntil || now > v.blockedUntil)) ipHits.delete(k);
       }
     }
     return false;
   }
   entry.count++;
-  return entry.count > RATE_LIMIT;
+  if (entry.count > RATE_LIMIT) {
+    entry.blockedUntil = now + BLOCK_MS; // trip the 1-hour block
+    return true;
+  }
+  return false;
 }
 
 // ── VA Applicants field lists ─────────────────────────────────────────────────
@@ -46,7 +57,7 @@ const VA_TEXT = [
 const VA_JSONB = [
   'industries', 'roles', 'tools_selected', 'sales_roles', 'hire_arrangement',
   'timezone_overlap', 'time_tracking_tools', 'id_types_available',
-  'working_style', 'preferred_client_type',
+  'working_style', 'preferred_client_type', 'experience_regions',
 ];
 const VA_NUMERIC = ['hourly_rate', 'monthly_rate'];
 const VA_INT    = ['current_hours_committed', 'hours_available_new', 'hours_per_week'];
@@ -301,6 +312,24 @@ async function handleVaApply(req, res, ip) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(body.email))
     return res.status(400).json({ error: 'Invalid email address' });
   const payload = buildPayload(body, VA_TEXT, VA_JSONB, VA_NUMERIC, VA_INT, VA_BOOL, VA_DATE);
+
+  // Per-person dedup: allow at most 2 applications for the SAME position from
+  // the same email. Applying for a DIFFERENT position is fine (subject to the
+  // IP rate limit above). A transient lookup failure must not block a legit
+  // applicant, so swallow errors and fall through.
+  if (payload.applying_for && payload.email) {
+    try {
+      const dupes = await supabaseSelect(
+        `va_applicants?select=id&limit=2`
+        + `&applying_for=eq.${encodeURIComponent(payload.applying_for)}`
+        + `&email=eq.${encodeURIComponent(payload.email)}`
+      );
+      if (Array.isArray(dupes) && dupes.length >= 2) {
+        return res.status(409).json({ error: "You've already applied for this position. Our team will review your existing application — no need to re-submit." });
+      }
+    } catch (e) { /* lookup failed — don't penalize the applicant */ }
+  }
+
   await supabasePost('va_applicants', payload);
   res.status(200).json({ success: true });
 }

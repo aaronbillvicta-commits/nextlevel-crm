@@ -1809,6 +1809,7 @@ table th[onclick]{transition:background .15s,color .15s}
             <tr>
               <th>Name</th>
               <th>Location</th>
+              <th>Applying For</th>
               <th>Roles</th>
               <th>Rate/hr</th>
               <th>Status</th>
@@ -14893,6 +14894,7 @@ function renderVaApplicantsPage(){
       const name = `${v.first_name||''} ${v.last_name||''}`.trim() || v.email || '';
       const roleArr = (v.roles||[]);
       const roles = roleArr.slice(0,2).map(r=>esc(vaPretty('roles', r))).join(', ') + (roleArr.length>2?` +${roleArr.length-2}`:'');
+      const applyingFor = v.applying_for ? esc(vaPretty('roles', v.applying_for)) : '—';
       const rate = v.hourly_rate ? `$${v.hourly_rate}/hr` : '—';
       const statusCol = VA_STATUS_COLORS[v.review_status] || '#6b7280';
       const statusLabel = VA_STATUS_LABELS[v.review_status] || v.review_status;
@@ -14901,6 +14903,7 @@ function renderVaApplicantsPage(){
       return `<tr>
         <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openVaApplicantModal('${v.id}')">${esc(name)}</span><br><span style="font-size:11px;color:var(--text3)">${esc(v.email||'')}</span></td>
         <td style="font-size:12px;color:var(--text2)">${v.country_city ? esc(v.country_city) : '—'}</td>
+        <td style="font-size:12px"><span style="font-weight:600;color:var(--accent2)">${applyingFor}</span></td>
         <td style="font-size:12px;color:var(--text2)">${roles||'—'}</td>
         <td style="font-family:'DM Mono',monospace;font-size:12px">${rate}</td>
         <td><span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;background:${statusCol}18;color:${statusCol}">${statusLabel}</span></td>
@@ -15029,6 +15032,7 @@ function openVaApplicantModal(id){
       ])}
       ${sec('Skills & Tools', [
         enumField('Applying For', v.applying_for, 'roles'),
+        chipField('Experience With (states / markets)', v.experience_regions, ''),
         chipField('Roles', v.roles, 'roles'), chipField('Tools', v.tools_selected, 'tools'), field('Other Tools', v.other_tools),
         boolField('Sales Role?', v.is_sales_role), chipField('Sales Roles', v.sales_roles, 'sales_roles'),
         field('Calls / Day', v.calls_per_day), field('Appts / Week', v.appts_per_week),
