@@ -15300,13 +15300,20 @@ function openVaClientModal(id){
   const E = (s) => escapeHtml(s == null ? '' : String(s));
   const name = vaDisplayName(v);
   const activeClients = contacts.filter(c => c.status === 'done');
-  const linkedIds = new Set(vaClientLinks.filter(l=>l.va_applicant_id===id).map(l=>l.contact_id));
+  const links = vaClientLinks.filter(l=>l.va_applicant_id===id);
+  const linkedIds = new Set(links.map(l=>l.contact_id));
+  const roleOf = (cid)=>{ const l = links.find(x=>x.contact_id===cid); return (l && l.role) || ''; };
+  const roleOpts = (sel)=>`<option value="">— Role —</option>` + (vaRoleOptions||[]).map(o=>`<option value="${E(o.value)}" ${o.value===sel?'selected':''}>${E(o.label)}</option>`).join('');
   const rows = activeClients.map(c=>{
     const search = `${c.name||''} ${c.company||''} ${c.email||''}`.toLowerCase();
-    return `<label class="vca-row" data-s="${E(search)}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border);cursor:pointer">
-      <input type="checkbox" value="${c.id}" ${linkedIds.has(c.id)?'checked':''} style="width:auto;margin:0"/>
-      <span style="flex:1;min-width:0"><span style="font-weight:500">${E(c.name)}</span>${c.company?`<br><span style="font-size:11px;color:var(--text3)">${E(c.company)}</span>`:''}</span>
-    </label>`;
+    const curRole = roleOf(c.id) || (v.active_role||'');
+    return `<div class="vca-row" data-s="${E(search)}" style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--border)">
+      <label style="flex:1;min-width:0;display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" value="${c.id}" ${linkedIds.has(c.id)?'checked':''} style="width:auto;margin:0"/>
+        <span style="min-width:0"><span style="font-weight:500">${E(c.name)}</span>${c.company?`<br><span style="font-size:11px;color:var(--text3)">${E(c.company)}</span>`:''}</span>
+      </label>
+      <select class="form-select" id="vac-role-${c.id}" style="width:170px;flex-shrink:0;font-size:12px;padding:4px 6px" title="Role for this client">${roleOpts(curRole)}</select>
+    </div>`;
   }).join('');
   const body = activeClients.length ? rows : `<div style="font-size:12px;color:var(--text3);padding:12px">No active clients yet — mark a contact's status as "Client" first.</div>`;
   openModal(`
@@ -15325,16 +15332,26 @@ function openVaClientModal(id){
     </div>`);
 }
 async function saveVaClientModal(id){
-  const checked = new Set([...document.querySelectorAll('#vaclient-list input[type=checkbox]:checked')].map(cb=>cb.value));
+  // Capture checked clients + their chosen role BEFORE closing the modal.
+  const desired = [...document.querySelectorAll('#vaclient-list input[type=checkbox]:checked')]
+    .map(cb=>({ client: cb.value, role: (document.getElementById('vac-role-'+cb.value)?.value || null) }));
+  const checked = new Set(desired.map(d=>d.client));
   const currentLinks = vaClientLinks.filter(l=>l.va_applicant_id===id);
-  const currentIds = new Set(currentLinks.map(l=>l.contact_id));
-  const addPairs = [...checked].filter(cid=>!currentIds.has(cid)).map(cid=>({ va:id, client:cid }));
-  const removeLinkIds = currentLinks.filter(l=>!checked.has(l.contact_id)).map(l=>l.id);
+  const currentByClient = new Map(currentLinks.map(l=>[l.contact_id, l]));
   closeModal();
-  if(!addPairs.length && !removeLinkIds.length) return;
-  await applyLinkDiff(addPairs, removeLinkIds);
+  let changed = false;
+  for(const l of currentLinks.filter(l=>!checked.has(l.contact_id))){
+    try{ await sb.del('va_client_assignments', l.id); changed=true; }catch(e){ logError('saveVaClientModal.del', e.message, e.stack, { id:l.id }); }
+  }
+  for(const d of desired){
+    const existing = currentByClient.get(d.client);
+    if(!existing){ try{ await sb.post('va_client_assignments', { va_applicant_id:id, contact_id:d.client, role:d.role }); changed=true; }catch(e){ logError('saveVaClientModal.add', e.message, e.stack, d); } }
+    else if((existing.role||null) !== (d.role||null)){ try{ await sb.patch('va_client_assignments', existing.id, { role:d.role }); changed=true; }catch(e){ logError('saveVaClientModal.patchRole', e.message, e.stack, d); } }
+  }
+  if(!changed) return;
+  await fetchVaClientLinks();
   await syncVaLegacyClient(id);
-  const affected = new Set([...addPairs.map(p=>p.client), ...currentLinks.map(l=>l.contact_id)]);
+  const affected = new Set([...desired.map(d=>d.client), ...currentLinks.map(l=>l.contact_id)]);
   for(const cid of affected){ await syncClientAssignedVa(cid); }
   showToast('Clients updated ✓');
   renderActiveVasPage();
