@@ -49,7 +49,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-05-29-5"></script>
+<script type="module" src="src/version-history.js?v=2026-05-29-6"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -95,9 +95,11 @@
 }
 /* ── THEME: LIGHT ── */
 body.theme-light{
-  --bg:#ffffff;--bg2:#f0f7f7;--bg3:#e3f0f0;--bg4:#d3e8e8;
-  --border:rgba(13,100,112,0.10);--border2:rgba(13,100,112,0.20);
-  --text:#0f262b;--text2:#47616a;--text3:#88a2a8;
+  /* Warm Neutral + Teal: warm-paper canvas, white cards that float, warm stone
+     grays (no green cast), neutral borders for definition. Teal accent kept. */
+  --bg:#faf9f7;--bg2:#ffffff;--bg3:#f5f4f2;--bg4:#ebe9e6;
+  --border:rgba(28,25,23,0.10);--border2:rgba(28,25,23,0.18);
+  --text:#1c1917;--text2:#57534e;--text3:#a8a29e;
   --accent:#0e7c8c;--accent2:#0b6675;
   --accent-bg:rgba(14,124,140,0.09);--accent-border:rgba(14,124,140,0.28);
   --green-bg:rgba(20,160,125,0.12);--green:#0e9b7a;
@@ -112,8 +114,8 @@ body.theme-light{
   --indigo:#3a4bcc;--indigo-bg:rgba(58,75,204,0.08);
   --violet:#9333ea;--violet-bg:rgba(147,51,234,0.08);
 }
-body.theme-light .login-bg{background:linear-gradient(135deg,#eaf6f5 0%,#d6ebe9 100%);}
-body.theme-light .sidebar{background:#e8f3f3;}
+body.theme-light .login-bg{background:linear-gradient(135deg,#faf9f7 0%,#eaf2f1 100%);}
+body.theme-light .sidebar{background:#f4f2ef;}
 body.theme-light .topbar{background:#ffffff;}
 /* Light theme: retune leftover blue glows/accents to teal (dark theme unchanged) */
 body.theme-light .btn-primary{box-shadow:0 0 20px rgba(14,124,140,.22)}
@@ -2842,7 +2844,7 @@ table th[onclick]{transition:background .15s,color .15s}
               <div class="theme-opt-label">Dark <span style="color:var(--text3);font-weight:400">(original)</span></div>
             </button>
             <button class="theme-option" id="theme-opt-light" onclick="setTheme('light')">
-              <div class="theme-swatch" style="background:linear-gradient(135deg,#ffffff,#e3e7f0);border:1px solid var(--border)"></div>
+              <div class="theme-swatch" style="background:linear-gradient(135deg,#ffffff,#ebe9e6);border:1px solid var(--border)"></div>
               <div class="theme-opt-label">Light</div>
             </button>
           </div>
