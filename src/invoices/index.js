@@ -385,11 +385,11 @@
       // Auto-seed from the client's assigned VAs via the many-to-many join table.
       try {
         const links = await window.sb.get('va_client_assignments',
-          `?select=role,va_applicants(id,first_name,last_name,name,active_rate,hourly_rate)&contact_id=eq.${id}`);
+          `?select=role,va_applicants(id,first_name,last_name,active_rate,hourly_rate)&contact_id=eq.${id}`);
         const rows = (Array.isArray(links) ? links : []).filter((l) => l.va_applicants);
         rows.forEach((l) => {
           const v = l.va_applicants;
-          const nm = `${v.first_name || ''} ${v.last_name || ''}`.trim() || v.name || '';
+          const nm = (v.first_name || '').trim();
           const roleLabel = l.role ? (window.vaRoleLabel ? window.vaRoleLabel(l.role) : l.role) : '';
           const rate = (c && c.va_rate != null && c.va_rate !== '') ? c.va_rate
             : (v.active_rate != null && v.active_rate !== '') ? v.active_rate
