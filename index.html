@@ -51,7 +51,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-05-31-12"></script>
+<script type="module" src="src/version-history.js?v=2026-05-31-13"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -3980,6 +3980,157 @@ function touchContactActivity(contactId, type){
   try { sb.patch('contacts', contactId, { last_activity: act }); } catch(_) {}
 }
 
+// ═══════════════════════════════════════════════
+// CONTACT ACTIVITY LOG
+// ═══════════════════════════════════════════════
+// Records structural change-events (tags added/removed, pipeline stage moves,
+// status changes) to the Supabase `contact_activity` table so the contact's
+// Activity tab can show a dated history of them. Comms (calls/SMS/email), notes
+// and follow-ups are NOT logged here — they're DERIVED from their existing
+// stores in buildContactTimeline(). We only log what can't be reconstructed.
+let _activitySession = [];   // rows logged this session (instant render, deduped by id with the DB fetch)
+let _activityFetched = [];   // last contact's rows fetched from the DB
+let _activityFetchedFor = null;
+let _openDetail = { id:null, tab:null };  // which contact/tab the detail drawer is showing
+
+// Log a change-event. Best-effort: never throws, never blocks the caller.
+function logActivity(contactId, type, summary, meta){
+  if(!contactId || !type) return;
+  const row = {
+    id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+        : ('act_'+Date.now()+Math.random().toString(36).slice(2,8)),
+    contact_id: contactId, type, summary: summary || '', meta: meta || {},
+    created_at: new Date().toISOString()
+  };
+  _activitySession.push(row);
+  if(sb) sb.post('contact_activity', row).catch(()=>{});
+  // Live-refresh the Activity tab if it's the one currently open for this contact
+  if(_openDetail.id === contactId && _openDetail.tab === 'activity') renderContactTimeline(contactId);
+}
+
+// Fetch this contact's logged events, then (re)render its timeline.
+async function loadContactActivity(contactId){
+  try {
+    const rows = await sb.get('contact_activity', `?contact_id=eq.${contactId}&order=created_at.desc&limit=300`);
+    _activityFetched = Array.isArray(rows) ? rows : [];
+    _activityFetchedFor = contactId;
+  } catch(_){ /* offline / transient — session rows still render */ }
+  renderContactTimeline(contactId);
+}
+
+// Logged events for a contact = DB rows (if fetched for this contact) ∪ session
+// rows, deduped by id (session wins, since it's the freshest local copy).
+function mergedActivityFor(contactId){
+  const map = new Map();
+  if(_activityFetchedFor === contactId) _activityFetched.forEach(a => map.set(a.id, a));
+  _activitySession.filter(a => a.contact_id === contactId).forEach(a => map.set(a.id, a));
+  return [...map.values()];
+}
+
+// Build the merged, newest-first activity timeline for a contact from all
+// sources: calls (callHistory by phone), messages (conversation sms+email),
+// notes (c.notes), and logged change-events (contact_activity).
+function buildContactTimeline(c){
+  if(!c) return [];
+  const contactId = c.id;
+  const items = [];
+
+  // Calls — matched by last-10-digits of the contact's phone
+  const tail = (c.phone || '').replace(/\D/g,'').slice(-10);
+  if(tail){
+    (callHistory || []).forEach(ch => {
+      if((ch.number || '').replace(/\D/g,'').endsWith(tail)){
+        items.push({
+          ts: ch.ts, kind: 'call', dir: ch.direction, status: ch.status,
+          title: (ch.direction === 'inbound' ? 'Inbound call' : 'Outbound call'),
+          detail: (ch.status === 'missed' ? 'Missed' : ch.status === 'failed' ? 'Failed' : fmtDuration(ch.duration))
+        });
+      }
+    });
+  }
+
+  // Messages (SMS + email) from the conversation store. Skip the synthetic
+  // "Inbound/Outbound call …" markers — calls are already shown above.
+  const conv = conversations.find(x => x.contactId === contactId);
+  (conv?.messages || []).forEach(m => {
+    if(/^(Inbound call from|Outbound call to)/.test(m.body || '')) return;
+    const isEmail = m.ch === 'email';
+    items.push({
+      ts: m.ts, kind: isEmail ? 'email' : 'sms', dir: m.dir, status: m.status,
+      title: (isEmail ? 'Email' : 'Text') + ' ' + (m.dir === 'inbound' ? 'received' : 'sent'),
+      subject: m.subject || '', detail: (m.body || '').slice(0, 140)
+    });
+  });
+
+  // Notes (skip legacy follow-up auto-notes)
+  (c.notes || []).forEach(n => {
+    if(typeof _isFollowupAutoNote === 'function' && _isFollowupAutoNote(n.text)) return;
+    items.push({ ts: n.created_at, kind: 'note', title: 'Note added', detail: (n.text || '').slice(0, 160) });
+  });
+
+  // Logged change-events (tags / pipeline / status / generic update)
+  mergedActivityFor(contactId).forEach(a => {
+    items.push({ ts: a.created_at, kind: a.type, title: activityKindLabel(a.type), detail: a.summary });
+  });
+
+  return items.filter(i => i.ts).sort((a,b) => new Date(b.ts) - new Date(a.ts));
+}
+
+function activityKindLabel(kind){
+  return ({
+    tag_add:'Tag added', tag_remove:'Tag removed',
+    pipeline_add:'Added to pipeline', pipeline_stage:'Pipeline stage changed',
+    status:'Status changed', update:'Details updated'
+  })[kind] || 'Update';
+}
+
+// One timeline row → HTML
+function timelineItemHTML(i){
+  const iconMap = {
+    call:'phone', sms:'message', email:'mail', note:'pencil',
+    tag_add:'tag', tag_remove:'tag', pipeline_add:'pipeline',
+    pipeline_stage:'pipeline', status:'user', update:'pencil'
+  };
+  const ic = icon(iconMap[i.kind] || 'clock');
+  const d = new Date(i.ts);
+  const when = d.toLocaleDateString([], {month:'short', day:'numeric', year:'numeric'})
+             + ' · ' + d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  let color = 'var(--text3)';
+  if(i.kind === 'call') color = (i.status === 'missed' || i.status === 'failed') ? 'var(--red)' : 'var(--accent2)';
+  else if(i.kind === 'tag_remove') color = 'var(--red)';
+  else if(i.kind === 'tag_add' || i.kind === 'pipeline_add') color = 'var(--green)';
+  const isComm = (i.kind === 'call' || i.kind === 'sms' || i.kind === 'email');
+  const dirArrow = isComm
+    ? (i.dir === 'inbound' ? '<span style="color:var(--green)">←</span> ' : '<span style="color:var(--accent2)">→</span> ')
+    : '';
+  const subj = i.subject ? `<div style="font-size:12px;font-weight:500;color:var(--text);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(i.subject)}</div>` : '';
+  const detail = i.detail ? `<div style="font-size:12px;color:var(--text2);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(i.detail)}</div>` : '';
+  return `<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)">
+    <span style="flex-shrink:0;width:18px;text-align:center;color:${color}">${ic}</span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;font-weight:600;color:var(--text)">${dirArrow}${escapeHtml(i.title)}</div>
+      ${subj}${detail}
+      <div style="font-size:10px;color:var(--text3);margin-top:2px">${when}</div>
+    </div>
+  </div>`;
+}
+
+// Inner HTML for the timeline container (pure — safe to build before DOM exists)
+function buildTimelineHTML(contactId){
+  const c = contacts.find(x => x.id === contactId);
+  if(!c) return '';
+  const items = buildContactTimeline(c);
+  return items.length
+    ? items.map(timelineItemHTML).join('')
+    : '<div style="font-size:12px;color:var(--text3);padding:8px 0">No activity recorded yet.</div>';
+}
+
+// Re-render the timeline into the open Activity tab (no-op if not mounted)
+function renderContactTimeline(contactId){
+  const el = document.getElementById('cd-timeline');
+  if(el) el.innerHTML = buildTimelineHTML(contactId);
+}
+
 function renderCallHistory(){
   const el=document.getElementById('call-history-list'); if(!el) return;
   if(!callHistory.length){
@@ -5853,9 +6004,11 @@ async function addTagToContact(contactId) {
 
 async function removeTagFromContact(contactId, idx) {
   const c = contacts.find(x=>x.id===contactId); if(!c) return;
+  const removed = (c.tags || [])[idx];
   c.tags = c.tags.filter((_,i)=>i!==idx);
   try {
     await sb.patch('contacts', contactId, { tags: c.tags });
+    if(removed) logActivity(contactId, 'tag_remove', `Removed tag “${removed.label}”`, { label: removed.label });
     openContactModal(contactId, 'tags');
     renderContacts();
   } catch(e) { showToast('Error removing tag','error'); }
@@ -5867,6 +6020,7 @@ async function quickAddTagToContact(contactId, label, cls){
   c.tags = [...(c.tags||[]), {label, cls}];
   try {
     await sb.patch('contacts', contactId, { tags: c.tags });
+    logActivity(contactId, 'tag_add', `Added tag “${label}”`, { label, cls });
     openContactModal(contactId, 'tags');
     renderContactTagFilters();
     showToast(`Tag "${label}" added`);
@@ -5890,6 +6044,10 @@ async function saveContact(id, tab, keepOpen=false) {
       if(id) {
         await sb.patch('contacts', id, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct});
         const c = contacts.find(x=>x.id===id);
+        if(c && status !== c.status){
+          const sl = v => (contactStatuses.find(s=>s.value===v)?.label) || v || '—';
+          logActivity(id, 'status', `Status: ${sl(c.status)} → ${sl(status)}`, { from:c.status, to:status });
+        }
         if(c) Object.assign(c,{name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct});
         showToast('Contact updated! ');
       } else {
@@ -6183,9 +6341,6 @@ function openContactDetail(contactId, tab='info') {
       </div>`;
 
   } else if(tab==='activity'){
-    const conv = conversations.find(x=>x.contactId===contactId);
-    const msgs = [...(conv?.messages||[])].reverse().slice(0,10);
-    const sentEmails = emailStore.filter(e=>e.contactId===contactId||e.to===c.email).slice(0,5);
     body = `
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div class="modal-section-title" style="margin:0">Scheduled Follow-ups</div>
@@ -6193,22 +6348,12 @@ function openContactDetail(contactId, tab='info') {
       </div>
       <div id="cd-followups-list">${renderContactFollowupsHTML(contactId)}</div>
       <div style="border-top:1px solid var(--border);margin:16px 0"></div>
-      <div class="modal-section-title" style="margin-bottom:10px">Recent Messages</div>
-      ${msgs.length ? msgs.map(m=>{
-        const d=new Date(m.ts);
-        const timeStr=d.toLocaleDateString([],{month:'short',day:'numeric'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
-        const chIc = m.ch==='email'?icon('mail'):icon('message');
-        const dir = m.dir==='inbound'?'←':'→';
-        return `<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;gap:8px;align-items:flex-start">
-          <span style="font-size:14px;flex-shrink:0">${chIc}</span>
-          <div style="flex:1;min-width:0">
-            <div style="font-size:11px;color:var(--text3)">${dir} ${timeStr} · <span style="color:var(--accent2)">${m.status||'sent'}</span></div>
-            ${m.subject?`<div style="font-size:12px;font-weight:500;color:var(--text);margin-top:2px">${m.subject}</div>`:''}
-            <div style="font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${(m.body||'').slice(0,80)}</div>
-          </div>
-        </div>`;
-      }).join('') : '<div style="font-size:12px;color:var(--text3)">No messages yet</div>'}
-      <div style="margin-top:16px;display:flex;gap:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div class="modal-section-title" style="margin:0">Activity Timeline</div>
+        <span style="font-size:10px;color:var(--text3)">Calls · Texts · Email · Notes · Tags · Pipeline · Status</span>
+      </div>
+      <div id="cd-timeline">${buildTimelineHTML(contactId)}</div>
+      <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn btn-sm btn-primary" onclick="openConvWithContact('${contactId}');closeDetail()">Open Conversation</button>
         <button class="btn btn-sm" onclick="openComposeEmail('${contactId}')">Compose Email</button>
       </div>`;
@@ -6241,8 +6386,12 @@ function openContactDetail(contactId, tab='info') {
     <div style="padding:16px;overflow-y:auto;flex:1;min-height:0">${body}</div>`;
 
   document.getElementById('detail-panel').classList.add('open');
+  _openDetail = { id: contactId, tab };
   // Render the notes list (info tab only)
   if(tab==='info') renderContactNotes(contactId);
+  // Activity tab: fetch logged change-events from Supabase, then re-render the
+  // timeline (it first paints from derived data + session rows immediately).
+  if(tab==='activity') loadContactActivity(contactId);
 }
 
 async function saveContactDetail(contactId){
@@ -6279,6 +6428,13 @@ async function saveContactDetail(contactId){
   if(agencyEl){ const av = agencyEl.value.trim(); clientPatch.agency_cut = av === '' ? null : Number(av); }
   try {
     await sb.patch('contacts', contactId, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct,...clientPatch});
+    // Activity log — `c` still holds the previous values until the Object.assign below
+    if(status !== c.status){
+      const sl = v => (contactStatuses.find(s=>s.value===v)?.label) || v || '—';
+      logActivity(contactId, 'status', `Status: ${sl(c.status)} → ${sl(status)}`, { from:c.status, to:status });
+    } else if(name!==(c.name||'') || company!==(c.company||'') || email!==(c.email||'') || phone!==(c.phone||'') || source!==(c.source||'')){
+      logActivity(contactId, 'update', 'Contact details updated', {});
+    }
     Object.assign(c, {name,first_name:firstName,last_name:lastName,company,email,phone,source,status,last_activity:lastAct,...clientPatch});
     showToast('Contact saved! ');
     renderContacts();
@@ -6310,13 +6466,15 @@ async function addContactToPipeline(contactId){
     });
     const newDeal = {...res[0], stage:stageId, contactId, tags:[], customFields:{}};
     pl.deals.push(newDeal);
+    const stageLabel = pl.stages.find(s=>s.id===stageId)?.label || stageId;
+    logActivity(contactId, 'pipeline_add', `Added to ${pl.name} → ${stageLabel}${value?` (${formatCurrency(value)})`:''}`, { pipeline:pl.name, stage:stageLabel, value });
     showToast(`"${dealName}" added to ${pl.name}!`);
     openContactDetail(contactId,'pipeline');
     renderBoard();
   } catch(e){ showToast('Error adding to pipeline','error'); console.error(e); }
 }
 
-function closeDetail(){ document.getElementById('detail-panel').classList.remove('open'); }
+function closeDetail(){ document.getElementById('detail-panel').classList.remove('open'); _openDetail = { id:null, tab:null }; }
 
 // Right-side detail drawer for a phone number that's NOT in contacts yet.
 // Same panel UI as openContactDetail() so the click-from-call-history flow
@@ -6762,7 +6920,14 @@ async function onDrop(e){
   updateAllColumns();
   if(fromStage!==newStage){
     showToast(`"${card.querySelector('.deal-name').textContent}" → ${col.querySelector('.col-label').textContent}`);
-    try { await sb.patch('deals',dealId,{stage_id:newStage}); }
+    try {
+      await sb.patch('deals',dealId,{stage_id:newStage});
+      if(deal && deal.contactId){
+        const fromLabel = pipeline.stages.find(s=>s.id===fromStage)?.label || fromStage || '—';
+        const toLabel   = pipeline.stages.find(s=>s.id===newStage)?.label || newStage || '—';
+        logActivity(deal.contactId, 'pipeline_stage', `${pipeline.name}: ${fromLabel} → ${toLabel}`, { pipeline:pipeline.name, from:fromLabel, to:toLabel, deal:deal.name });
+      }
+    }
     catch(err){ showToast('Error saving stage change','error'); console.error(err); }
   }
   dealDragging=null; dealSourceCol=null;
