@@ -51,7 +51,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-05-31-10"></script>
+<script type="module" src="src/version-history.js?v=2026-05-31-11"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -3846,7 +3846,49 @@ async function applyAudioDevice(type){
 let callHistory = JSON.parse(localStorage.getItem('nlm_call_history')||'[]');
 
 function saveCallHistory(){
-  localStorage.setItem('nlm_call_history', JSON.stringify(callHistory.slice(0,100)));
+  // Local cache only — Supabase `call_history` is the durable source of truth
+  // (loaded by loadCallHistory on startup). Cap kept generous so a device that's
+  // briefly offline still shows plenty of recent history.
+  localStorage.setItem('nlm_call_history', JSON.stringify(callHistory.slice(0,500)));
+}
+
+// Maps a Supabase call_history row to the in-memory callHistory shape used by
+// the render functions (renderCallHistory, the Conversations Calls tab, dialer).
+function callRowToLocal(r){
+  return {
+    id: r.id,
+    direction: r.direction,
+    number: r.number,
+    contactName: r.contact_name || r.number,
+    duration: r.duration_secs || 0,
+    status: r.status,
+    from: r.from_number || '',
+    ts: r.created_at
+  };
+}
+
+// Load the full call history from Supabase and merge it into the local cache.
+// Without this the app only ever showed THIS browser's localStorage entries —
+// calls made on another device/browser, or after clearing site data, or beyond
+// the local cache cap, were invisible even though they were saved server-side.
+// Merges by id (server rows authoritative) so a just-logged local call that
+// hasn't round-tripped yet isn't dropped. Best-effort: never throws.
+async function loadCallHistory(){
+  if(!sb) return;
+  try {
+    const rows = await sb.get('call_history', '?select=*&order=created_at.desc&limit=500');
+    if(!Array.isArray(rows)) return;
+    const byId = new Map();
+    // Seed with existing local entries (preserves anything not yet on the server)
+    (callHistory||[]).forEach(c => { if(c && c.id) byId.set(c.id, c); });
+    // Server rows overwrite — they're the source of truth
+    rows.forEach(r => { if(r && r.id) byId.set(r.id, callRowToLocal(r)); });
+    callHistory = Array.from(byId.values())
+      .sort((a,b)=> new Date(b.ts||0) - new Date(a.ts||0));
+    saveCallHistory();
+    renderCallHistory();
+    if(convFilter === 'calls' && typeof renderConvList === 'function') renderConvList();
+  } catch(_){ /* offline / RLS / transient — keep showing local cache */ }
 }
 
 // fromNumber = which of OUR SignalWire numbers handled this call (outbound: the
@@ -8124,6 +8166,11 @@ async function enterApp(){
   renderCustomFieldsPage();
   renderSettingsPage();
   renderDashboard();
+
+  // Pull full call history from Supabase (durable source of truth) and merge it
+  // into the local cache, so history reflects ALL past calls across devices —
+  // not just whatever is in this browser's localStorage. Best-effort.
+  loadCallHistory();
 
   // Bring the SignalWire subscriber online so PSTN calls to the configured
   // number can ring the browser. Best-effort — silent failure if SignalWire
