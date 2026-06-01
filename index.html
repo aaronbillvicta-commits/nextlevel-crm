@@ -51,7 +51,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-05-31-11"></script>
+<script type="module" src="src/version-history.js?v=2026-05-31-12"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -11957,13 +11957,16 @@ function renderConvList(){
       const avBg  = {'av-pink':'var(--pink-bg)','av-blue':'var(--accent-bg)','av-amber':'var(--amber-bg)','av-green':'var(--green-bg)','av-purple':'var(--purple-bg)'}[avCls]||'var(--accent-bg)';
       const av    = contact ? initials(contact.name) : icon('phone');
 
-      let icon, iconColor;
+      // NOTE: do NOT name this `icon` — that shadows the global icon() helper,
+      // which is called below (icon('smartphone')) and throws "icon is not a
+      // function", aborting the whole calls.map() render.
+      let dirIcon, iconColor;
       if(c.direction === 'inbound'){
-        if(c.status === 'missed'){ icon = '↙'; iconColor = 'var(--red)'; }
-        else                      { icon = '↙'; iconColor = 'var(--green)'; }
+        if(c.status === 'missed'){ dirIcon = '↙'; iconColor = 'var(--red)'; }
+        else                      { dirIcon = '↙'; iconColor = 'var(--green)'; }
       } else {
-        if(c.status === 'failed') { icon = '↗'; iconColor = 'var(--red)'; }
-        else                      { icon = '↗'; iconColor = 'var(--accent2)'; }
+        if(c.status === 'failed') { dirIcon = '↗'; iconColor = 'var(--red)'; }
+        else                      { dirIcon = '↗'; iconColor = 'var(--accent2)'; }
       }
       const statusText = c.status === 'missed' ? 'Missed call'
                        : c.status === 'failed' ? 'Failed'
@@ -11982,7 +11985,7 @@ function renderConvList(){
         <div class="conv-item-av" style="background:${avBg};color:${avClr}">${av}</div>
         <div class="conv-item-info">
           <div class="conv-item-name">
-            <span style="color:${iconColor};font-weight:700;margin-right:4px">${icon}</span>${displayName}
+            <span style="color:${iconColor};font-weight:700;margin-right:4px">${dirIcon}</span>${displayName}
           </div>
           <div class="conv-item-preview" style="color:${statusColor}">${statusText} · ${numberLine}</div>
           ${fromHtml?`<div class="conv-item-preview" style="color:var(--text3);font-size:10px">${icon('smartphone')} via ${fromHtml}</div>`:''}
@@ -13879,11 +13882,13 @@ function dialerHistRowHTML(c){
   const rawDisplayName = contact?.name || (hasName ? c.contactName : (phoneFmt || c.number)) || 'Unknown';
   const displayName = pNameOrPhone(rawDisplayName);
   const time = new Date(c.ts).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
-  let icon, iconColor;
+  // NOTE: do NOT name this `icon` — it shadows the global icon() helper called
+  // below (icon('phone') / icon('smartphone')) and would throw, aborting render.
+  let dirIcon, iconColor;
   if(c.direction === 'inbound'){
-    icon = '↙'; iconColor = c.status==='missed' ? 'var(--red)' : 'var(--green)';
+    dirIcon = '↙'; iconColor = c.status==='missed' ? 'var(--red)' : 'var(--green)';
   } else {
-    icon = '↗'; iconColor = c.status==='failed' ? 'var(--red)' : 'var(--accent2)';
+    dirIcon = '↗'; iconColor = c.status==='failed' ? 'var(--red)' : 'var(--accent2)';
   }
   let statusText;
   if(c.status==='missed') statusText = 'Missed call';
@@ -13903,7 +13908,7 @@ function dialerHistRowHTML(c){
     ? `openContactDetail('${contact.id}')`
     : `openUnknownNumberDetail('${numStr}')`;
   return `<div class="dialer-hist-row" onclick="${onClick}" title="${contact?'Open contact':'Redial '+numStr}">
-    <span style="font-size:15px;color:${iconColor};width:16px;text-align:center;flex-shrink:0">${icon}</span>
+    <span style="font-size:15px;color:${iconColor};width:16px;text-align:center;flex-shrink:0">${dirIcon}</span>
     ${av}
     <div style="flex:1;min-width:0">
       <div style="font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${displayName}${dispoPill}</div>
