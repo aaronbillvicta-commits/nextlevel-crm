@@ -147,9 +147,9 @@
     <div class="it-controls">
       <div>
         <div class="it-group-label">Agency Details</div>
-        <div class="it-field"><label>Agency Name</label><input class="form-input" id="invt-agencyName" value="Next Level Marketing" oninput="invoiceTool.render()"/></div>
+        <div class="it-field"><label>Agency Name</label><input class="form-input" id="invt-agencyName" value="Quick Help VA" oninput="invoiceTool.render()"/></div>
         <div class="it-field"><label>Email / Website</label><input class="form-input" id="invt-agencyEmail" placeholder="hello@agency.com" oninput="invoiceTool.render()"/></div>
-        <div class="it-field"><label>Address</label><input class="form-input" id="invt-agencyAddress" placeholder="123 Main St, City, State" oninput="invoiceTool.render()"/></div>
+        <div class="it-field"><label>Address</label><input class="form-input" id="invt-agencyAddress" value="Manila, Philippines" placeholder="123 Main St, City, State" oninput="invoiceTool.render()"/></div>
         <div class="it-field"><label>Logo URL (or upload)</label>
           <input class="form-input" id="invt-logoUrl" placeholder="https://…  — blank = initials" oninput="invoiceTool.clearUpload();invoiceTool.render()"/>
           <input type="file" accept="image/*" style="margin-top:6px;font-size:11px;color:var(--text3)" onchange="invoiceTool.onLogoUpload(event)"/>
@@ -222,7 +222,7 @@
     const rows = state.lineItems.map((li) => `
       <div class="it-line">
         <input class="form-input" type="text" placeholder="e.g. Social Media Management" value="${esc(li.desc)}" oninput="invoiceTool.updateItem('${li.id}','desc',this.value)"/>
-        <input class="form-input" type="text" placeholder="VA Name" value="${esc(li.va || '')}" oninput="invoiceTool.updateItem('${li.id}','va',this.value)"/>
+        <input class="form-input" type="text" placeholder="Item" value="${esc(li.va || '')}" oninput="invoiceTool.updateItem('${li.id}','va',this.value)"/>
         <input class="form-input" type="number" placeholder="0" min="0" step="0.5" value="${li.hours}" oninput="invoiceTool.updateItem('${li.id}','hours',this.value)"/>
         <input class="form-input" type="number" placeholder="0.00" min="0" step="0.01" value="${li.rate}" oninput="invoiceTool.updateItem('${li.id}','rate',this.value)"/>
         <button class="it-remove" title="Remove" onclick="invoiceTool.removeItem('${li.id}')">&times;</button>
@@ -233,7 +233,7 @@
         <button class="btn btn-sm btn-primary" onclick="invoiceTool.addItem()">+ Add row</button>
       </div>
       <div class="it-line-head">
-        <span>Description</span><span>VA Name</span><span>Hours</span><span>Rate $/hr</span><span></span>
+        <span>Description</span><span>Item</span><span>Hours</span><span>Rate $/hr</span><span></span>
       </div>
       <div id="invt-lines">${rows || '<div style="font-size:12px;color:var(--text3);padding:6px 0">No line items yet — click “+ Add row”.</div>'}</div>`;
   }
@@ -267,9 +267,9 @@
   }
 
   function invoiceDocHTML() {
-    const agencyName = (val('invt-agencyName') || 'Next Level Marketing').trim();
+    const agencyName = (val('invt-agencyName') || 'Quick Help VA').trim();
     const agencyEmail = (val('invt-agencyEmail') || '').trim();
-    const agencyAddress = (val('invt-agencyAddress') || '').trim();
+    const agencyAddress = (val('invt-agencyAddress') || 'Manila, Philippines').trim();
     const num = (val('invt-number') || 'INV-001').trim();
     const issue = val('invt-issueDate');
     const due = val('invt-dueDate');
@@ -335,7 +335,7 @@
       <table class="inv-table">
         <thead><tr>
           <th style="width:35%">Description</th>
-          <th style="width:20%">VA Name</th>
+          <th style="width:20%">Item</th>
           <th class="r" style="width:13%">Hours</th>
           <th class="r" style="width:17%">Rate</th>
           <th class="r" style="width:15%">Amount</th>
@@ -543,7 +543,7 @@
     }
     // Persist whatever logo is in use (URL or uploaded data: URL) so a saved
     // invoice always reopens with its logo intact.
-    const agency = { name: (val('invt-agencyName') || 'Next Level Marketing').trim(), email: (val('invt-agencyEmail') || '').trim(), address: (val('invt-agencyAddress') || '').trim(), logo: logoSrc() || null };
+    const agency = { name: (val('invt-agencyName') || 'Quick Help VA').trim(), email: (val('invt-agencyEmail') || '').trim(), address: (val('invt-agencyAddress') || 'Manila, Philippines').trim(), logo: logoSrc() || null };
     const status = val('invt-status') || 'unpaid';
     return {
       invoice_number: (val('invt-number') || 'INV-001').trim(),
@@ -561,9 +561,9 @@
   // Populate the editor DOM from a saved row (opened in snapshot/manual mode).
   function applySaved(row) {
     const a = row.agency || {}, b = row.bill_to || {};
-    setVal('invt-agencyName', a.name || 'Next Level Marketing');
+    setVal('invt-agencyName', a.name || 'Quick Help VA');
     setVal('invt-agencyEmail', a.email || '');
-    setVal('invt-agencyAddress', a.address || '');
+    setVal('invt-agencyAddress', a.address || 'Manila, Philippines');
     // Restore the saved logo: a data: URL goes back into the upload slot,
     // a plain URL into the URL field; fall back to the remembered agency logo.
     if (a.logo && String(a.logo).startsWith('data:')) { state.logoDataUrl = a.logo; setVal('invt-logoUrl', ''); }
