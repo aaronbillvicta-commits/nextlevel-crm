@@ -51,7 +51,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-06-10-5"></script>
+<script type="module" src="src/version-history.js?v=2026-06-10-6"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -3237,6 +3237,32 @@ function pTag(label){
   if(!privacyMode) return safe;
   return `<span class="pblur">${safe}</span>`;
 }
+// Wrap arbitrary already-built display HTML in a blur span when privacy is on.
+// Use for non-name values that should be FULLY hidden (rates, $ amounts, bank
+// details). Names should use pName instead (keeps the first name legible).
+function pHide(html){
+  if(html==null || html==='') return '';
+  return privacyMode ? `<span class="pblur">${html}</span>` : String(html);
+}
+// Privacy-aware money cell. Returns the muted "—" dash when empty; blurs the
+// amount when privacy is on. `sym` defaults to the configured currency symbol.
+function pMoney(num, sym){
+  if(num==null || num==='') return '<span style="opacity:.4">—</span>';
+  sym = sym || ((typeof getCurrencySymbol==='function') ? getCurrencySymbol() : '$');
+  const txt = `${escapeHtml(sym)}${Number(num).toLocaleString()}`;
+  return privacyMode ? `<span class="pblur">${txt}</span>` : txt;
+}
+// VA display name with privacy: first name stays legible, last name blurs.
+// Mirrors pName but built from a VA applicant record (first_name/last_name).
+function pVaName(v){
+  if(!v) return '';
+  const first = (v.first_name||'').trim();
+  const last  = (v.last_name||'').trim();
+  const full  = `${first} ${last}`.trim() || (v.email||'VA');
+  if(!privacyMode) return escapeHtml(full);
+  if(!first) return `<span class="pblur">${escapeHtml(full)}</span>`;
+  return last ? `${escapeHtml(first)} <span class="pblur">${escapeHtml(last)}</span>` : escapeHtml(first);
+}
 // True if the string is mostly digits/punctuation typical of a phone number
 // (used so display fields that can hold either a name OR a phone fallback get
 // blurred via pPhone instead of pName when the value is actually a phone).
@@ -3293,6 +3319,9 @@ function togglePrivacyMode(){
   try { if(typeof renderFollowupsList==='function') renderFollowupsList(); } catch(_){}
   try { if(typeof renderDashboard==='function') renderDashboard(); } catch(_){}
   try { if(typeof renderTagsPage==='function') renderTagsPage(); } catch(_){}
+  try { if(typeof renderClientsPage==='function') renderClientsPage(); } catch(_){}
+  try { if(typeof renderActiveVasPage==='function') renderActiveVasPage(); } catch(_){}
+  try { if(typeof renderVaApplicantsPage==='function') renderVaApplicantsPage(); } catch(_){}
   if(window._openContactDetailId && typeof openContactDetail==='function'){
     openContactDetail(window._openContactDetailId);
   }
@@ -6217,13 +6246,13 @@ function openContactDetail(contactId, tab='info') {
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Company</label>
-          <input class="form-input" id="cd-company" value="${(c.company||'').replace(/"/g,'&quot;')}" placeholder="Santos Bakery"/></div>
+          <input class="form-input priv-blur-el" id="cd-company" value="${(c.company||'').replace(/"/g,'&quot;')}" placeholder="Santos Bakery"/></div>
         <div class="form-group"><label class="form-label">Phone</label>
-          <input class="form-input" id="cd-phone" value="${(c.phone||'').replace(/"/g,'&quot;')}" placeholder="+63 912 000 0000"/></div>
+          <input class="form-input priv-blur-el" id="cd-phone" value="${(c.phone||'').replace(/"/g,'&quot;')}" placeholder="+63 912 000 0000"/></div>
       </div>
       <div class="form-row">
         <div class="form-group"><label class="form-label">Email</label>
-          <input class="form-input" id="cd-email" type="email" value="${(c.email||'').replace(/"/g,'&quot;')}" placeholder="email@example.com"/></div>
+          <input class="form-input priv-blur-el" id="cd-email" type="email" value="${(c.email||'').replace(/"/g,'&quot;')}" placeholder="email@example.com"/></div>
         <div class="form-group"></div>
       </div>
       <div class="form-row">
@@ -6240,7 +6269,7 @@ function openContactDetail(contactId, tab='info') {
         <div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Client Details</div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">Deposit (${getCurrencySymbol()})</label>
-            <input class="form-input" id="cd-deposit" type="number" step="0.01" min="0" value="${c.deposit ?? ''}" placeholder="0.00"/></div>
+            <input class="form-input priv-blur-el" id="cd-deposit" type="number" step="0.01" min="0" value="${c.deposit ?? ''}" placeholder="0.00"/></div>
           <div class="form-group"><label class="form-label">Payment Structure</label>
             <select class="form-select" id="cd-payment-structure">
               <option value="" ${!c.payment_structure?'selected':''}>—</option>
@@ -6252,15 +6281,15 @@ function openContactDetail(contactId, tab='info') {
         <div class="form-group">
           <label class="form-label">Assigned VAs</label>
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <div id="cd-assigned-va-display" class="tags-cell" style="flex:1;min-width:0;font-size:13px;color:var(--text2)">${ vasForClient(c.id).length ? vasForClient(c.id).map(v=>`<span class="tag" style="background:var(--bg3,rgba(127,127,127,.12));color:var(--text2)">${escapeHtml(vaDisplayName(v))}</span>`).join(' ') : '<span style="opacity:.5">None assigned</span>' }</div>
+            <div id="cd-assigned-va-display" class="tags-cell" style="flex:1;min-width:0;font-size:13px;color:var(--text2)">${ vasForClient(c.id).length ? vasForClient(c.id).map(v=>`<span class="tag" style="background:var(--bg3,rgba(127,127,127,.12));color:var(--text2)">${pName(vaDisplayName(v))}</span>`).join(' ') : '<span style="opacity:.5">None assigned</span>' }</div>
             <button type="button" class="btn btn-sm" onclick="openClientVaModal('${c.id}')">Manage VAs</button>
           </div>
         </div>
         <div class="form-row">
           <div class="form-group"><label class="form-label">VA Rate (${getCurrencySymbol()})</label>
-            <input class="form-input" id="cd-va-rate" type="number" step="0.01" min="0" value="${c.va_rate ?? ''}" placeholder="0.00"/></div>
+            <input class="form-input priv-blur-el" id="cd-va-rate" type="number" step="0.01" min="0" value="${c.va_rate ?? ''}" placeholder="0.00"/></div>
           <div class="form-group"><label class="form-label">Agency Cut (${getCurrencySymbol()})</label>
-            <input class="form-input" id="cd-agency-cut" type="number" step="0.01" min="0" value="${c.agency_cut ?? ''}" placeholder="0.00"/></div>
+            <input class="form-input priv-blur-el" id="cd-agency-cut" type="number" step="0.01" min="0" value="${c.agency_cut ?? ''}" placeholder="0.00"/></div>
         </div>
       </div>
       <div class="form-group">
@@ -6512,7 +6541,7 @@ function renderContactInvoicesHTML(rows, contactId){
   if(!rows || !rows.length){
     return '<div style="border:1px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;color:var(--text3);font-size:12px">No invoices yet for this client. Click <b>+ New invoice</b> to create one.</div>';
   }
-  const money = (n)=> (window.invoiceTool && window.invoiceTool.fmtMoney) ? window.invoiceTool.fmtMoney(n) : ('$'+Number(n||0).toFixed(2));
+  const money = (n)=>{ const s = (window.invoiceTool && window.invoiceTool.fmtMoney) ? window.invoiceTool.fmtMoney(n) : ('$'+Number(n||0).toFixed(2)); return (typeof privacyMode!=='undefined' && privacyMode) ? `<span class="pblur">${s}</span>` : s; };
   const fmtD = (s)=>{ if(!s) return ''; const d=new Date(String(s).length<=10 ? s+'T00:00:00' : s); return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
   const totalPaid   = rows.filter(r=>r.status==='paid').reduce((s,r)=>s+Number(r.total||0),0);
   const totalUnpaid = rows.filter(r=>r.status!=='paid').reduce((s,r)=>s+Number(r.total||0),0);
@@ -11792,14 +11821,14 @@ function renderClientsPage(){
   }
   const sym = (typeof getCurrencySymbol === 'function') ? getCurrencySymbol() : '$';
   tbody.innerHTML = filtered.map(c => {
-    const depositTxt = (c.deposit != null && c.deposit !== '') ? `${sym}${Number(c.deposit).toLocaleString()}` : '<span style="opacity:.4">—</span>';
+    const depositTxt = pMoney(c.deposit, sym);
     const paymentTxt = c.payment_structure ? c.payment_structure.charAt(0).toUpperCase() + c.payment_structure.slice(1) : '<span style="opacity:.4">—</span>';
     const vaList = vasForClient(c.id);
     const vaTxt = vaList.length
-      ? vaList.map(v=>`<span class="tag" style="background:var(--bg3,rgba(127,127,127,.12));color:var(--text2)">${escapeHtml(vaDisplayName(v))}</span>`).join(' ')
+      ? vaList.map(v=>`<span class="tag" style="background:var(--bg3,rgba(127,127,127,.12));color:var(--text2)">${pName(vaDisplayName(v))}</span>`).join(' ')
       : '<span style="opacity:.4">Assign VAs…</span>';
-    const vaRateTxt = (c.va_rate != null && c.va_rate !== '') ? `${sym}${Number(c.va_rate).toLocaleString()}` : '<span style="opacity:.4">—</span>';
-    const agencyCutTxt = (c.agency_cut != null && c.agency_cut !== '') ? `${sym}${Number(c.agency_cut).toLocaleString()}` : '<span style="opacity:.4">—</span>';
+    const vaRateTxt = pMoney(c.va_rate, sym);
+    const agencyCutTxt = pMoney(c.agency_cut, sym);
     const lastAct = c.last_activity ? fmtLastActivity(c.last_activity) : '<span style="opacity:.4">—</span>';
     return `<tr>
       <td><div class="td-name" onclick="openContactDetail('${c.id}')" style="cursor:pointer"><div class="av-sm ${getAv(c.id)}">${initials(c.name)}</div><span style="color:var(--text);font-weight:500">${pName(c.name)}</span></div></td>
@@ -15196,13 +15225,13 @@ function renderVaApplicantsPage(){
       const roleArr = (v.roles||[]);
       const roles = roleArr.slice(0,2).map(r=>esc(vaPretty('roles', r))).join(', ') + (roleArr.length>2?` +${roleArr.length-2}`:'');
       const applyingFor = v.applying_for ? esc(vaPretty('roles', v.applying_for)) : '—';
-      const rate = v.hourly_rate ? `$${v.hourly_rate}/hr` : '—';
+      const rate = v.hourly_rate ? pHide(`$${v.hourly_rate}/hr`) : '—';
       const statusCol = VA_STATUS_COLORS[v.review_status] || '#6b7280';
       const statusLabel = VA_STATUS_LABELS[v.review_status] || v.review_status;
       const submitted = v.submitted_at ? new Date(v.submitted_at).toLocaleDateString() : '—';
       const isActive = !!v.activated_at;
       return `<tr>
-        <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openVaApplicantModal('${v.id}')">${esc(name)}</span><br><span style="font-size:11px;color:var(--text3)">${esc(v.email||'')}</span></td>
+        <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openVaApplicantModal('${v.id}')">${pVaName(v)}</span><br><span style="font-size:11px;color:var(--text3)">${pEmail(v.email||'')}</span></td>
         <td style="font-size:12px;color:var(--text2)">${v.country_city ? esc(v.country_city) : '—'}</td>
         <td style="font-size:12px"><span style="font-weight:600;color:var(--accent2)">${applyingFor}</span></td>
         <td style="font-size:12px;color:var(--text2)">${roles||'—'}</td>
@@ -15251,6 +15280,9 @@ function openVaApplicantModal(id){
   const L = "font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px";
   const cell = (label, html) => `<div><div style="${L}">${label}</div><div style="font-size:13px;color:var(--text);word-break:break-word">${html}</div></div>`;
   const field = (label, val) => (val!=null && String(val).trim()!=='') ? cell(label, esc(val)) : '';
+  // Privacy-aware field — blurs the value (email, phone, company, $ rates) under Privacy Mode.
+  const blurIf = (html) => privacyMode ? `<span class="pblur">${html}</span>` : html;
+  const pfield = (label, val) => (val!=null && String(val).trim()!=='') ? cell(label, blurIf(esc(val))) : '';
   // Like field(), but resolves machine values (e.g. "yes_on_request") to friendly labels.
   const enumField = (label, val, category) => (val!=null && String(val).trim()!=='') ? cell(label, esc(vaPretty(category||'', val))) : '';
   const boolField = (label, val) => (typeof val==='boolean') ? cell(label, val?'Yes':'No') : '';
@@ -15271,13 +15303,13 @@ function openVaApplicantModal(id){
   const statusLabel = VA_STATUS_LABELS[v.review_status] || v.review_status || '—';
   const initials = (((v.first_name||'').charAt(0) + (v.last_name||'').charAt(0)).toUpperCase()) || (v.email||'?').charAt(0).toUpperCase();
   const loc = [v.country_city, v.timezone].filter(x => x && String(x).trim()).map(esc).join(' · ');
-  const stat = (label, val) => (val!=null && String(val).trim()!=='')
+  const stat = (label, val, blur) => (val!=null && String(val).trim()!=='')
     ? `<div style="flex:1;min-width:72px;background:var(--bg2);border-radius:8px;padding:8px 6px;text-align:center">
-         <div style="font-size:15px;font-weight:800;color:var(--text);line-height:1.1">${esc(val)}</div>
+         <div style="font-size:15px;font-weight:800;color:var(--text);line-height:1.1">${blur&&privacyMode?`<span class="pblur">${esc(val)}</span>`:esc(val)}</div>
          <div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;margin-top:3px">${esc(label)}</div>
        </div>` : '';
   const stats = [
-    stat('Rate', v.hourly_rate!=null ? '$'+v.hourly_rate+'/hr' : ''),
+    stat('Rate', v.hourly_rate!=null ? '$'+v.hourly_rate+'/hr' : '', true),
     stat('Avail', v.hours_available_new!=null ? v.hours_available_new+' hr/wk' : (v.hours_per_week!=null ? v.hours_per_week+' hr/wk' : '')),
     stat('Experience', (v.years_experience!=null && String(v.years_experience).trim()!=='') ? (vaFormatRange(v.years_experience)||v.years_experience)+' yr' : ''),
     stat('English', vaPretty('english_self_level', v.english_self_level)),
@@ -15302,7 +15334,7 @@ function openVaApplicantModal(id){
         <div style="width:48px;height:48px;border-radius:50%;background:${statusCol}22;color:${statusCol};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;flex-shrink:0">${esc(initials)}</div>
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span style="font-size:17px;font-weight:800;color:var(--text)">${esc(name)}</span>
+            <span style="font-size:17px;font-weight:800;color:var(--text)">${pName(name)}</span>
             <span style="display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;background:${statusCol}18;color:${statusCol}">${esc(statusLabel)}</span>
             ${v.activated_at ? `<span style="font-size:11px;color:#059669;font-weight:600">✓ In matching pool</span>` : ''}
           </div>
@@ -15315,12 +15347,12 @@ function openVaApplicantModal(id){
       ${stats ? `<div style="display:flex;gap:8px;margin-top:12px">${stats}</div>` : ''}
       ${actions ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:12px">${actions}</div>` : ''}
       ${sec('Personal Info', [
-        field('Email', v.email), field('Phone', v.phone), field('Location', v.country_city), field('Timezone', v.timezone),
+        pfield('Email', v.email), pfield('Phone', v.phone), field('Location', v.country_city), field('Timezone', v.timezone),
         linkField('Facebook', v.facebook_url, 'Profile'), linkField('LinkedIn', v.linkedin_url, 'Profile'),
         linkField('Portfolio', v.portfolio_url, 'Link'), linkField('Other Profile', v.other_profile_url, 'Link'),
       ])}
       ${sec('Experience', [
-        enumField('VA Experience', v.experience_type, 'experience_type'), field('Prior Company', v.prior_company),
+        enumField('VA Experience', v.experience_type, 'experience_type'), pfield('Prior Company', v.prior_company),
         enumField('Prior Market', v.prior_market, ''), field('Prior Industry', v.prior_industry),
         enumField('Prior Yrs Experience', v.prior_years, ''),
         enumField('Years Experience', v.years_experience, ''), enumField('English Level', v.english_self_level, 'english_self_level'),
@@ -15348,8 +15380,8 @@ function openVaApplicantModal(id){
         field('Hours Available (new)', v.hours_available_new!=null? v.hours_available_new+' hrs/wk':''),
         field('Hours / Week', v.hours_per_week!=null? v.hours_per_week+' hrs/wk':''),
         enumField('Notice Period', v.notice_period, ''), field('Start Date', v.start_date), field('Preferred Hours', v.preferred_hours),
-        field('Hourly Rate', v.hourly_rate!=null? '$'+v.hourly_rate+'/hr':''),
-        field('Monthly Rate', v.monthly_rate!=null? '$'+v.monthly_rate+'/mo':''),
+        pfield('Hourly Rate', v.hourly_rate!=null? '$'+v.hourly_rate+'/hr':''),
+        pfield('Monthly Rate', v.monthly_rate!=null? '$'+v.monthly_rate+'/mo':''),
         enumField('Commission Open', v.commission_open, ''), enumField('Rate Negotiable', v.rate_negotiable, ''),
         chipField('Hire Arrangement', v.hire_arrangement, 'hire_arrangement'), enumField('Weekend Availability', v.weekend_availability, ''),
         chipField('Timezone Overlap', v.timezone_overlap, ''),
@@ -15524,11 +15556,11 @@ function renderActiveVasPage(){
         : (roleArr.length ? roleArr.map(r => esc(vaRoleLabel(r))).join(', ') : '<span style="opacity:.4">Set role…</span>');
       // Client(s) — every linked active client (many-to-many), or unassigned
       const vaClients = clientsForVa(v.id);
-      const clientDisplay = vaClients.length ? vaClients.map(c => esc(c.name)).join(', ') : '<span style="opacity:.4">— Unassigned</span>';
+      const clientDisplay = vaClients.length ? vaClients.map(c => pName(c.name)).join(', ') : '<span style="opacity:.4">— Unassigned</span>';
       // Rate — agreed active_rate, falling back to the application hourly_rate (shown muted)
       const usingFallback = (v.active_rate == null || v.active_rate === '') && (v.hourly_rate != null && v.hourly_rate !== '');
       const rateNum = (v.active_rate != null && v.active_rate !== '') ? v.active_rate : v.hourly_rate;
-      const rateTxt = (rateNum != null && rateNum !== '') ? `$${Number(rateNum).toLocaleString()}` : '<span style="opacity:.4">Set rate…</span>';
+      const rateTxt = (rateNum != null && rateNum !== '') ? pHide(`$${Number(rateNum).toLocaleString()}`) : '<span style="opacity:.4">Set rate…</span>';
       const rateCell = usingFallback
         ? `<span style="opacity:.6" title="From application rate — click to set the agreed rate">${rateTxt}</span>`
         : rateTxt;
@@ -15541,12 +15573,12 @@ function renderActiveVasPage(){
       if(hasPay){
         const primary = esc(payName || payVendor || 'Details');
         const acctTail = payAcct ? ` ·••${esc(payAcct.replace(/\s/g,'').slice(-4))}` : '';
-        payDet = `<span style="color:var(--accent2)">${primary}</span><span style="color:var(--text3);font-family:'DM Mono',monospace">${acctTail}</span>`;
+        payDet = pHide(`<span style="color:var(--accent2)">${primary}</span><span style="color:var(--text3);font-family:'DM Mono',monospace">${acctTail}</span>`);
       } else {
         payDet = '<span style="opacity:.4">Add details…</span>';
       }
       return `<tr>
-        <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openVaApplicantModal('${v.id}')">${esc(name)}</span><br><span style="font-size:11px;color:var(--text3)">${esc(v.email||'')}</span></td>
+        <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openVaApplicantModal('${v.id}')">${pVaName(v)}</span><br><span style="font-size:11px;color:var(--text3)">${pEmail(v.email||'')}</span></td>
         <td onclick="openVaRoleModal('${v.id}')" style="cursor:pointer;font-size:12px;color:var(--text2)" title="Assign role">${roleDisplay}</td>
         <td onclick="openVaClientModal('${v.id}')" style="cursor:pointer;font-size:12px;color:var(--text2)" title="Assign client">${clientDisplay}</td>
         <td onclick="openVaRateModal('${v.id}')" style="cursor:pointer;font-family:'DM Mono',monospace;font-size:12px" title="Set agreed rate">${rateCell}</td>
@@ -15682,7 +15714,7 @@ function openVaRateModal(id){
     <div class="modal-body" style="padding:4px 20px 0">
       <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Agreed engagement rate for <strong>${E(name)}</strong></div>
       <div class="form-group"><label class="form-label">Rate ($)</label>
-        <input class="form-input" id="varate-input" type="number" step="0.01" min="0" value="${E(cur)}" placeholder="0.00"/>${hint}</div>
+        <input class="form-input priv-blur-el" id="varate-input" type="number" step="0.01" min="0" value="${E(cur)}" placeholder="0.00"/>${hint}</div>
     </div>
     <div class="modal-foot">
       <button class="btn" onclick="closeModal()">Cancel</button>
@@ -15754,13 +15786,13 @@ function openVaPaymentModal(id){
     <div class="modal-body" style="padding:4px 20px 0">
       <div style="font-size:12px;color:var(--text3);margin-bottom:12px">Payout details for <strong>${E(name)}</strong></div>
       <div class="form-group"><label class="form-label">Account Name</label>
-        <input class="form-input" id="vapay-name" value="${E(v.payment_account_name)}" placeholder="Name on the account"/></div>
+        <input class="form-input priv-blur-el" id="vapay-name" value="${E(v.payment_account_name)}" placeholder="Name on the account"/></div>
       <div class="form-group"><label class="form-label">Vendor / Bank</label>
-        <input class="form-input" id="vapay-vendor" value="${E(v.payment_vendor)}" placeholder="e.g. BDO, BPI, GCash, Maya, Wise"/></div>
+        <input class="form-input priv-blur-el" id="vapay-vendor" value="${E(v.payment_vendor)}" placeholder="e.g. BDO, BPI, GCash, Maya, Wise"/></div>
       <div class="form-group"><label class="form-label">Account Number</label>
-        <input class="form-input" id="vapay-acct" value="${E(v.payment_account_number)}" placeholder="Account / mobile / wallet number"/></div>
+        <input class="form-input priv-blur-el" id="vapay-acct" value="${E(v.payment_account_number)}" placeholder="Account / mobile / wallet number"/></div>
       <div class="form-group"><label class="form-label">Other Details</label>
-        <textarea class="form-input" id="vapay-details" rows="2" placeholder="Branch, SWIFT/routing, notes…">${E(v.payment_details)}</textarea></div>
+        <textarea class="form-input priv-blur-el" id="vapay-details" rows="2" placeholder="Branch, SWIFT/routing, notes…">${E(v.payment_details)}</textarea></div>
     </div>
     <div class="modal-foot">
       <button class="btn" onclick="closeModal()">Cancel</button>
