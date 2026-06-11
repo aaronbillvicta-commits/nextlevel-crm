@@ -196,11 +196,11 @@
   function billToBodyHTML() {
     if (state.billTo === 'manual') {
       return `
-        <div class="it-field"><label>Client Name</label><input class="form-input" id="invt-mName" placeholder="Jane Smith" oninput="invoiceTool.render()"/></div>
-        <div class="it-field"><label>Company</label><input class="form-input" id="invt-mCompany" placeholder="Acme Corp" oninput="invoiceTool.render()"/></div>
-        <div class="it-field"><label>Email</label><input class="form-input" id="invt-mEmail" placeholder="jane@acme.com" oninput="invoiceTool.render()"/></div>
-        <div class="it-field"><label>Phone</label><input class="form-input" id="invt-mPhone" placeholder="+1 (555) 000-0000" oninput="invoiceTool.render()"/></div>
-        <div class="it-field"><label>Address</label><input class="form-input" id="invt-mAddress" placeholder="456 Client Ave, City" oninput="invoiceTool.render()"/></div>`;
+        <div class="it-field"><label>Client Name</label><input class="form-input priv-blur-el" id="invt-mName" placeholder="Jane Smith" oninput="invoiceTool.render()"/></div>
+        <div class="it-field"><label>Company</label><input class="form-input priv-blur-el" id="invt-mCompany" placeholder="Acme Corp" oninput="invoiceTool.render()"/></div>
+        <div class="it-field"><label>Email</label><input class="form-input priv-blur-el" id="invt-mEmail" placeholder="jane@acme.com" oninput="invoiceTool.render()"/></div>
+        <div class="it-field"><label>Phone</label><input class="form-input priv-blur-el" id="invt-mPhone" placeholder="+1 (555) 000-0000" oninput="invoiceTool.render()"/></div>
+        <div class="it-field"><label>Address</label><input class="form-input priv-blur-el" id="invt-mAddress" placeholder="456 Client Ave, City" oninput="invoiceTool.render()"/></div>`;
     }
     const list = (window.contacts || []);
     if (!list.length) {
@@ -210,7 +210,7 @@
       .map((c) => `<option value="${esc(c.id)}" ${state.selectedContactId === c.id ? 'selected' : ''}>${esc(contactName(c) || '(no name)')}${c.company ? ' — ' + esc(c.company) : ''}</option>`).join('');
     return `
       <div class="it-field"><label>Select Client</label>
-        <select class="form-input" id="invt-crmClient" onchange="invoiceTool.selectClient(this.value)">
+        <select class="form-input priv-blur-el" id="invt-crmClient" onchange="invoiceTool.selectClient(this.value)">
           <option value="">— Choose a contact —</option>${opts}
         </select>
       </div>
@@ -222,9 +222,9 @@
     const rows = state.lineItems.map((li) => `
       <div class="it-line">
         <input class="form-input" type="text" placeholder="e.g. Social Media Management" value="${esc(li.desc)}" oninput="invoiceTool.updateItem('${li.id}','desc',this.value)"/>
-        <input class="form-input" type="text" placeholder="Item" value="${esc(li.va || '')}" oninput="invoiceTool.updateItem('${li.id}','va',this.value)"/>
+        <input class="form-input priv-blur-el" type="text" placeholder="Item" value="${esc(li.va || '')}" oninput="invoiceTool.updateItem('${li.id}','va',this.value)"/>
         <input class="form-input" type="number" placeholder="0" min="0" step="0.5" value="${li.hours}" oninput="invoiceTool.updateItem('${li.id}','hours',this.value)"/>
-        <input class="form-input" type="number" placeholder="0.00" min="0" step="0.01" value="${li.rate}" oninput="invoiceTool.updateItem('${li.id}','rate',this.value)"/>
+        <input class="form-input priv-blur-el" type="number" placeholder="0.00" min="0" step="0.01" value="${li.rate}" oninput="invoiceTool.updateItem('${li.id}','rate',this.value)"/>
         <button class="it-remove" title="Remove" onclick="invoiceTool.removeItem('${li.id}')">&times;</button>
       </div>`).join('');
     return `
@@ -293,15 +293,15 @@
         const h = parseFloat(li.hours) || 0, r = parseFloat(li.rate) || 0, amt = h * r;
         return `<tr>
           <td>${esc(li.desc) || '<em style="color:#bbb">—</em>'}</td>
-          <td style="color:#555">${esc(li.va || '') || '<em style="color:#ccc">—</em>'}</td>
+          <td style="color:#555" class="priv-blur-el">${esc(li.va || '') || '<em style="color:#ccc">—</em>'}</td>
           <td class="r">${h > 0 ? h : '—'}</td>
-          <td class="r">${r > 0 ? fmt$(r) + '/hr' : '—'}</td>
-          <td class="r" style="font-weight:600">${amt > 0 ? fmt$(amt) : '—'}</td>
+          <td class="r priv-blur-el">${r > 0 ? fmt$(r) + '/hr' : '—'}</td>
+          <td class="r priv-blur-el" style="font-weight:600">${amt > 0 ? fmt$(amt) : '—'}</td>
         </tr>`;
       }).join('');
     }
     const taxRowHTML = t.taxRate > 0
-      ? `<div class="inv-trow"><span>Tax (${t.taxRate}%)</span><span>${fmt$(t.tax)}</span></div>` : '';
+      ? `<div class="inv-trow"><span>Tax (${t.taxRate}%)</span><span class="priv-blur-el">${fmt$(t.tax)}</span></div>` : '';
 
     return `
     <div class="inv-doc" id="invt-doc">
@@ -328,8 +328,8 @@
         </div>
         <div>
           <div class="inv-plabel">Bill To</div>
-          <div class="inv-pname">${party.name}</div>
-          <div class="inv-pdetail">${party.detail}</div>
+          <div class="inv-pname priv-blur-el">${party.name}</div>
+          <div class="inv-pdetail priv-blur-el">${party.detail}</div>
         </div>
       </div>
       <table class="inv-table">
@@ -343,9 +343,9 @@
         <tbody>${body}</tbody>
       </table>
       <div class="inv-totals"><div class="inv-totals-box">
-        <div class="inv-trow sub"><span>Subtotal</span><span>${fmt$(t.subtotal)}</span></div>
+        <div class="inv-trow sub"><span>Subtotal</span><span class="priv-blur-el">${fmt$(t.subtotal)}</span></div>
         ${taxRowHTML}
-        <div class="inv-trow total"><span>Total Due</span><span>${fmt$(t.total)}</span></div>
+        <div class="inv-trow total"><span>Total Due</span><span class="priv-blur-el">${fmt$(t.total)}</span></div>
       </div></div>
       <hr class="inv-divider"/>
       <div class="inv-footer">
@@ -645,9 +645,9 @@
       const paid = r.status === 'paid';
       return `<tr>
         <td style="font-family:'DM Mono',monospace">${esc(r.invoice_number || '')}</td>
-        <td>${esc(bt.name || '—')}${bt.company ? ` <span style="color:var(--text3)">· ${esc(bt.company)}</span>` : ''}</td>
+        <td class="priv-blur-el">${esc(bt.name || '—')}${bt.company ? ` <span style="color:var(--text3)">· ${esc(bt.company)}</span>` : ''}</td>
         <td>${esc(when)}</td>
-        <td style="font-family:'DM Mono',monospace;text-align:right">${fmt$(r.total)}</td>
+        <td class="priv-blur-el" style="font-family:'DM Mono',monospace;text-align:right">${fmt$(r.total)}</td>
         <td><span class="inv-hist-badge ${paid ? 'paid' : 'unpaid'}">${esc((r.status || 'unpaid').toUpperCase())}</span></td>
         <td style="text-align:right;white-space:nowrap">
           <button class="btn btn-sm" onclick="invoiceTool.openInvoice('${r.id}')">Open</button>

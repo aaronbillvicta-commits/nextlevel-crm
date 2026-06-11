@@ -51,7 +51,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-06-10-7"></script>
+<script type="module" src="src/version-history.js?v=2026-06-10-8"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -74,7 +74,7 @@
 <script type="module" src="src/calling/outbound.js?v=2026-05-18-5"></script>
 <script type="module" src="src/calling/inbound.js?v=2026-05-18-6"></script>
 <script type="module" src="src/calling/dialpad.js?v=2026-05-18-7"></script>
-<script type="module" src="src/invoices/index.js?v=2026-06-10-2"></script>
+<script type="module" src="src/invoices/index.js?v=2026-06-10-3"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -243,6 +243,15 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-size:14px;line
 .topbar-title{font-size:15px;font-weight:600;color:var(--text);flex:1;letter-spacing:-.2px}
 .pblur{filter:blur(5px);user-select:none;display:inline-block;transition:filter .2s}
 body.private-mode .priv-blur-el{filter:blur(5px);user-select:none;transition:filter .2s}
+/* Privacy mode blanket coverage for the Integrations & Settings sections:
+   blur every data-bearing field (Aaron asked for "everything" there). Labels,
+   headings and buttons stay legible so the pages remain navigable. */
+body.private-mode #page-integrations input.form-input,
+body.private-mode #page-integrations textarea.form-input,
+body.private-mode #page-integrations select.form-input,
+body.private-mode #page-integrations select.form-select,
+body.private-mode #page-settings input.form-input,
+body.private-mode #page-settings textarea.form-input{filter:blur(5px);transition:filter .2s}
 .privacy-btn{background:none;border:1px solid var(--border);border-radius:6px;padding:5px 10px;cursor:pointer;font-size:11px;font-weight:600;color:var(--text3);display:flex;align-items:center;gap:5px;transition:all .15s}
 .privacy-btn:hover{border-color:var(--border2);color:var(--text)}
 .privacy-btn.on{border-color:var(--accent-border);color:var(--accent2);background:var(--accent-bg)}
@@ -3322,6 +3331,9 @@ function togglePrivacyMode(){
   try { if(typeof renderClientsPage==='function') renderClientsPage(); } catch(_){}
   try { if(typeof renderActiveVasPage==='function') renderActiveVasPage(); } catch(_){}
   try { if(typeof renderVaApplicantsPage==='function') renderVaApplicantsPage(); } catch(_){}
+  try { if(typeof renderClientIntakesPage==='function') renderClientIntakesPage(); } catch(_){}
+  try { if(typeof renderUsersList==='function') renderUsersList(); } catch(_){}
+  try { if(typeof renderSubscriptionsCard==='function') renderSubscriptionsCard(); } catch(_){}
   if(window._openContactDetailId && typeof openContactDetail==='function'){
     openContactDetail(window._openContactDetailId);
   }
@@ -6330,7 +6342,7 @@ function openContactDetail(contactId, tab='info') {
               <div style="font-size:13px;font-weight:500;color:var(--text)">${d.name}</div>
               <div style="font-size:11px;color:var(--text3)">${d.pipelineName} → <span style="color:var(--accent2)">${d.stageName}</span></div>
             </div>
-            <div style="font-size:12px;color:var(--green);font-weight:600">${formatCurrency(d.value||0)}</div>
+            <div class="priv-blur-el" style="font-size:12px;color:var(--green);font-weight:600">${formatCurrency(d.value||0)}</div>
           </div>`).join('')}
         <div style="border-top:1px solid var(--border);margin:14px 0"></div>
       ` : '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">No pipeline deals yet for this contact.</div>'}
@@ -6889,7 +6901,7 @@ function renderPipelineTabs(){
         <div class="pl-pipeline-name">${p.name}</div>
         <div class="pl-pipeline-meta">
           ${p.stages?.length||0} stages &nbsp;·&nbsp; ${totalDeals} deal${totalDeals!==1?'s':''}
-          ${totalValue>0?`<br>${formatCurrency(totalValue)} total`:''}
+          ${totalValue>0?`<br><span class="priv-blur-el">${formatCurrency(totalValue)} total</span>`:''}
         </div>
         <!-- Stage progress pills -->
         <div style="display:flex;gap:3px;flex-wrap:wrap;margin-top:6px">
@@ -6926,7 +6938,7 @@ function switchPipeline(id){
   if(pl && nameEl) nameEl.textContent = pl.name;
   if(pl && statsEl){
     const totalVal = pl.deals?.reduce((s,d)=>s+(d.value||0),0)||0;
-    statsEl.textContent = `${pl.deals?.length||0} deals · ${formatCurrency(totalVal)} total value`;
+    statsEl.innerHTML = `${pl.deals?.length||0} deals · <span class="priv-blur-el">${formatCurrency(totalVal)} total value</span>`;
   }
 }
 
@@ -6941,13 +6953,13 @@ function renderBoard(){
         ondragover="onDragOver(event)" ondrop="onDrop(event)" ondragleave="onDragLeave(event)">
         <div class="col-head">
           <span class="col-label">${stage.label}</span>
-          ${total>0?`<span style="font-size:10px;color:var(--green);font-family:'DM Mono',monospace;font-weight:600;flex-shrink:0">${formatCurrency(total)}</span>`:''}
+          ${total>0?`<span class="priv-blur-el" style="font-size:10px;color:var(--green);font-family:'DM Mono',monospace;font-weight:600;flex-shrink:0">${formatCurrency(total)}</span>`:''}
           <span class="col-cnt">${deals.length}</span>
         </div>
         <div class="deal-drop-zone">
           ${deals.map(deal=>renderDealCard(deal)).join('')}
         </div>
-        <div class="col-total">${deals.length===0?'No deals yet':`Total · ${formatCurrency(total)}/mo`}</div>
+        <div class="col-total">${deals.length===0?'No deals yet':`Total · <span class="priv-blur-el">${formatCurrency(total)}/mo</span>`}</div>
       </div>`;
   }).join('');
 }
@@ -6972,7 +6984,7 @@ function renderDealCard(deal){
       <div class="deal-name">${pName(deal.name)}</div>
       <div class="deal-co">${deal.company?pCompany(deal.company):''}</div>
       ${contactBadge}
-      <div class="deal-val">${formatCurrency(deal.value||0)}/mo${ageBadge}</div>
+      <div class="deal-val"><span class="priv-blur-el">${formatCurrency(deal.value||0)}/mo</span>${ageBadge}</div>
       <div class="deal-tags">${(deal.tags||[]).map(t=>`<span class="tag ${t.cls}">${pTag(t.label)}</span>`).join('')}</div>
       ${preview?`<div class="deal-custom-preview">${preview}</div>`:''}
     </div>`;
@@ -7059,7 +7071,7 @@ function updateAllColumns(){
     const cnt=col.querySelector('.col-cnt');
     const total=col.querySelector('.col-total');
     if(cnt) cnt.textContent=deals.length;
-    if(total){ let sum=0; deals.forEach(d=>sum+=parseInt(d.dataset.value||0)); total.textContent=deals.length===0?'No deals yet':`Total · ${formatCurrency(sum)}/mo`; }
+    if(total){ let sum=0; deals.forEach(d=>sum+=parseInt(d.dataset.value||0)); total.innerHTML=deals.length===0?'No deals yet':`Total · <span class="priv-blur-el">${formatCurrency(sum)}/mo</span>`; }
   });
 }
 
@@ -7070,7 +7082,7 @@ function refreshPipelineHeader(){
   if(nameEl) nameEl.textContent = pl.name;
   if(statsEl){
     const totalVal = pl.deals?.reduce((s,d)=>s+(d.value||0),0)||0;
-    statsEl.textContent = `${pl.deals?.length||0} deals · ${formatCurrency(totalVal)} total value`;
+    statsEl.innerHTML = `${pl.deals?.length||0} deals · <span class="priv-blur-el">${formatCurrency(totalVal)} total value</span>`;
   }
   // Also refresh left panel counts
   renderPipelineTabs();
@@ -7338,11 +7350,11 @@ function openDealDetail(dealId){
         ${contactSection}
         <div class="modal-section-title">Deal Info</div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Deal Name</label><input class="form-input" id="dd-name" value="${deal.name}"/></div>
-          <div class="form-group"><label class="form-label">Company</label><input class="form-input" id="dd-company" value="${deal.company||''}"/></div>
+          <div class="form-group"><label class="form-label">Deal Name</label><input class="form-input priv-blur-el" id="dd-name" value="${deal.name}"/></div>
+          <div class="form-group"><label class="form-label">Company</label><input class="form-input priv-blur-el" id="dd-company" value="${deal.company||''}"/></div>
         </div>
         <div class="form-row">
-          <div class="form-group"><label class="form-label">Value (${getCurrencySymbol()})</label><input class="form-input" id="dd-value" type="number" value="${deal.value}"/></div>
+          <div class="form-group"><label class="form-label">Value (${getCurrencySymbol()})</label><input class="form-input priv-blur-el" id="dd-value" type="number" value="${deal.value}"/></div>
           <div class="form-group"><label class="form-label">Stage</label><select class="form-select" id="dd-stage">${stageOpts}</select></div>
         </div>
       </div>
@@ -7686,7 +7698,7 @@ function renderSubscriptionsCard(){
     .sort((a,b)=>b.sum-a.sum)
     .map(c=>`<span style="display:inline-flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:3px 10px;font-size:11px">
         <span style="color:var(--text)">${escapeHtml(c.k)}</span>
-        <span style="color:var(--text3)">${fmtTotalsMap(subsTotalsByCurrency(c.list))}/mo</span>
+        <span class="priv-blur-el" style="color:var(--text3)">${fmtTotalsMap(subsTotalsByCurrency(c.list))}/mo</span>
       </span>`).join('');
 
   const th = 'text-align:left;padding:6px 8px;font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--text3);font-weight:600';
@@ -7707,8 +7719,8 @@ function renderSubscriptionsCard(){
         ${s.notes?`<div style="font-size:11px;color:var(--text3);margin-top:2px">${escapeHtml(s.notes)}</div>`:''}
       </td>
       <td style="padding:9px 8px;font-size:12px;color:var(--text2)">${s.category?escapeHtml(s.category):'<span style=\"color:var(--text3)\">—</span>'}</td>
-      <td style="padding:9px 8px;font-size:12px;color:var(--text2);white-space:nowrap">${fmtMoney(s.cost,s.currency)} <span style="color:var(--text3)">/ ${s.cycle==='yearly'?'yr':'mo'}</span></td>
-      <td style="padding:9px 8px;font-size:12px;color:var(--text);white-space:nowrap">${fmtMoney(subMonthly(s),s.currency)}<span style="color:var(--text3)">/mo</span></td>
+      <td style="padding:9px 8px;font-size:12px;color:var(--text2);white-space:nowrap"><span class="priv-blur-el">${fmtMoney(s.cost,s.currency)}</span> <span style="color:var(--text3)">/ ${s.cycle==='yearly'?'yr':'mo'}</span></td>
+      <td style="padding:9px 8px;font-size:12px;color:var(--text);white-space:nowrap"><span class="priv-blur-el">${fmtMoney(subMonthly(s),s.currency)}</span><span style="color:var(--text3)">/mo</span></td>
       <td style="padding:9px 8px;font-size:12px;white-space:nowrap">${renewCell}</td>
       <td style="padding:9px 8px;text-align:right;white-space:nowrap">
         <button class="btn btn-sm" onclick="toggleSubStatus('${s.id}')" title="${cancelled?'Reactivate':'Mark cancelled'}" style="font-size:10px;padding:2px 8px">${cancelled?'Cancelled':'Active'}</button>
@@ -7729,7 +7741,7 @@ function renderSubscriptionsCard(){
       </div>
 
       <div style="display:flex;align-items:baseline;gap:10px;margin:4px 0 12px">
-        <span style="font-size:24px;font-weight:700;color:var(--text)">${totalStr}</span>
+        <span class="priv-blur-el" style="font-size:24px;font-weight:700;color:var(--text)">${totalStr}</span>
         <span style="font-size:12px;color:var(--text3)">/ month · ${active.length} active${cancelledCount?` · ${cancelledCount} cancelled`:''}</span>
       </div>
 
@@ -8067,8 +8079,8 @@ function renderUsersList(){
         ${u.name.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase()}
       </div>
       <div class="user-row-info">
-        <div class="user-row-name">${u.name} ${isSelf?'<span style="font-size:10px;color:var(--text3)">(you)</span>':''}</div>
-        <div class="user-row-email">${u.email}</div>
+        <div class="user-row-name"><span class="priv-blur-el">${u.name}</span> ${isSelf?'<span style="font-size:10px;color:var(--text3)">(you)</span>':''}</div>
+        <div class="user-row-email priv-blur-el">${u.email}</div>
       </div>
       <select class="form-select" style="width:auto;padding:5px 8px;font-size:11px" onchange="changeUserRole('${u.id}',this.value)" ${isSelf||!isAdmin?'disabled':''}>
         <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
@@ -8297,22 +8309,22 @@ function buildWidgetContent(wid,def){
   const pipeline=getActivePipeline();
   if(wid==='stat-leads') return statWidget(icon('users'),'Total Leads',contacts.length,contacts.length+' contacts in CRM','up');
   if(wid==='stat-deals'){const cnt=pipelines.reduce((s,p)=>s+p.deals.length,0);return statWidget(icon('briefcase'),'Active Deals',cnt,'across all pipelines','up');}
-  if(wid==='stat-revenue'){const total=pipelines.reduce((s,p)=>s+p.deals.reduce((a,d)=>a+d.value,0),0);return statWidget(icon('dollar'),'Est. Revenue',formatCurrency(total)+'/mo','total pipeline value','up');}
+  if(wid==='stat-revenue'){const total=pipelines.reduce((s,p)=>s+p.deals.reduce((a,d)=>a+d.value,0),0);return statWidget(icon('dollar'),'Est. Revenue',pHide(formatCurrency(total)+'/mo'),'total pipeline value','up');}
   if(wid==='stat-emails'){const sent=emailStore.filter(e=>e.status==='sent'||e.status==='delivered').length;return statWidget(icon('mail'),'Emails Sent',sent,sent+' emails sent so far','up');}
 
   if(wid==='activity'){
     // Build real activity from contacts + conversations + emails
     const items=[];
-    contacts.slice(0,3).forEach(c=>items.push({icon:icon('user'),text:`Contact added: <strong>${c.name}</strong>`,sub:c.company||c.source||'',ts:c.created_at||''}));
+    contacts.slice(0,3).forEach(c=>items.push({icon:icon('user'),text:`Contact added: <strong>${pName(c.name)}</strong>`,sub:c.company||c.source||'',ts:c.created_at||''}));
     conversations.slice(0,2).forEach(cv=>{
       const contact=contacts.find(x=>x.id===cv.contactId);
       const last=cv.messages?.[cv.messages.length-1];
-      if(contact&&last) items.push({icon:last.ch==='email'?'':'',text:`Message with <strong>${contact.name}</strong>`,sub:last.body?.slice(0,40)||'',ts:last.ts||''});
+      if(contact&&last) items.push({icon:last.ch==='email'?'':'',text:`Message with <strong>${pName(contact.name)}</strong>`,sub:last.body?.slice(0,40)||'',ts:last.ts||''});
     });
     items.sort((a,b)=>new Date(b.ts)-new Date(a.ts));
     return `<div class="widget-title"><span class="widget-title-icon">${icon('clock')}</span>Recent Activity</div>
       ${items.length===0?'<div style="font-size:12px;color:var(--text3)">Activity will appear here as you use the CRM</div>'
-      :items.slice(0,5).map(it=>`<div class="w-act-item"><div class="w-act-dot">${it.icon}</div><div><div class="w-act-text">${it.text}</div><div class="w-act-time">${it.sub}</div></div></div>`).join('')}`;
+      :items.slice(0,5).map(it=>`<div class="w-act-item"><div class="w-act-dot">${it.icon}</div><div><div class="w-act-text">${it.text}</div><div class="w-act-time">${pHide(escapeHtml(it.sub))}</div></div></div>`).join('')}`;
   }
 
   if(wid==='tasks'){
@@ -8737,7 +8749,10 @@ function showGwsConnected(email){
   if(conn)  conn.style.display='block';
   const lbl = document.getElementById('gws-account-label');
   const shown = email || localStorage.getItem('nlm_gws_email') || '';
-  if(lbl) lbl.textContent = shown ? ('Connected as: '+shown) : 'Connected';
+  if(lbl){
+    // Show the static prefix legibly, blur only the account address under Privacy Mode.
+    lbl.innerHTML = shown ? ('Connected as: <span class="priv-blur-el">'+escapeHtml(shown)+'</span>') : 'Connected';
+  }
 }
 async function gworkspaceDisconnect(){
   if(!confirm('Disconnect Google Workspace? The CRM will lose access to Gmail, Contacts and Drive.')) return;
@@ -12554,7 +12569,7 @@ function renderConvInfoPanel(contact, conv){
         :deals.map(d=>`<div class="conv-deal-card" onclick="navigate('pipeline')">
           <div class="conv-deal-name">${d.name}</div>
           <div class="conv-deal-stage">${d.pipelineName} · ${d.stageName}</div>
-          <div class="conv-deal-val">${formatCurrency(d.value||0)}/mo</div>
+          <div class="conv-deal-val priv-blur-el">${formatCurrency(d.value||0)}/mo</div>
         </div>`).join('')}
     </div>
 
@@ -12873,8 +12888,8 @@ function renderIntEmailAccounts(){
     <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px">
       <div style="width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0"></div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:12px;font-weight:600;color:var(--text)">${a.name}</div>
-        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace">${a.email} · ${a.provider}</div>
+        <div class="priv-blur-el" style="font-size:12px;font-weight:600;color:var(--text)">${a.name}</div>
+        <div style="font-size:11px;color:var(--text3);font-family:'DM Mono',monospace"><span class="priv-blur-el">${a.email}</span> · ${a.provider}</div>
       </div>
       <button class="btn btn-sm" style="color:var(--red);font-size:11px" onclick="removeEmailAccount('${a.id}')">Remove</button>
     </div>`).join('');
@@ -13025,8 +13040,8 @@ function renderEmailList(){
         <div class="email-item-to" style="${isUnread?'font-weight:700;color:var(--text)':''}">${isInbound?'↙ ':'↗ '}${displayName}</div>
         <div class="email-item-time">${timeStr}</div>
       </div>
-      <div class="email-item-subject" style="${isUnread?'font-weight:600;color:var(--text)':''}">${email.subject||'(no subject)'}</div>
-      <div class="email-item-preview">${(email.body||'').replace(/\n/g,' ').slice(0,70)}</div>
+      <div class="email-item-subject priv-blur-el" style="${isUnread?'font-weight:600;color:var(--text)':''}">${email.subject||'(no subject)'}</div>
+      <div class="email-item-preview priv-blur-el">${(email.body||'').replace(/\n/g,' ').slice(0,70)}</div>
       <div class="email-item-badges">
         <span style="font-size:9px;padding:1px 7px;border-radius:20px;background:${statusColor}20;color:${statusColor};font-weight:600">${isInbound?'Received':email.status||'sent'}</span>
         ${isInbound&&email.fromEmail?`<span style="font-size:9px;color:var(--text3)">from: ${pEmail(email.from)}</span>`:''}
@@ -13074,13 +13089,13 @@ function openEmailDetail(id){
           <span style="font-size:10px;color:var(--text3)">${e.sentAt?new Date(e.sentAt).toLocaleString([],{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):''}</span>
           ${isSelf?'<span style="font-size:9px;color:var(--accent2);background:var(--accent-bg);padding:1px 6px;border-radius:10px">current</span>':''}
         </div>
-        <div style="font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${(e.body||'').slice(0,200)}${e.body?.length>200?'…':''}</div>
+        <div class="priv-blur-el" style="font-size:12px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${(e.body||'').slice(0,200)}${e.body?.length>200?'…':''}</div>
       </div>`;
     }).join('')}` : '';
 
   content.innerHTML=`
     <div class="email-detail-head" style="padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0">
-      <div class="email-detail-subject">${email.subject||'(no subject)'}</div>
+      <div class="email-detail-subject priv-blur-el">${email.subject||'(no subject)'}</div>
       <div class="email-detail-meta">
         ${isInbound
           ? `<div class="email-detail-meta-item"><strong>From:</strong> ${email.fromName?pName(email.fromName):''} &lt;${email.from?pEmail(email.from):''}&gt;</div>
@@ -13092,7 +13107,7 @@ function openEmailDetail(id){
       </div>
     </div>
     ${threadHtml}
-    <div class="email-detail-body" style="padding:20px;flex:1;overflow-y:auto;line-height:1.8;white-space:pre-wrap;font-size:13px;color:var(--text2)">${(email.bodyHtml||email.body||'').replace(/\n/g,'<br>')}</div>
+    <div class="email-detail-body priv-blur-el" style="padding:20px;flex:1;overflow-y:auto;line-height:1.8;white-space:pre-wrap;font-size:13px;color:var(--text2)">${(email.bodyHtml||email.body||'').replace(/\n/g,'<br>')}</div>
     <div style="padding:12px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap">
       ${isInbound
         ? `<button class="btn btn-primary btn-sm" onclick="replyToEmail('${email.id}')">↩ Reply</button>`
@@ -15876,15 +15891,15 @@ function renderClientIntakesPage(){
       const esc = (s) => escapeHtml(s == null ? '' : String(s));
       const name = `${c.first_name||''} ${c.last_name||''}`.trim() || c.email || '';
       const budget = (c.budget_min||c.budget_max)
-        ? `$${c.budget_min||'?'}–$${c.budget_max||'?'}/hr`
+        ? pHide(`$${c.budget_min||'?'}–$${c.budget_max||'?'}/hr`)
         : '—';
       const statusCol = CI_STATUS_COLORS[c.review_status] || '#6b7280';
       const statusLabel = CI_STATUS_LABELS[c.review_status] || c.review_status;
       const submitted = c.submitted_at ? new Date(c.submitted_at).toLocaleDateString() : '—';
       const isActive = !!c.activated_at;
       return `<tr>
-        <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openClientIntakeModal('${c.id}')">${esc(name)}</span><br><span style="font-size:11px;color:var(--text3)">${esc(c.email||'')}</span></td>
-        <td style="font-size:12px;color:var(--text2)">${c.company ? esc(c.company) : '—'}</td>
+        <td><span style="font-weight:500;cursor:pointer;color:var(--accent2)" onclick="openClientIntakeModal('${c.id}')">${pName(name)}</span><br><span style="font-size:11px;color:var(--text3)">${pEmail(c.email||'')}</span></td>
+        <td style="font-size:12px;color:var(--text2)">${c.company ? pCompany(c.company) : '—'}</td>
         <td style="font-size:12px;color:var(--text2)">${c.industry ? esc(c.industry) : '—'}</td>
         <td style="font-family:'DM Mono',monospace;font-size:12px">${budget}</td>
         <td style="font-size:12px;color:var(--text2)">${c.hours_per_week ? c.hours_per_week+' hrs' : '—'}</td>
@@ -15912,6 +15927,10 @@ function openClientIntakeModal(id){
   const field = (label, val) => (val!=null && String(val).trim()!=='')
     ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${label}</div><div style="font-size:13px;color:var(--text);word-break:break-word">${esc(val)}</div></div>`
     : '';
+  // Privacy-aware field — blurs the value (email, phone, company, budget) in Privacy Mode.
+  const pfield = (label, val) => (val!=null && String(val).trim()!=='')
+    ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${label}</div><div style="font-size:13px;color:var(--text);word-break:break-word" class="${privacyMode?'pblur':''}">${esc(val)}</div></div>`
+    : '';
   const longField = (label, val) => (val!=null && String(val).trim()!=='')
     ? `<div style="margin-bottom:10px"><div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">${label}</div><div style="font-size:13px;color:var(--text);white-space:pre-wrap;word-break:break-word">${esc(val)}</div></div>`
     : '';
@@ -15919,20 +15938,20 @@ function openClientIntakeModal(id){
 
   openModal(`
     <div class="modal-head">
-      <div class="modal-title">Client Intake — ${esc(name)}</div>
+      <div class="modal-title">Client Intake — ${pName(name)}</div>
       <button class="modal-close" onclick="closeModal()">✕</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:4px 0 12px">
       <div>
-        ${field('Email', c.email)}
-        ${field('Phone', c.phone)}
-        ${field('Company', c.company)}
+        ${pfield('Email', c.email)}
+        ${pfield('Phone', c.phone)}
+        ${pfield('Company', c.company)}
         ${field('Industry', c.industry)}
         ${field('How they heard', c.how_did_you_hear)}
       </div>
       <div>
         ${field('Hours/week', c.hours_per_week ? c.hours_per_week+' hrs' : '')}
-        ${field('Budget', (c.budget_min||c.budget_max) ? `$${c.budget_min||'?'}–$${c.budget_max||'?'}/hr` : '')}
+        ${pfield('Budget', (c.budget_min||c.budget_max) ? `$${c.budget_min||'?'}–$${c.budget_max||'?'}/hr` : '')}
         ${field('English required', c.english_level_required)}
         ${field('Start date', c.start_date_preference)}
       </div>
