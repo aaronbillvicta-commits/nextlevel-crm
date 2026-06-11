@@ -51,7 +51,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-06-10-1"></script>
+<script type="module" src="src/version-history.js?v=2026-06-10-2"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -74,7 +74,7 @@
 <script type="module" src="src/calling/outbound.js?v=2026-05-18-5"></script>
 <script type="module" src="src/calling/inbound.js?v=2026-05-18-6"></script>
 <script type="module" src="src/calling/dialpad.js?v=2026-05-18-7"></script>
-<script type="module" src="src/invoices/index.js?v=2026-06-10-1"></script>
+<script type="module" src="src/invoices/index.js?v=2026-06-10-2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -6357,6 +6357,15 @@ function openContactDetail(contactId, tab='info') {
         <button class="btn btn-sm btn-primary" onclick="openConvWithContact('${contactId}');closeDetail()">Open Conversation</button>
         <button class="btn btn-sm" onclick="openComposeEmail('${contactId}')">Compose Email</button>
       </div>`;
+
+  } else if(tab==='invoices'){
+    body = `
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="modal-section-title" style="margin:0">Invoices</div>
+        <button class="btn btn-sm btn-primary" style="font-size:11px" onclick="newInvoiceForContact('${contactId}')">+ New invoice</button>
+      </div>
+      <div id="cd-invoices-list"><div style="font-size:12px;color:var(--text3);padding:8px 0">Loading invoices…</div></div>
+      <div style="margin-top:14px;font-size:10px;color:var(--text3)">Synced with Tools → Invoice history. Only invoices billed to this client (via "From CRM") appear here.</div>`;
   }
 
   const tabs = [
@@ -6364,6 +6373,7 @@ function openContactDetail(contactId, tab='info') {
     {id:'pipeline',label:`${icon('pipeline')} Pipeline`},
     {id:'tags',    label:`${icon('tag')} Tags`},
     {id:'activity',label:`${icon('clock')} Activity`},
+    {id:'invoices',label:`${icon('file')} Invoices`},
   ];
 
   document.getElementById('detail-drawer').innerHTML=`
@@ -6392,6 +6402,8 @@ function openContactDetail(contactId, tab='info') {
   // Activity tab: fetch logged change-events from Supabase, then re-render the
   // timeline (it first paints from derived data + session rows immediately).
   if(tab==='activity') loadContactActivity(contactId);
+  // Invoices tab: fetch this client's saved invoices (same store as Tools → Invoice).
+  if(tab==='invoices') loadContactInvoices(contactId);
 }
 
 async function saveContactDetail(contactId){
@@ -6475,6 +6487,78 @@ async function addContactToPipeline(contactId){
 }
 
 function closeDetail(){ document.getElementById('detail-panel').classList.remove('open'); _openDetail = { id:null, tab:null }; }
+
+// ── Contact drawer → Invoices tab ──────────────────────────────────────────────
+// Surfaces this client's saved invoices inside the contact detail drawer, reading
+// the SAME `invoices` store the Tools → Invoice "History" view uses (via the
+// window.invoiceTool module API), so the two are always in sync. Actions here
+// (mark paid / delete) go through the same module methods.
+async function loadContactInvoices(contactId){
+  const box = document.getElementById('cd-invoices-list');
+  if(!box) return;
+  if(!window.invoiceTool || !window.invoiceTool.invoicesForContact){
+    box.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Invoice tool is still loading — reopen this tab in a moment.</div>';
+    return;
+  }
+  let rows = [];
+  try { rows = await window.invoiceTool.invoicesForContact(contactId, true); }
+  catch(e){ box.innerHTML = '<div style="font-size:12px;color:#dc2626;padding:8px 0">Could not load invoices.</div>'; return; }
+  // The drawer may have moved to another contact/tab while we were fetching.
+  if(_openDetail.id !== contactId || _openDetail.tab !== 'invoices') return;
+  box.innerHTML = renderContactInvoicesHTML(rows, contactId);
+}
+
+function renderContactInvoicesHTML(rows, contactId){
+  if(!rows || !rows.length){
+    return '<div style="border:1px dashed var(--border);border-radius:var(--radius);padding:20px;text-align:center;color:var(--text3);font-size:12px">No invoices yet for this client. Click <b>+ New invoice</b> to create one.</div>';
+  }
+  const money = (n)=> (window.invoiceTool && window.invoiceTool.fmtMoney) ? window.invoiceTool.fmtMoney(n) : ('$'+Number(n||0).toFixed(2));
+  const fmtD = (s)=>{ if(!s) return ''; const d=new Date(String(s).length<=10 ? s+'T00:00:00' : s); return isNaN(d)?'':d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); };
+  const totalPaid   = rows.filter(r=>r.status==='paid').reduce((s,r)=>s+Number(r.total||0),0);
+  const totalUnpaid = rows.filter(r=>r.status!=='paid').reduce((s,r)=>s+Number(r.total||0),0);
+  const items = rows.map(r=>{
+    const paid = r.status==='paid';
+    const when = r.issue_date || (r.created_at ? String(r.created_at).split('T')[0] : '');
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;color:var(--text);font-family:'DM Mono',monospace">${escapeHtml(r.invoice_number||'—')}</div>
+          <div style="font-size:11px;color:var(--text3)">${escapeHtml(fmtD(when))}</div>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap">${money(r.total)}</div>
+        <span class="tag" style="background:${paid?'var(--green-bg)':'var(--amber-bg)'};color:${paid?'var(--green)':'var(--amber)'};font-size:10px">${paid?'PAID':'UNPAID'}</span>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button class="btn btn-sm" style="font-size:11px" onclick="openInvoiceFromContact('${r.id}')" title="Open in Invoice tool">Open</button>
+          <button class="btn btn-sm" style="font-size:11px" onclick="cdInvoiceMarkPaid('${r.id}',${!paid},'${contactId}')">${paid?'Unpaid':'Paid'}</button>
+          <button class="btn btn-sm" style="font-size:11px;color:#dc2626" onclick="cdInvoiceDelete('${r.id}','${contactId}')">Delete</button>
+        </div>
+      </div>`;
+  }).join('');
+  return `<div style="display:flex;gap:8px;margin-bottom:12px">
+      <div style="flex:1;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Paid</div><div style="font-size:14px;font-weight:700;color:var(--green)">${money(totalPaid)}</div></div>
+      <div style="flex:1;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius)"><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Outstanding</div><div style="font-size:14px;font-weight:700;color:var(--amber)">${money(totalUnpaid)}</div></div>
+    </div>${items}`;
+}
+
+async function newInvoiceForContact(contactId){
+  if(!window.invoiceTool || !window.invoiceTool.newInvoiceForContact){ showToast('Invoice tool is still loading…','error'); return; }
+  closeDetail();
+  await window.invoiceTool.newInvoiceForContact(contactId);
+}
+async function openInvoiceFromContact(id){
+  if(!window.invoiceTool || !window.invoiceTool.gotoInvoice){ showToast('Invoice tool is still loading…','error'); return; }
+  closeDetail();
+  await window.invoiceTool.gotoInvoice(id);
+}
+async function cdInvoiceMarkPaid(id, paid, contactId){
+  if(!window.invoiceTool || !window.invoiceTool.markPaid) return;
+  await window.invoiceTool.markPaid(id, paid);
+  loadContactInvoices(contactId);
+}
+async function cdInvoiceDelete(id, contactId){
+  if(!window.invoiceTool || !window.invoiceTool.deleteInvoice) return;
+  await window.invoiceTool.deleteInvoice(id);
+  loadContactInvoices(contactId);
+}
 
 // Right-side detail drawer for a phone number that's NOT in contacts yet.
 // Same panel UI as openContactDetail() so the click-from-call-history flow

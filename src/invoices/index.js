@@ -516,6 +516,33 @@
         toast('Invoice deleted');
       } catch (e) { toast('Delete failed', 'error'); }
     },
+
+    // ── contact-drawer integration (the Invoices tab in openContactDetail) ───────
+    // These let the inline contact detail drawer surface this client's saved
+    // invoices. Same `state.invoices` cache + `invoices` table the History view
+    // reads, so the two stay in sync — markPaid/delete here re-render both.
+    async invoicesForContact(contactId, force) {
+      await this.loadInvoices(force);
+      return (state.invoices || []).filter((r) => r.contact_id === contactId);
+    },
+    fmtMoney(n) { return fmt$(n); },
+    // Jump to Tools → Invoice and start a NEW invoice pre-filled for this client
+    // (auto-seeds the client's assigned VAs, exactly like picking them in the dropdown).
+    async newInvoiceForContact(contactId) {
+      state.currentInvoiceId = null; state.view = 'edit';
+      state.billTo = 'crm'; state.selectedContactId = contactId || null;
+      state.lineItems = []; state.logoDataUrl = getStoredLogo(); state._numberDirty = false;
+      if (window.navigate) window.navigate('tools');
+      if (window.setToolsView) window.setToolsView('invoice');
+      else if (rootEl) window.renderInvoiceTool(rootEl);
+      if (contactId) { try { await this.selectClient(contactId); } catch (e) {} }
+    },
+    // Jump to Tools → Invoice and open an existing saved invoice for editing.
+    async gotoInvoice(id) {
+      if (window.navigate) window.navigate('tools');
+      if (window.setToolsView) window.setToolsView('invoice');
+      await this.openInvoice(id);
+    },
   };
 
   // ── persistence helpers ────────────────────────────────────────────────────
