@@ -51,7 +51,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-06-12-4"></script>
+<script type="module" src="src/version-history.js?v=2026-06-12-5"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -6388,7 +6388,7 @@ function openContactDetail(contactId, tab='info') {
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
         <div class="modal-section-title" style="margin:0">Scheduled Follow-ups</div>
         <div style="display:flex;gap:6px">
-          <button class="btn btn-sm" style="font-size:11px;color:var(--accent2)" onclick="remindMeForContact('${contactId}')" title="Pop-up reminder for this contact">⏰ Remind me</button>
+          <button class="btn btn-sm" style="font-size:11px;color:var(--accent2);display:inline-flex;align-items:center;gap:5px" onclick="remindMeForContact('${contactId}')" title="Pop-up reminder for this contact">${icon('clock',12)} Remind me</button>
           <button class="btn btn-sm" style="font-size:11px;color:var(--accent2)" onclick="openFollowupModal('${contactId}')">+ Schedule follow-up</button>
         </div>
       </div>
@@ -8527,9 +8527,13 @@ async function enterApp(){
 let reminders = [];
 const _firedReminders = new Set();   // ids already popped this session (avoid re-popping every tick)
 let _reminderPopupOpen = false;
+let _remindersTab = 'upcoming';      // panel tab: 'upcoming' | 'history'
+const _RM_IBTN = 'padding:6px 8px;display:inline-flex;align-items:center;justify-content:center'; // icon-only button
 
 function _escR(s){ return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 function _dtLocalValue(d){ const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+function _remWhen(iso){ return new Date(iso).toLocaleString([], {weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }
+function _remWhenShort(iso){ return new Date(iso).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}); }
 
 async function loadReminders(){
   try { reminders = await sb.get('reminders','?order=remind_at.asc'); }
@@ -8574,31 +8578,31 @@ function showReminderPopup(r, queued=1){
   _firedReminders.add(r.id);
   _reminderPopupOpen = true;
   const c = r.contact_id ? contacts.find(x=>x.id===r.contact_id) : null;
-  const when = new Date(r.remind_at).toLocaleString([], {weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
   openModal(`
     <div class="modal-head">
-      <div class="modal-title" style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">⏰</span> Reminder</div>
-      <span class="modal-close" onclick="closeReminderPopup()" title="Close">×</span>
+      <div class="modal-title" style="display:flex;align-items:center;gap:8px">${icon('clock',18)} Reminder</div>
+      <span class="modal-close" onclick="closeReminderPopup()" title="Close">${icon('x',18)}</span>
     </div>
     <div class="modal-body">
       ${queued>1?`<div style="font-size:11px;color:var(--text3);margin-bottom:12px">${queued-1} more reminder${queued-1>1?'s':''} after this</div>`:''}
       <div style="font-size:16px;font-weight:600;color:var(--text);line-height:1.4;margin-bottom:${r.notes?'10px':'14px'}">${_escR(r.title)}</div>
       ${r.notes?`<div style="font-size:13px;color:var(--text2);white-space:pre-wrap;line-height:1.55;margin-bottom:14px">${_escR(r.notes)}</div>`:''}
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--text3)">
-        <span>Due ${when}</span>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--text3);margin-bottom:18px">
+        <span>Due ${_remWhen(r.remind_at)}</span>
         ${c?`<span style="color:var(--border2)">•</span><span>Linked to <a href="#" onclick="openReminderContact('${r.contact_id}');return false" style="color:var(--accent2);font-weight:600">${_escR(c.name)}</a></span>`:''}
       </div>
-    </div>
-    <div class="modal-foot" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <div style="font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Remind me again in</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="snoozeReminder('${r.id}',10)">Snooze 10m</button>
-        <button class="btn btn-sm" onclick="snoozeReminder('${r.id}',60)">1h</button>
+        <button class="btn btn-sm" onclick="snoozeReminder('${r.id}',15)">15 min</button>
+        <button class="btn btn-sm" onclick="snoozeReminder('${r.id}',30)">30 min</button>
+        <button class="btn btn-sm" onclick="snoozeReminder('${r.id}',60)">1 hour</button>
         <button class="btn btn-sm" onclick="snoozeReminderTomorrow('${r.id}')">Tomorrow 9am</button>
+        <button class="btn btn-sm" onclick="editReminder('${r.id}')" title="Pick a custom time" style="display:inline-flex;align-items:center;gap:5px">${icon('pencil')} Edit</button>
       </div>
-      <div style="display:flex;gap:6px">
-        <button class="btn btn-sm" onclick="dismissReminder('${r.id}')">Dismiss</button>
-        <button class="btn btn-sm btn-primary" onclick="doneReminder('${r.id}')">✓ Done</button>
-      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="dismissReminder('${r.id}')">Dismiss</button>
+      <button class="btn btn-primary" onclick="doneReminder('${r.id}')" style="display:inline-flex;align-items:center;gap:6px">${icon('check')} Done</button>
     </div>
   `);
 }
@@ -8642,94 +8646,140 @@ async function snoozeReminderTomorrow(id){
   _afterReminderAction();
 }
 
-// ── Create / manage ──────────────────────────────────────────────────────────
+// ── Create / edit ─────────────────────────────────────────────────────────────
 function remindMeForContact(contactId){ openReminderForm(contactId); }
+function editReminder(id){ openReminderForm(null, id); }
 
-function openReminderForm(contactId=null, prefillTitle=''){
-  const c = contactId ? contacts.find(x=>x.id===contactId) : null;
-  const def = _dtLocalValue(new Date(Date.now()+60*60000)); // default +1h
+function openReminderForm(contactId=null, editId=null){
+  _reminderPopupOpen = false;
+  const editing = editId ? reminders.find(x=>x.id===editId) : null;
+  const lockContactId = editing ? editing.contact_id : contactId;   // when editing/creating from a contact, the link is fixed
+  const lockContact   = editing ? !!editing.contact_id : !!contactId;
+  const c = lockContactId ? contacts.find(x=>x.id===lockContactId) : null;
+  const whenVal  = editing ? _dtLocalValue(new Date(editing.remind_at)) : _dtLocalValue(new Date(Date.now()+60*60000));
+  const titleVal = editing ? editing.title : '';
+  const notesVal = editing ? (editing.notes||'') : '';
+  const back = editing ? 'openRemindersPanel()' : 'closeModal()';   // editing returns to the panel hub
   const lbl = 'display:block;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px';
-  const contactField = c
-    ? `<div style="margin-bottom:16px"><div style="${lbl}">For contact</div><div style="font-size:13px;font-weight:600;color:var(--text)">${_escR(c.name)}</div></div>`
+  const contactField = lockContact
+    ? (c?`<div style="margin-bottom:16px"><div style="${lbl}">For contact</div><div style="font-size:13px;font-weight:600;color:var(--text)">${_escR(c.name)}</div></div>`:'')
     : `<div style="margin-bottom:16px">
          <label style="${lbl}">Link to contact (optional)</label>
          <select id="rm-contact" class="form-select" style="width:100%">
            <option value="">— none (standalone) —</option>
-           ${contacts.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(x=>`<option value="${x.id}">${_escR(x.name)}</option>`).join('')}
+           ${contacts.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||'')).map(x=>`<option value="${x.id}" ${editing&&editing.contact_id===x.id?'selected':''}>${_escR(x.name)}</option>`).join('')}
          </select>
        </div>`;
   openModal(`
     <div class="modal-head">
-      <div class="modal-title" style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">⏰</span> New Reminder</div>
-      <span class="modal-close" onclick="closeModal()" title="Close">×</span>
+      <div class="modal-title" style="display:flex;align-items:center;gap:8px">${icon('clock',18)} ${editing?'Edit Reminder':'New Reminder'}</div>
+      <span class="modal-close" onclick="${back}" title="Close">${icon('x',18)}</span>
     </div>
     <div class="modal-body">
       <div style="margin-bottom:16px">
         <label style="${lbl}">What should I remind you about?</label>
-        <input id="rm-title" class="form-input" placeholder="e.g. Call back about the proposal" value="${_escR(prefillTitle)}" style="width:100%">
+        <input id="rm-title" class="form-input" placeholder="e.g. Call back about the proposal" value="${_escR(titleVal)}" style="width:100%">
       </div>
       <div style="margin-bottom:16px">
         <label style="${lbl}">When</label>
-        <input id="rm-when" type="datetime-local" class="form-input" value="${def}" style="width:100%">
+        <input id="rm-when" type="datetime-local" class="form-input" value="${whenVal}" style="width:100%">
       </div>
       ${contactField}
       <div>
         <label style="${lbl}">Notes (optional)</label>
-        <textarea id="rm-notes" class="form-input" rows="3" placeholder="Any detail…" style="width:100%;resize:vertical"></textarea>
+        <textarea id="rm-notes" class="form-input" rows="3" placeholder="Any detail…" style="width:100%;resize:vertical">${_escR(notesVal)}</textarea>
       </div>
     </div>
     <div class="modal-foot">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveReminderForm('${contactId||''}')">Save reminder</button>
+      <button class="btn" onclick="${back}">Cancel</button>
+      <button class="btn btn-primary" onclick="saveReminderForm('${lockContact&&lockContactId?lockContactId:''}','${editId||''}')" style="display:inline-flex;align-items:center;gap:6px">${icon('check')} ${editing?'Save changes':'Confirm reminder'}</button>
     </div>
   `);
   setTimeout(()=>document.getElementById('rm-title')?.focus(), 50);
 }
 
-async function saveReminderForm(contactId){
+async function saveReminderForm(contactId, editId){
   const title = document.getElementById('rm-title')?.value.trim();
   const whenV = document.getElementById('rm-when')?.value;
   const notes = document.getElementById('rm-notes')?.value.trim() || null;
-  const cid = contactId || document.getElementById('rm-contact')?.value || null;
+  const picker = document.getElementById('rm-contact');
+  const cid = contactId || (picker ? picker.value : '') || null;
   if(!title){ showToast('Enter what to remind you about','error'); return; }
   if(!whenV){ showToast('Pick a date & time','error'); return; }
   const remind_at = new Date(whenV).toISOString();
   try{
-    const body = { title, remind_at, notes };
-    if(cid) body.contact_id = cid;
-    await sb.post('reminders', body);
-    showToast('Reminder set ⏰');
-    closeModal();
-    await loadReminders();
+    if(editId){
+      await sb.patch('reminders', editId, { title, remind_at, notes, contact_id: cid, status:'pending' });
+      _firedReminders.delete(editId);   // allow it to re-pop at the new time
+      showToast('Reminder updated');
+      await loadReminders();
+      openRemindersPanel();
+    } else {
+      const body = { title, remind_at, notes };
+      if(cid) body.contact_id = cid;
+      await sb.post('reminders', body);
+      showToast('Reminder confirmed for '+_remWhenShort(remind_at));
+      closeModal();
+      await loadReminders();
+    }
   }catch(e){ showToast('Could not save reminder','error'); console.error(e); }
 }
 
-function openRemindersPanel(){
+function openRemindersPanel(tab){
+  if(tab) _remindersTab = tab;
   const now = Date.now();
   const pending = reminders.filter(r=>r.status==='pending').sort((a,b)=>new Date(a.remind_at)-new Date(b.remind_at));
-  const row = r=>{
+  const history = reminders.filter(r=>r.status!=='pending').sort((a,b)=>new Date(b.remind_at)-new Date(a.remind_at));
+
+  const pendingRow = r=>{
     const c = r.contact_id ? contacts.find(x=>x.id===r.contact_id) : null;
     const overdue = new Date(r.remind_at).getTime() <= now;
-    const when = new Date(r.remind_at).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
-    return `<div style="display:flex;align-items:center;gap:10px;padding:11px 2px;border-bottom:1px solid var(--border)">
+    return `<div style="display:flex;align-items:center;gap:6px;padding:11px 2px;border-bottom:1px solid var(--border)">
       <div style="flex:1;min-width:0">
         <div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_escR(r.title)}</div>
-        <div style="font-size:11px;margin-top:3px;color:${overdue?'var(--red)':'var(--text3)'}">${overdue?'⚠ Overdue · ':''}${when}${c?' · '+_escR(c.name):''}</div>
+        <div style="font-size:11px;margin-top:3px;display:flex;align-items:center;gap:4px;color:${overdue?'var(--red)':'var(--text3)'}">${overdue?icon('alert',12)+' Overdue · ':''}${_remWhenShort(r.remind_at)}${c?' · '+_escR(c.name):''}</div>
       </div>
-      <button class="btn btn-sm" onclick="doneReminderFromPanel('${r.id}')">Done</button>
-      <button class="btn btn-sm" onclick="deleteReminder('${r.id}')" title="Delete">✕</button>
+      <button class="btn btn-sm" style="${_RM_IBTN}" onclick="editReminder('${r.id}')" title="Edit">${icon('pencil')}</button>
+      <button class="btn btn-sm" style="${_RM_IBTN}" onclick="doneReminderFromPanel('${r.id}')" title="Mark done">${icon('check')}</button>
+      <button class="btn btn-sm" style="${_RM_IBTN}" onclick="deleteReminder('${r.id}')" title="Delete">${icon('trash')}</button>
     </div>`;
   };
+  const historyRow = r=>{
+    const c = r.contact_id ? contacts.find(x=>x.id===r.contact_id) : null;
+    const done = r.status==='done';
+    const badge = `<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:${done?'var(--green-bg)':'var(--bg3)'};color:${done?'var(--green)':'var(--text3)'}">${done?'Done':'Dismissed'}</span>`;
+    return `<div style="display:flex;align-items:center;gap:6px;padding:11px 2px;border-bottom:1px solid var(--border)">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${_escR(r.title)}</div>
+        <div style="font-size:11px;margin-top:3px;color:var(--text3)">${_remWhenShort(r.remind_at)}${c?' · '+_escR(c.name):''}</div>
+      </div>
+      ${badge}
+      <button class="btn btn-sm" style="${_RM_IBTN}" onclick="reactivateReminder('${r.id}')" title="Set as upcoming again">${icon('refresh')}</button>
+      <button class="btn btn-sm" style="${_RM_IBTN}" onclick="deleteReminder('${r.id}')" title="Delete">${icon('trash')}</button>
+    </div>`;
+  };
+  const seg = (id,label,count)=>`<button onclick="openRemindersPanel('${id}')" style="flex:1;padding:7px 10px;border:none;background:${_remindersTab===id?'var(--bg3)':'transparent'};color:${_remindersTab===id?'var(--text)':'var(--text3)'};font-size:12px;font-weight:600;cursor:pointer;border-radius:6px;transition:all .15s">${label}${count?` <span style="opacity:.65">${count}</span>`:''}</button>`;
+
+  const list = _remindersTab==='history'
+    ? (history.length ? history.map(historyRow).join('') : '<div style="font-size:13px;color:var(--text3);padding:28px 0;text-align:center">No past reminders yet.</div>')
+    : (pending.length ? pending.map(pendingRow).join('') : '<div style="font-size:13px;color:var(--text3);padding:28px 0;text-align:center;line-height:1.6">No upcoming reminders.<br>Click <b style="color:var(--text2)">New</b> to add one.</div>');
+
   openModal(`
     <div class="modal-head">
-      <div class="modal-title" style="display:flex;align-items:center;gap:8px"><span style="font-size:18px">⏰</span> Reminders</div>
+      <div class="modal-title" style="display:flex;align-items:center;gap:8px">${icon('clock',18)} Reminders</div>
       <div style="display:flex;align-items:center;gap:10px">
-        <button class="btn btn-sm btn-primary" onclick="openReminderForm()">+ New</button>
-        <span class="modal-close" onclick="closeModal()" title="Close">×</span>
+        <button class="btn btn-sm btn-primary" onclick="openReminderForm()" style="display:inline-flex;align-items:center;gap:5px">${icon('plus')} New</button>
+        <span class="modal-close" onclick="closeModal()" title="Close">${icon('x',18)}</span>
       </div>
     </div>
-    <div class="modal-body" style="padding-top:8px">
-      ${pending.length ? pending.map(row).join('') : '<div style="font-size:13px;color:var(--text3);padding:28px 0;text-align:center;line-height:1.6">No upcoming reminders.<br>Click <b style="color:var(--text2)">+ New</b> to add one.</div>'}
+    <div style="padding:12px 20px 0">
+      <div style="display:flex;gap:4px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:3px">
+        ${seg('upcoming','Upcoming',pending.length)}
+        ${seg('history','History',history.length)}
+      </div>
+    </div>
+    <div class="modal-body" style="padding-top:10px">
+      ${list}
     </div>
     <div class="modal-foot">
       <button class="btn" onclick="closeModal()">Close</button>
@@ -8738,11 +8788,16 @@ function openRemindersPanel(){
 }
 
 async function doneReminderFromPanel(id){
-  try{ await sb.patch('reminders', id, {status:'done'}); }catch(e){}
+  try{ await sb.patch('reminders', id, {status:'done'}); }catch(e){ showToast('Could not update','error'); }
   await loadReminders(); openRemindersPanel();
 }
+async function reactivateReminder(id){
+  try{ await sb.patch('reminders', id, {status:'pending'}); showToast('Moved back to upcoming'); }catch(e){ showToast('Could not update','error'); }
+  _firedReminders.delete(id);
+  await loadReminders(); openRemindersPanel('upcoming');
+}
 async function deleteReminder(id){
-  try{ await sb.del('reminders', id); }catch(e){}
+  try{ await sb.del('reminders', id); }catch(e){ showToast('Could not delete','error'); }
   _firedReminders.delete(id);
   await loadReminders(); openRemindersPanel();
 }
