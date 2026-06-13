@@ -51,7 +51,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-06-12-6"></script>
+<script type="module" src="src/version-history.js?v=2026-06-12-7"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -502,6 +502,14 @@ tbody tr:hover td{background:var(--bg3)}
 .modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);width:480px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 80px rgba(0,0,0,.6);animation:modalIn .2s ease}
 .modal.modal-wide{width:600px}
 .modal.modal-lg{width:720px}
+/* Auto-padding safety net: .modal itself has no padding — padding normally comes
+   from the .modal-head / .modal-body / .modal-foot structure. If a modal's HTML
+   forgets that structure (content dumped straight into openModal), this gives it
+   sensible padding automatically instead of rendering flush to the edges. Modals
+   that DO use any of the structured sections are excluded, so there's no double
+   padding. Convention is still to use the structured layout for real modals;
+   this is just a backstop. (Old browsers without :has() fall back to no padding.) */
+.modal:not(:has(.modal-head)):not(:has(.modal-body)):not(:has(.modal-foot)){padding:20px}
 @keyframes modalIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:none}}
 .modal-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg2);z-index:1}
 .modal-title{font-size:15px;font-weight:600;color:var(--text)}
