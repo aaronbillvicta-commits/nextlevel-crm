@@ -51,7 +51,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-06-22-2"></script>
+<script type="module" src="src/version-history.js?v=2026-06-22-3"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -4713,8 +4713,14 @@ function attachCallTeardown(call){
   const teardown = (reason) => {
     if(swCall !== call) return; // a newer call has already taken over
     logError('sw_call_teardown', reason, null, {});
-    swCall = null;
+    // Do NOT null swCall before endCall() — endCall's media-teardown block
+    // (detach audio element, close the RTCPeerConnection, call hangup()) is
+    // guarded by `if(swCall)`. Nulling first made that a no-op, so the call UI
+    // disappeared while audio kept playing in the headset and the PSTN leg
+    // stayed live (BUG-030). endCall() nulls swCall itself; the guard above
+    // dedupes any later teardown events for the same call.
     if(callTimer) endCall();
+    else swCall = null; // no active-call UI to tear down; just drop the ref
   };
   // BUG-020: empirical observation from error_logs — `call.state` events have
   // NEVER been emitted across every recorded call. The Fabric SDK's room
@@ -5236,6 +5242,16 @@ function endCall(){
   const _dialerCtx = dialerCallInProgress && activeCallContact
     ? { id:activeCallContact.id, name:activeCallContact.name, phone:activeCallContact.phone, seconds:callSeconds }
     : null;
+
+  // SAFETY NET (BUG-030): always silence the headset, even if swCall is already
+  // null (e.g. a desync left an audio leg playing with no call UI). Detaching
+  // the <audio> element stops what the user hears immediately, independent of
+  // SDK/peer state. The full teardown below still runs when swCall is set.
+  const _audioElSafety = document.getElementById('remote-audio');
+  if(_audioElSafety){
+    try { _audioElSafety.pause(); } catch(_){}
+    try { _audioElSafety.srcObject = null; } catch(_){}
+  }
 
   // Tear down the SignalWire call. Prefer hangup() — for Call Fabric v3 PSTN
   // dials, leave() only signals the local subscriber departing the room and
