@@ -51,7 +51,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-06-22-4"></script>
+<script type="module" src="src/version-history.js?v=2026-06-22-5"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -3824,6 +3824,51 @@ let _ringCtx = null, _ringOsc = null, _ringGain = null, _ringInterval = null;
 let preferredInputDevice = localStorage.getItem('crm-audio-input') || '';
 let preferredOutputDevice = localStorage.getItem('crm-audio-output') || '';
 
+// ─── LOCAL MIC TRACKING (BUG-031) ────────────────────────────────────────
+// The SignalWire SDK acquires the microphone via getUserMedia internally and
+// keeps it open after hangup() — so the browser tab keeps showing the red
+// "this tab is using your microphone" recording dot even though the call UI
+// has reset. That dot IS a still-live call at the media level. There's no
+// global "stop every getUserMedia stream" browser API, so we wrap
+// navigator.mediaDevices.getUserMedia ONCE to keep a reference to every audio
+// stream the app acquires, and stop those tracks ourselves in endCall().
+// Note: this wraps a standard BROWSER API, not SDK internals — distinct from
+// the SDK-internals rule in BUG-020. Audio-only; we never touch camera here.
+const _acquiredMicStreams = new Set();
+(function installMicTracker(){
+  try {
+    const md = navigator.mediaDevices;
+    if(!md || typeof md.getUserMedia !== 'function' || md.__nlmMicWrapped) return;
+    const orig = md.getUserMedia.bind(md);
+    md.getUserMedia = async function(constraints){
+      const stream = await orig(constraints);
+      try {
+        if(constraints && constraints.audio){
+          _acquiredMicStreams.add(stream);
+          // Auto-forget once every track has ended so the set doesn't grow.
+          stream.getTracks().forEach(t => t.addEventListener('ended', () => {
+            if(stream.getTracks().every(x => x.readyState === 'ended')) _acquiredMicStreams.delete(stream);
+          }));
+        }
+      } catch(_){}
+      return stream;
+    };
+    md.__nlmMicWrapped = true;
+  } catch(_){ /* non-fatal: falls back to pc-sender track stop in endCall */ }
+})();
+
+// Stop every local microphone track we know about — releases the mic and
+// clears the browser's tab recording indicator. Safe to call any time, even
+// with no active call (that's the whole point — it cleans up a stuck mic).
+function releaseLocalMedia(){
+  try {
+    _acquiredMicStreams.forEach(stream => {
+      try { stream.getTracks().forEach(t => { try{ t.stop(); }catch(_){} }); } catch(_){}
+    });
+    _acquiredMicStreams.clear();
+  } catch(_){}
+}
+
 // ── ERROR LOGGING ──
 function logError(source, message, stack, context) {
   // Write to localStorage for offline/instant access
@@ -4676,6 +4721,25 @@ function _pcOf(call){
   return null;
 }
 
+// BUG-031: return EVERY RTCPeerConnection a call holds, not just the active
+// one. The mic (a local sender track) can live on a non-active peer in the
+// rtcPeerMap, so stopping senders on only `_pcOf()` can leave the mic open
+// (browser keeps showing the tab recording dot). Used by endCall to stop
+// sender tracks across all peers.
+function _allPcsOf(call){
+  const out = new Set();
+  if(!call) return [];
+  const add = pc => { if(pc && typeof pc.getSenders === 'function') out.add(pc); };
+  add(_pcOf(call));
+  add(call.peer?.instance); add(call.peer?.peerConnection); add(call.peerConnection);
+  if(call.rtcPeerMap?.values){
+    for(const v of call.rtcPeerMap.values()){
+      add(v?.instance); add(v?.peerConnection); add(v?.pc);
+    }
+  }
+  return [...out];
+}
+
 function attachCallAudio(call){
   const audioEl = document.getElementById('remote-audio');
   if(!audioEl || !call) return;
@@ -5252,6 +5316,10 @@ function endCall(){
     try { _audioElSafety.pause(); } catch(_){}
     try { _audioElSafety.srcObject = null; } catch(_){}
   }
+  // Release the microphone (BUG-031): the SDK leaves getUserMedia open after
+  // hangup(), so the browser tab keeps showing the red recording dot — which
+  // reads as a still-ongoing call. Stop every local mic track we tracked.
+  releaseLocalMedia();
 
   // Tear down the SignalWire call. Prefer hangup() — for Call Fabric v3 PSTN
   // dials, leave() only signals the local subscriber departing the room and
@@ -5270,12 +5338,15 @@ function endCall(){
       try { audioEl.pause(); } catch(_){}
       try { audioEl.srcObject = null; } catch(_){}
     }
-    const pc = _pcOf(_call);
-    if(pc && typeof pc.close === 'function'){
+    // Stop sender/receiver tracks and close EVERY peer connection the call
+    // holds (BUG-031) — the mic can be a sender on a non-active peer, so
+    // closing only _pcOf(_call) could leave it open and the tab still
+    // "recording". _allPcsOf covers them all.
+    _allPcsOf(_call).forEach(pc => {
       try { pc.getSenders?.().forEach(s => { try{ s.track?.stop(); }catch(_){} }); } catch(_){}
       try { pc.getReceivers?.().forEach(r => { try{ r.track?.stop(); }catch(_){} }); } catch(_){}
-      try { pc.close(); } catch(_){}
-    }
+      try { if(typeof pc.close === 'function') pc.close(); } catch(_){}
+    });
     // 2. Tell SignalWire to end the call — hangup() first, leave() as fallback
     (async () => {
       try {
