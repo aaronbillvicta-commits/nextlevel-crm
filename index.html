@@ -51,7 +51,7 @@
 <script type="module" src="src/config.js?v=2026-05-16-1"></script>
 <script type="module" src="src/shared/toast.js?v=2026-05-16-2"></script>
 <script type="module" src="src/shared/permissions.js?v=2026-05-16-3"></script>
-<script type="module" src="src/version-history.js?v=2026-06-12-8"></script>
+<script type="module" src="src/version-history.js?v=2026-06-22-1"></script>
 <script type="module" src="src/calendar/holidays.js?v=2026-05-16-5"></script>
 <script type="module" src="src/calendar/datepicker.js?v=2026-05-16-6"></script>
 <script type="module" src="src/calendar/index.js?v=2026-05-16-7"></script>
@@ -1260,6 +1260,13 @@ table th[onclick]{transition:background .15s,color .15s}
 .settings-card-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px}
 .settings-card-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px}
 .settings-card-sub{font-size:12px;color:var(--text3)}
+/* Collapsible settings cards — clicking the head toggles `.collapsed`, which
+   hides everything but the head. State persists in localStorage. */
+.settings-card-head{cursor:pointer}
+.settings-card.collapsed > :not(.settings-card-head){display:none}
+.settings-card.collapsed > .settings-card-head{margin-bottom:0}
+.settings-chevron{display:inline-flex;align-items:center;color:var(--text3);flex-shrink:0;padding-top:1px;transition:transform .2s}
+.settings-card.collapsed .settings-chevron{transform:rotate(-90deg)}
 .user-row-set{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
 .user-row-set:last-child{border-bottom:none}
 .user-row-set .avatar{width:32px;height:32px;font-size:11px;flex-shrink:0}
@@ -2755,7 +2762,12 @@ table th[onclick]{transition:background .15s,color .15s}
 
     <div class="page" id="page-settings">
       <div style="max-width:720px">
-        
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:14px">
+          <button class="btn btn-sm" onclick="setAllSettingsCollapsed(false)">Expand all</button>
+          <button class="btn btn-sm" onclick="setAllSettingsCollapsed(true)">Collapse all</button>
+        </div>
+
         <div class="settings-card">
           <div class="settings-card-head">
             <div>
@@ -3048,6 +3060,7 @@ const ICON_PATHS = {
   plus: '<line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>',
   bolt: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
   clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  chevron: '<polyline points="6 9 12 15 18 9"/>',
   target: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
   bulb: '<path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z"/>',
   check: '<polyline points="20 6 9 17 4 12"/>',
@@ -4579,8 +4592,18 @@ async function dialWithAuthRetry(dialTo){
       logError('startCall_step', '4_call_started', null, { attempt });
       return call;
     } catch(e){
-      // Tear down the half-created call before retrying
-      if(call) { try { await call.leave(); } catch(_) {} }
+      // Tear down the half-created call before retrying. MUST use hangup() —
+      // for Fabric PSTN dials leave() only signals the local subscriber leaving
+      // the room and does NOT terminate the remote PSTN leg (BUG-015). If this
+      // attempt already created a Call object (dial() succeeded, start() threw
+      // on an expired token), a leave() here leaves that leg LIVE while the
+      // retry below dials a second one → two simultaneous calls (BUG-029).
+      if(call){
+        try {
+          if(typeof call.hangup === 'function') await call.hangup();
+          else if(typeof call.leave === 'function') await call.leave();
+        } catch(_) {}
+      }
       if(attempt === 0 && isExpiredTokenError(e)){
         logError('startCall_token_refresh', 'Detected expired auth — refreshing token', null, {});
         await initSWClient(true);   // force re-init with fresh JWT
@@ -5153,7 +5176,15 @@ async function startCall(){
       saveConversations();
     }
   } catch(e){
-    if(swCall){ try{ await swCall.leave(); }catch(_){} swCall=null; }
+    // hangup() not leave() — a failed call can still have a live PSTN leg, and
+    // leave() won't kill it on Fabric (BUG-015/BUG-029). hangup() terminates it.
+    if(swCall){
+      try {
+        if(typeof swCall.hangup === 'function') await swCall.hangup();
+        else if(typeof swCall.leave === 'function') await swCall.leave();
+      } catch(_){}
+      swCall=null;
+    }
     // If we somehow still got an auth error here (e.g. start() threw), force-refresh next time
     if(isExpiredTokenError(e)){ swClient = null; incomingCallsRegistered = false; updateOnlineIndicator(); }
     logCall('outbound', dialTo, activeCallContact?.name||'', 0, 'failed', (typeof getDialerActiveNumber === 'function' ? getDialerActiveNumber() : ''));
@@ -7653,6 +7684,70 @@ function renderSettingsPage(){
   // Subscriptions / expenses (owner-only personal tracker)
   renderSubscriptionsCard();
   loadSubscriptions();
+  // Make every settings card collapsible (idempotent; also re-run by dynamic cards)
+  initSettingsCollapse();
+}
+
+// ── Collapsible settings cards ────────────────────────────────────────────────
+// Each `.settings-card` collapses to just its header on click. State is keyed by
+// the card's title text and persisted in localStorage. Wired via event delegation
+// so dynamically re-rendered cards (Subscriptions) keep working. Idempotent:
+// safe to call after every settings render.
+const SETTINGS_COLLAPSE_KEY = 'nlm_settings_collapsed';
+function _getSettingsCollapsed(){ try{ return JSON.parse(localStorage.getItem(SETTINGS_COLLAPSE_KEY)||'{}'); }catch(_){ return {}; } }
+function _setSettingsCollapsed(map){ try{ localStorage.setItem(SETTINGS_COLLAPSE_KEY, JSON.stringify(map)); }catch(_){} }
+function _settingsCardKey(card){ return card.querySelector('.settings-card-title')?.textContent.trim() || ''; }
+
+function initSettingsCollapse(){
+  const page = document.getElementById('page-settings');
+  if(!page) return;
+  const state = _getSettingsCollapsed();
+  page.querySelectorAll('.settings-card').forEach(card=>{
+    const head = card.querySelector(':scope > .settings-card-head');
+    if(!head) return;
+    if(!head.querySelector('.settings-chevron')){
+      const chev = document.createElement('span');
+      chev.className = 'settings-chevron';
+      chev.innerHTML = icon('chevron', 16);
+      head.insertBefore(chev, head.firstChild);
+      // Let the title block grow so any action button stays right-aligned.
+      const titleBlock = chev.nextElementSibling;
+      if(titleBlock) titleBlock.style.flex = '1';
+    }
+    const key = _settingsCardKey(card);
+    if(key && state[key]) card.classList.add('collapsed');
+  });
+  // Bind the toggle once via delegation.
+  if(!page._collapseBound){
+    page.addEventListener('click', e=>{
+      const head = e.target.closest('.settings-card-head');
+      if(!head || !page.contains(head)) return;
+      // Don't toggle when an interactive control inside the head was clicked.
+      if(e.target.closest('button, a, input, select, label')) return;
+      const card = head.closest('.settings-card');
+      if(!card) return;
+      card.classList.toggle('collapsed');
+      const map = _getSettingsCollapsed();
+      const key = _settingsCardKey(card);
+      if(key){
+        if(card.classList.contains('collapsed')) map[key] = true; else delete map[key];
+        _setSettingsCollapsed(map);
+      }
+    });
+    page._collapseBound = true;
+  }
+}
+
+function setAllSettingsCollapsed(collapse){
+  const page = document.getElementById('page-settings');
+  if(!page) return;
+  const map = {};
+  page.querySelectorAll('.settings-card').forEach(card=>{
+    card.classList.toggle('collapsed', collapse);
+    const key = _settingsCardKey(card);
+    if(key && collapse) map[key] = true;
+  });
+  _setSettingsCollapsed(map);
 }
 
 // ═══════════════════════════════════════════════
@@ -7772,6 +7867,8 @@ function renderSubscriptionsCard(){
         </div>`
       : `<div style="font-size:12px;color:var(--text3);padding:14px 0;text-align:center">No subscriptions yet. Click <strong>+ Add</strong> to track your first expense.</div>`}
     </div>`;
+  // Re-apply the collapse chevron + persisted state to this freshly-rebuilt card.
+  if(typeof initSettingsCollapse === 'function') initSettingsCollapse();
 }
 
 function openSubModal(id){
