@@ -6227,7 +6227,17 @@ async function saveContact(id, tab, keepOpen=false) {
       }
       renderContacts();
       if(!keepOpen){ window._modalLocked=false; closeModalForce(); }
-    } catch(e) { showToast('Error saving contact','error'); console.error(e); }
+    } catch(e) {
+      // Surface the real PostgREST reason instead of a generic toast, and log
+      // the full error (code/details/hint) to error_logs so failures can be
+      // diagnosed remotely instead of dying silently in the console.
+      const reason = e?.message || e?.code || (typeof e==='string'?e:'') || 'Unknown error';
+      showToast('Error saving contact: ' + reason, 'error');
+      console.error('saveContact failed', e);
+      try { logError('saveContact', reason, e?.stack || null, {
+        code: e?.code, details: e?.details, hint: e?.hint, isEdit: !!id
+      }); } catch(_){}
+    }
   } else if(tab==='custom') {
     const c = contacts.find(x=>x.id===id); if(!c) return;
     const cf = {...(c.customFields||{})};
